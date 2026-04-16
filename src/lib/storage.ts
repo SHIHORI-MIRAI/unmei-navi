@@ -1,4 +1,5 @@
 export interface UserProfile {
+  id: string;
   name: string;
   birthDate: string; // YYYY-MM-DD
   birthTime: string; // HH:MM or ""
@@ -39,6 +40,8 @@ export interface ManualReading {
 
 export interface AppData {
   profile: UserProfile | null;
+  profiles: UserProfile[];
+  activeProfileId: string;
   diary: DiaryEntry[];
   goals: GoalData[];
   manualReadings: ManualReading[];
@@ -46,9 +49,15 @@ export interface AppData {
 
 const STORAGE_KEY = "unmei-navi-data";
 
+function generateId(): string {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
 function getDefaultData(): AppData {
   return {
     profile: null,
+    profiles: [],
+    activeProfileId: "",
     diary: [],
     goals: [],
     manualReadings: [],
@@ -60,7 +69,20 @@ export function loadData(): AppData {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return getDefaultData();
-    return { ...getDefaultData(), ...JSON.parse(raw) };
+    const data = { ...getDefaultData(), ...JSON.parse(raw) };
+
+    // 旧形式からの移行: profileがあるがprofilesが空の場合
+    if (data.profile && data.profiles.length === 0) {
+      const migrated: UserProfile = {
+        ...data.profile,
+        id: data.profile.id || generateId(),
+      };
+      data.profiles = [migrated];
+      data.activeProfileId = migrated.id;
+      data.profile = migrated;
+    }
+
+    return data;
   } catch {
     return getDefaultData();
   }
@@ -71,13 +93,69 @@ export function saveData(data: AppData): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
+// --- Profiles (複数プロフィール管理) ---
+
+export function loadProfiles(): UserProfile[] {
+  return loadData().profiles;
+}
+
 export function loadProfile(): UserProfile | null {
-  return loadData().profile;
+  const data = loadData();
+  if (data.profiles.length === 0) return null;
+  // activeProfileIdに一致するプロフィールを返す
+  const active = data.profiles.find((p) => p.id === data.activeProfileId);
+  return active || data.profiles[0];
+}
+
+export function getActiveProfileId(): string {
+  return loadData().activeProfileId;
 }
 
 export function saveProfile(profile: UserProfile): void {
   const data = loadData();
+  // IDがなければ付与
+  if (!profile.id) {
+    profile.id = generateId();
+  }
+
+  const idx = data.profiles.findIndex((p) => p.id === profile.id);
+  if (idx >= 0) {
+    data.profiles[idx] = profile;
+  } else {
+    data.profiles.push(profile);
+  }
+
+  // activeProfileIdを設定
+  data.activeProfileId = profile.id;
+  // 後方互換: profileフィールドも更新
   data.profile = profile;
+
+  saveData(data);
+}
+
+export function switchProfile(profileId: string): void {
+  const data = loadData();
+  const target = data.profiles.find((p) => p.id === profileId);
+  if (target) {
+    data.activeProfileId = profileId;
+    data.profile = target;
+    saveData(data);
+  }
+}
+
+export function deleteProfile(profileId: string): void {
+  const data = loadData();
+  data.profiles = data.profiles.filter((p) => p.id !== profileId);
+  // 削除したのがアクティブだった場合、先頭に切り替え
+  if (data.activeProfileId === profileId) {
+    if (data.profiles.length > 0) {
+      data.activeProfileId = data.profiles[0].id;
+      data.profile = data.profiles[0];
+    } else {
+      data.activeProfileId = "";
+      data.profile = null;
+    }
+  }
   saveData(data);
 }
 
@@ -86,7 +164,7 @@ export function saveProfile(profile: UserProfile): void {
 export function loadGoals(): GoalData[] {
   return loadData().goals.map((g) => ({
     ...g,
-    id: g.id || Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    id: g.id || generateId(),
     status: g.status || "active",
     memo: g.memo || "",
   }));
@@ -114,7 +192,7 @@ export function deleteGoal(id: string): void {
 export function loadDiary(): DiaryEntry[] {
   return loadData().diary.map((d) => ({
     ...d,
-    id: d.id || Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    id: d.id || generateId(),
     mood: d.mood || 3,
     tags: d.tags || [],
   }));
@@ -142,7 +220,7 @@ export function deleteDiaryEntry(id: string): void {
 export function loadReadings(): ManualReading[] {
   return loadData().manualReadings.map((r) => ({
     ...r,
-    id: r.id || Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    id: r.id || generateId(),
     memo: r.memo || "",
   }));
 }
