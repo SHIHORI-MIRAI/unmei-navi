@@ -304,25 +304,31 @@ export default function DetailPage() {
             </p>
             <p className="text-foreground/80">{sanmeigaku.mainStar.personality}</p>
 
-            {/* 人体星図（簡易版） */}
+            {/* 人体星図 */}
             <div className="border-t border-card-border mt-2 pt-2">
-              <p className="text-muted text-xs mb-1">人体星図（主星）</p>
-              <div className="grid grid-cols-3 gap-1 text-center text-xs max-w-[200px] mx-auto">
+              <p className="text-muted text-xs mb-1">人体星図（十大主星）</p>
+              <div className="grid grid-cols-3 gap-1 text-center text-xs max-w-[220px] mx-auto">
                 <div />
                 <div className="bg-accent-gold/10 border border-accent-gold/30 rounded py-1.5">
-                  <p className="text-[10px] text-muted">北</p>
+                  <p className="text-[10px] text-muted">北（頭）</p>
                   <p className="font-medium text-foreground">{sanmeigaku.bodyChart.north.name}</p>
                 </div>
                 <div />
-                <div />
+                <div className="bg-accent-gold/10 border border-accent-gold/30 rounded py-1.5">
+                  <p className="text-[10px] text-muted">東</p>
+                  <p className="font-medium text-foreground">{sanmeigaku.bodyChart.east.name}</p>
+                </div>
                 <div className="bg-accent-orange/10 border border-accent-orange/30 rounded py-1.5">
                   <p className="text-[10px] text-muted">中央</p>
                   <p className="font-bold text-accent-orange">{sanmeigaku.bodyChart.center.name}</p>
                 </div>
-                <div />
+                <div className="bg-accent-gold/10 border border-accent-gold/30 rounded py-1.5">
+                  <p className="text-[10px] text-muted">西</p>
+                  <p className="font-medium text-foreground">{sanmeigaku.bodyChart.west.name}</p>
+                </div>
                 <div />
                 <div className="bg-accent-gold/10 border border-accent-gold/30 rounded py-1.5">
-                  <p className="text-[10px] text-muted">南</p>
+                  <p className="text-[10px] text-muted">南（腹）</p>
                   <p className="font-medium text-foreground">{sanmeigaku.bodyChart.south.name}</p>
                 </div>
                 <div />
