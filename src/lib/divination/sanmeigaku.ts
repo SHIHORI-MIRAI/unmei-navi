@@ -16,18 +16,22 @@ import {
 
 // --- 十大主星 ---
 
+/**
+ * 十大主星リスト（対照表の番号順 = 五本能順）
+ * 1-2: 守備本能、3-4: 習得本能、5-6: 攻撃本能、7-8: 引力本能、9-10: 伝達本能
+ */
 const MAIN_STAR_LIST = [
   null, // 0は使わない（1始まり）
   { name: "貫索星", reading: "かんさくせい", keyword: "自立・守り", personality: "自分の世界を大切にし、マイペースに生きるタイプ。信念を貫く力が強い", strength: "独立心・忍耐力・信念" },
   { name: "石門星", reading: "せきもんせい", keyword: "社交・仲間", personality: "人と繋がる力が強く、チームをまとめるのが得意。社交的で面倒見がいい", strength: "協調性・社交性・仲介力" },
-  { name: "鳳閣星", reading: "ほうかくせい", keyword: "楽観・表現", personality: "楽観的で表現力豊か。食べること・楽しむことが好きで、人を和ませる天才", strength: "楽観性・表現力・おおらかさ" },
-  { name: "調舒星", reading: "ちょうじょせい", keyword: "感性・芸術", personality: "感受性が非常に繊細で、芸術的才能がある。孤独を愛し、深い精神世界を持つ", strength: "感性・芸術性・直感力" },
-  { name: "禄存星", reading: "ろくぞんせい", keyword: "魅力・財", personality: "人を惹きつける魅力があり、経済的な才能に恵まれる。世話好きで情が深い", strength: "人間的魅力・経済力・奉仕精神" },
-  { name: "司禄星", reading: "しろくせい", keyword: "蓄積・堅実", personality: "コツコツと積み重ねる力が強い。堅実で、家庭や組織を安定させる力がある", strength: "堅実さ・蓄財力・安定感" },
-  { name: "車騎星", reading: "しゃきせい", keyword: "行動・闘争", personality: "行動力と闘争心に溢れる。目標に向かって突き進む力が強く、スポーツマンタイプ", strength: "行動力・闘争心・スピード" },
-  { name: "牽牛星", reading: "けんぎゅうせい", keyword: "名誉・責任", personality: "名誉を重んじ、責任感が強い。品格があり、エリートタイプ", strength: "責任感・品格・組織力" },
   { name: "龍高星", reading: "りゅうこうせい", keyword: "知恵・放浪", personality: "知的好奇心旺盛で、自由を愛する。旅や冒険が好きで、型にはまらない", strength: "知識欲・冒険心・改革力" },
   { name: "玉堂星", reading: "ぎょくどうせい", keyword: "学問・母性", personality: "学ぶことが好きで、知識を人に伝える力がある。母性的な温かさを持つ", strength: "学問・教育力・母性" },
+  { name: "車騎星", reading: "しゃきせい", keyword: "行動・闘争", personality: "行動力と闘争心に溢れる。目標に向かって突き進む力が強く、スポーツマンタイプ", strength: "行動力・闘争心・スピード" },
+  { name: "牽牛星", reading: "けんぎゅうせい", keyword: "名誉・責任", personality: "名誉を重んじ、責任感が強い。品格があり、エリートタイプ", strength: "責任感・品格・組織力" },
+  { name: "禄存星", reading: "ろくぞんせい", keyword: "魅力・財", personality: "人を惹きつける魅力があり、経済的な才能に恵まれる。世話好きで情が深い", strength: "人間的魅力・経済力・奉仕精神" },
+  { name: "司禄星", reading: "しろくせい", keyword: "蓄積・堅実", personality: "コツコツと積み重ねる力が強い。堅実で、家庭や組織を安定させる力がある", strength: "堅実さ・蓄財力・安定感" },
+  { name: "鳳閣星", reading: "ほうかくせい", keyword: "楽観・表現", personality: "楽観的で表現力豊か。食べること・楽しむことが好きで、人を和ませる天才", strength: "楽観性・表現力・おおらかさ" },
+  { name: "調舒星", reading: "ちょうじょせい", keyword: "感性・芸術", personality: "感受性が非常に繊細で、芸術的才能がある。孤独を愛し、深い精神世界を持つ", strength: "感性・芸術性・直感力" },
 ] as const;
 
 type MainStar = NonNullable<(typeof MAIN_STAR_LIST)[number]>;
@@ -185,10 +189,20 @@ const ZOUKAN: Record<string, number> = {
   亥: 8, // 壬
 };
 
-// 午の主気は丁に修正
+// 算命学で人体星図に使用する蔵干（各地支の代表蔵干）
 const ZOUKAN_MAIN: Record<string, number> = {
-  子: 9, 丑: 5, 寅: 0, 卯: 1, 辰: 4,
-  巳: 2, 午: 3, 未: 5, 申: 6, 酉: 7, 戌: 4, 亥: 8,
+  子: 9, // 癸
+  丑: 5, // 己
+  寅: 0, // 甲
+  卯: 1, // 乙
+  辰: 4, // 戊
+  巳: 2, // 丙
+  午: 5, // 己（算命学では己を使用）
+  未: 5, // 己
+  申: 6, // 庚
+  酉: 7, // 辛
+  戌: 4, // 戊
+  亥: 8, // 壬
 };
 
 // --- メインの計算関数 ---
@@ -228,13 +242,13 @@ export function calcSanmeigaku(birthDate: string): SanmeigakuResult {
   const yearBranchZoukan = ZOUKAN_MAIN[yearPillar.branch.name] ?? 0;
 
   // --- 十大主星（人体星図の5箇所）---
-  // 中央（胸）: 日干 vs 月干 → 自分自身の本質
-  const center = lookupMainStar(dayStemIdx, monthStemIdx);
   // 北（頭）: 日干 vs 年干 → 目上・両親との関係
   const north = lookupMainStar(dayStemIdx, yearStemIdx);
-  // 南（腹）: 日干 vs 月支の蔵干 → 目下・子供との関係
+  // 南（腹）: 日干 vs 月干 → 目下・子供との関係
+  const south = lookupMainStar(dayStemIdx, monthStemIdx);
+  // 中央（胸）: 日干 vs 月支の蔵干 → 自分自身の本質
   const monthBranchZoukan = ZOUKAN_MAIN[monthPillar.branch.name] ?? 0;
-  const south = lookupMainStar(dayStemIdx, monthBranchZoukan);
+  const center = lookupMainStar(dayStemIdx, monthBranchZoukan);
   // 東（左手）: 日干 vs 年支の蔵干 → 兄弟・友人との関係
   const east = lookupMainStar(dayStemIdx, yearBranchZoukan);
   // 西（右手）: 日干 vs 日支の蔵干 → 配偶者・家庭との関係
