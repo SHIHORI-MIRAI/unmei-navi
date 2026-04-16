@@ -192,8 +192,8 @@ export function calcDayPillar(
   day: number
 ): StemBranch {
   const jd = julianDayNumber(year, month, day);
-  // 基準: JD 2415020 (1900-01-01) = 干支番号36 (庚子)
-  const kanshiNum = ((Math.floor(jd) - 2415020 + 36) % 60 + 60) % 60;
+  // (JDN + 50) % 60 で干支番号を算出（検証済み: 1981-04-22=庚午, 1900-01-01=甲戌）
+  const kanshiNum = (Math.floor(jd) + 50) % 60;
   const stemIdx = kanshiNum % 10;
   const branchIdx = kanshiNum % 12;
 
