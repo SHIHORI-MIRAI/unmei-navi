@@ -228,16 +228,17 @@ export function calcSanmeigaku(birthDate: string): SanmeigakuResult {
   const yearBranchZoukan = ZOUKAN_MAIN[yearPillar.branch.name] ?? 0;
 
   // --- 十大主星（人体星図の5箇所）---
-  // 中央: 日干そのもの → 自分と同じ = 貫索星 or 石門星
-  const center = lookupMainStar(dayStemIdx, dayStemIdx);
-  // 北（頭）: 日干 vs 月干
-  const north = lookupMainStar(dayStemIdx, monthStemIdx);
-  // 南（腹）: 日干 vs 年干
-  const south = lookupMainStar(dayStemIdx, yearStemIdx);
-  // 東（左手）: 日干 vs 日支の蔵干
-  const east = lookupMainStar(dayStemIdx, dayBranchZoukan);
-  // 西（右手）: 日干 vs 年支の蔵干
-  const west = lookupMainStar(dayStemIdx, yearBranchZoukan);
+  // 中央（胸）: 日干 vs 月干 → 自分自身の本質
+  const center = lookupMainStar(dayStemIdx, monthStemIdx);
+  // 北（頭）: 日干 vs 年干 → 目上・両親との関係
+  const north = lookupMainStar(dayStemIdx, yearStemIdx);
+  // 南（腹）: 日干 vs 月支の蔵干 → 目下・子供との関係
+  const monthBranchZoukan = ZOUKAN_MAIN[monthPillar.branch.name] ?? 0;
+  const south = lookupMainStar(dayStemIdx, monthBranchZoukan);
+  // 東（左手）: 日干 vs 年支の蔵干 → 兄弟・友人との関係
+  const east = lookupMainStar(dayStemIdx, yearBranchZoukan);
+  // 西（右手）: 日干 vs 日支の蔵干 → 配偶者・家庭との関係
+  const west = lookupMainStar(dayStemIdx, dayBranchZoukan);
 
   // 主星 = 中央の星
   const mainStar = center;
