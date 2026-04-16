@@ -1,13 +1,13 @@
 /**
  * 今日のメッセージ・注意点を生成する
  *
- * 数秘術のパーソナルデイ、マヤ暦の今日のKIN、0学の運命期を
+ * 数秘術のパーソナルデイ、マヤ暦の今日のKIN、九星気学を
  * 組み合わせて、「推進」と「注意」の2軸でメッセージを生成する。
  */
 
 import { calcNumerology } from "./numerology";
 import { calcTodayMayan } from "./mayan";
-import { calcZerology } from "./zerology";
+import { calcNineStar } from "./nine-star";
 
 const dailyMessages: Record<number, { message: string; caution: string }> = {
   1: { message: "新しいことを始めるのに最適な日。直感に従って一歩踏み出して", caution: "周りの意見を聞く余裕も忘れずに" },
@@ -41,7 +41,7 @@ export interface DailyMessage {
 export function generateDailyMessage(birthDate: string, today: Date = new Date()): DailyMessage {
   const numerology = calcNumerology(birthDate, today);
   const todayMayan = calcTodayMayan(today);
-  const zerology = calcZerology(birthDate, today.getFullYear());
+  const nineStar = calcNineStar(birthDate, today.getFullYear());
 
   const personalDay = numerology.personalDay;
   const base = dailyMessages[personalDay] || dailyMessages[1];
@@ -49,17 +49,15 @@ export function generateDailyMessage(birthDate: string, today: Date = new Date()
   // マヤ暦の色でメッセージを補強
   const colorBoost = mayanColorBoost[todayMayan.solarSeal.color] || "";
 
-  // 0学の運命期で注意点を補強
-  const phaseAdvice =
-    zerology.currentPhase.energy < 40
-      ? "。今は充電期間なので無理はしないで"
-      : zerology.currentPhase.energy > 80
-      ? "。運気が好調なので積極的に動いてOK"
+  // 九星気学の吉方位をメッセージに追加
+  const directionHint =
+    nineStar.luckyDirections.length > 0
+      ? `。吉方位は${nineStar.luckyDirections[0]}方面`
       : "";
 
   return {
-    message: base.message + colorBoost,
-    caution: base.caution + phaseAdvice,
-    source: `数秘パーソナルデイ${personalDay}・${todayMayan.solarSeal.name}・${zerology.currentPhase.name}`,
+    message: base.message + colorBoost + directionHint,
+    caution: base.caution,
+    source: `数秘パーソナルデイ${personalDay}・${todayMayan.solarSeal.name}・${nineStar.honmeisei.name}`,
   };
 }

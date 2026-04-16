@@ -1,103 +1,180 @@
 /**
  * 0学（ゼロがく）計算エンジン
  *
- * 生年月日から支配星を算出し、12年周期の運命グラフを計算する。
- * 0学は12の支配星と12年サイクルの運命期で構成される。
+ * 正式な0学の計算方法:
+ * 1. 生年月日から「星数」を算出（年×月の交差数 - 1 + 日、60超は60を引く）
+ * 2. 星数の範囲（1-10, 11-20, ...）× 生まれ年の奇偶で12の支配星を決定
+ * 3. 12年周期の運命期を算出
  */
 
-/**
- * 0学の支配星を算出する。
- * 計算: 生まれ年の下2桁 + 生まれ月 + 生まれ日 を合計し、
- * その合計を60で割った余りから支配星を求める。
- */
-export function calcRulingStarIndex(birthDate: string): number {
-  const [y, m, d] = birthDate.split("-").map(Number);
-
-  // 0学の簡易計算: 年の各桁 + 月 + 日の合計
-  const yearSum = String(y)
-    .split("")
-    .reduce((s, c) => s + Number(c), 0);
-  const total = yearSum + m + d;
-
-  // 12で割った余りで支配星を決定
-  return total % 12;
+// --- うるう年判定 ---
+function isLeapYear(year: number): boolean {
+  return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
 }
 
-// --- 12の支配星 ---
-const rulingStars = [
+// --- 1月1日の基本数を算出 ---
+// 基準: 1980年1月 = 10（運命数早見表より）
+// 各年の増分: 平年 +5（365 mod 60）、うるう年 +6（366 mod 60）
+function getJan1Base(year: number): number {
+  const REF_YEAR = 1980;
+  const REF_BASE = 10;
+  let base = REF_BASE;
+
+  if (year >= REF_YEAR) {
+    for (let y = REF_YEAR; y < year; y++) {
+      base += isLeapYear(y) ? 6 : 5;
+    }
+  } else {
+    for (let y = year; y < REF_YEAR; y++) {
+      base -= isLeapYear(y) ? 6 : 5;
+    }
+  }
+
+  return ((base % 60) + 60) % 60 || 60;
+}
+
+// --- 年内の通算日を算出 ---
+function getDayOfYear(year: number, month: number, day: number): number {
+  const daysInMonth = [
+    31, isLeapYear(year) ? 29 : 28, 31, 30, 31, 30,
+    31, 31, 30, 31, 30, 31,
+  ];
+  let total = 0;
+  for (let m = 0; m < month - 1; m++) {
+    total += daysInMonth[m];
+  }
+  return total + day;
+}
+
+/**
+ * 星数を算出する（1〜60）
+ * 計算: 1月基本数 - 1 + 通算日、60超は60を引く
+ */
+function calcStarNumber(birthDate: string): number {
+  const [y, m, d] = birthDate.split("-").map(Number);
+  const jan1Base = getJan1Base(y);
+  const dayOfYear = getDayOfYear(y, m, d);
+  let starNumber = (jan1Base - 1 + dayOfYear) % 60;
+  if (starNumber === 0) starNumber = 60;
+  return starNumber;
+}
+
+// --- 12の支配星（星数の範囲 × 奇偶年で決定）---
+// 偶数年 = 陰、奇数年 = 陽
+const STAR_RANGES: {
+  range: [number, number];
+  even: { name: string; type: string; personality: string; strength: string };
+  odd: { name: string; type: string; personality: string; strength: string };
+}[] = [
   {
-    name: "水星",
-    type: "小王星",
-    personality: "知的好奇心旺盛で頭の回転が速い。情報収集力と分析力に優れている",
-    strength: "知性・分析力・コミュニケーション",
+    range: [1, 10],
+    even: {
+      name: "土星",
+      type: "陰の星",
+      personality: "堅実で責任感が強い。コツコツと積み上げる努力家。慎重な判断力を持つ",
+      strength: "堅実さ・責任感・忍耐力",
+    },
+    odd: {
+      name: "天王星",
+      type: "陽の星",
+      personality: "自由を愛し独創的。常識にとらわれない革新的な発想の持ち主",
+      strength: "独創性・革新力・自由",
+    },
   },
   {
-    name: "氷王星",
-    type: "王星",
-    personality: "冷静沈着で判断力に優れる。独自の美学と高い精神性を持つ",
-    strength: "冷静さ・審美眼・精神力",
+    range: [11, 20],
+    even: {
+      name: "金星",
+      type: "陰の星",
+      personality: "華やかで社交的。美的センスと人を惹きつける魅力がある",
+      strength: "魅力・社交性・美的センス",
+    },
+    odd: {
+      name: "小王星",
+      type: "陽の星",
+      personality: "バランス感覚に優れ、調整役として活躍できる。穏やかで安定感がある",
+      strength: "調和力・安定感・バランス",
+    },
   },
   {
-    name: "木星",
-    type: "小王星",
-    personality: "楽天的で器が大きい。人望があり、リーダーシップを発揮する",
-    strength: "包容力・楽観性・統率力",
+    range: [21, 30],
+    even: {
+      name: "火星",
+      type: "陰の星",
+      personality: "情熱的で行動力がある。チャレンジ精神旺盛で負けず嫌い",
+      strength: "行動力・情熱・競争心",
+    },
+    odd: {
+      name: "冥王星",
+      type: "陽の星",
+      personality: "カリスマ性があり、底知れないパワーを持つ。変革を起こす力がある",
+      strength: "カリスマ性・変革力・再生力",
+    },
   },
   {
-    name: "海王星",
-    type: "王星",
-    personality: "感受性が豊かでロマンチスト。想像力と芸術的センスに恵まれている",
-    strength: "感性・創造力・芸術性",
+    range: [31, 40],
+    even: {
+      name: "月王星",
+      type: "陰の星",
+      personality: "繊細で優しく、周囲を癒す力を持つ。感情豊かで母性的",
+      strength: "癒し・優しさ・母性",
+    },
+    odd: {
+      name: "魚王星",
+      type: "陽の星",
+      personality: "直感力が鋭く、人の気持ちを察する能力に優れている。献身的な性格",
+      strength: "直感力・共感力・献身性",
+    },
   },
   {
-    name: "火星",
-    type: "小王星",
-    personality: "情熱的で行動力がある。チャレンジ精神旺盛で負けず嫌い",
-    strength: "行動力・情熱・競争心",
+    range: [41, 50],
+    even: {
+      name: "木星",
+      type: "陰の星",
+      personality: "楽天的で器が大きい。人望があり、リーダーシップを発揮する",
+      strength: "包容力・楽観性・統率力",
+    },
+    odd: {
+      name: "海王星",
+      type: "陽の星",
+      personality: "感受性が豊かでロマンチスト。想像力と芸術的センスに恵まれている",
+      strength: "感性・創造力・芸術性",
+    },
   },
   {
-    name: "冥王星",
-    type: "王星",
-    personality: "カリスマ性があり、底知れないパワーを持つ。変革を起こす力がある",
-    strength: "カリスマ性・変革力・再生力",
-  },
-  {
-    name: "天王星",
-    type: "王星",
-    personality: "自由を愛し独創的。常識にとらわれない革新的な発想の持ち主",
-    strength: "独創性・革新力・自由",
-  },
-  {
-    name: "土星",
-    type: "小王星",
-    personality: "堅実で責任感が強い。コツコツと積み上げる努力家",
-    strength: "堅実さ・責任感・忍耐力",
-  },
-  {
-    name: "魚王星",
-    type: "王星",
-    personality: "直感力が鋭く、人の気持ちを察する能力に優れている。献身的な性格",
-    strength: "直感力・共感力・献身性",
-  },
-  {
-    name: "金星",
-    type: "小王星",
-    personality: "華やかで社交的。美的センスと人を惹きつける魅力がある",
-    strength: "魅力・社交性・美的センス",
-  },
-  {
-    name: "小王星",
-    type: "小王星",
-    personality: "バランス感覚に優れ、調整役として活躍できる。穏やかで安定感がある",
-    strength: "調和力・安定感・バランス",
-  },
-  {
-    name: "月王星",
-    type: "王星",
-    personality: "繊細で優しく、周囲を癒す力を持つ。感情豊かで母性的",
-    strength: "癒し・優しさ・母性",
+    range: [51, 60],
+    even: {
+      name: "水星",
+      type: "陰の星",
+      personality: "知的好奇心旺盛で頭の回転が速い。情報収集力と分析力に優れている",
+      strength: "知性・分析力・コミュニケーション",
+    },
+    odd: {
+      name: "氷王星",
+      type: "陽の星",
+      personality: "冷静沈着で判断力に優れる。独自の美学と高い精神性を持つ",
+      strength: "冷静さ・審美眼・精神力",
+    },
   },
 ];
+
+/**
+ * 支配星を算出する
+ */
+function getRulingStar(birthDate: string) {
+  const year = parseInt(birthDate.split("-")[0], 10);
+  const starNumber = calcStarNumber(birthDate);
+  const isOddYear = year % 2 === 1;
+
+  for (const entry of STAR_RANGES) {
+    const [min, max] = entry.range;
+    if (starNumber >= min && starNumber <= max) {
+      return isOddYear ? entry.odd : entry.even;
+    }
+  }
+  // fallback（到達しない）
+  return isOddYear ? STAR_RANGES[0].odd : STAR_RANGES[0].even;
+}
 
 // --- 12年サイクルの運命期 ---
 const destinyPhases = [
@@ -119,9 +196,10 @@ const destinyPhases = [
 export function calcDestinyPhaseIndex(birthDate: string, year: number): number {
   const birthYear = parseInt(birthDate.split("-")[0], 10);
   const diff = year - birthYear;
-  // 12年周期で支配星のインデックスをオフセットにする
-  const starIdx = calcRulingStarIndex(birthDate);
-  return ((diff + starIdx) % 12 + 12) % 12;
+  const starNumber = calcStarNumber(birthDate);
+  // 星数の範囲インデックス（0-5）をオフセットに使用
+  const rangeIndex = Math.floor((starNumber - 1) / 10);
+  return (((diff + rangeIndex) % 12) + 12) % 12;
 }
 
 export interface ZerologyResult {
@@ -142,11 +220,11 @@ export interface ZerologyResult {
 }
 
 export function calcZerology(birthDate: string, year: number = new Date().getFullYear()): ZerologyResult {
-  const starIdx = calcRulingStarIndex(birthDate);
+  const star = getRulingStar(birthDate);
   const phaseIdx = calcDestinyPhaseIndex(birthDate, year);
 
   return {
-    rulingStar: rulingStars[starIdx],
+    rulingStar: star,
     currentPhase: destinyPhases[phaseIdx],
     currentPhaseIndex: phaseIdx,
   };

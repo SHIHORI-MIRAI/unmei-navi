@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { loadProfile, saveProfile, type UserProfile } from "@/lib/storage";
+import { loadProfile, saveProfile, exportData, importData, type UserProfile } from "@/lib/storage";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -13,6 +13,8 @@ export default function ProfilePage() {
     birthPlace: "",
   });
   const [saved, setSaved] = useState(false);
+  const [importStatus, setImportStatus] = useState<"" | "success" | "error">("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const profile = loadProfile();
@@ -30,6 +32,34 @@ export default function ProfilePage() {
     saveProfile(form);
     setSaved(true);
     setTimeout(() => router.push("/"), 1000);
+  }
+
+  function handleExport() {
+    const json = exportData();
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `unmei-navi-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const success = importData(reader.result as string);
+      setImportStatus(success ? "success" : "error");
+      if (success) {
+        const profile = loadProfile();
+        if (profile) setForm(profile);
+        setTimeout(() => setImportStatus(""), 3000);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
   }
 
   return (
@@ -118,6 +148,55 @@ export default function ProfilePage() {
           {saved ? "✓ 保存しました！" : "保存してホームへ"}
         </button>
       </form>
+
+      {/* データ管理 */}
+      <section className="border-t border-card-border pt-6 space-y-4">
+        <h3 className="text-sm font-medium text-accent-gold flex items-center gap-1.5">
+          <span>◈</span> データ管理
+        </h3>
+        <p className="text-xs text-muted">
+          プロフィール・日記・ゴール・鑑定結果など全てのデータを
+          JSONファイルでバックアップ・復元できます。
+        </p>
+
+        <div className="flex gap-3">
+          <button
+            onClick={handleExport}
+            className="flex-1 py-2.5 bg-card-bg border border-card-border rounded-xl text-sm font-medium text-foreground hover:border-accent-orange/50 transition-colors"
+          >
+            エクスポート
+          </button>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex-1 py-2.5 bg-card-bg border border-card-border rounded-xl text-sm font-medium text-foreground hover:border-accent-orange/50 transition-colors"
+          >
+            インポート
+          </button>
+        </div>
+
+        {importStatus === "success" && (
+          <p className="text-xs text-accent-gold text-center">
+            データを復元しました
+          </p>
+        )}
+        {importStatus === "error" && (
+          <p className="text-xs text-danger text-center">
+            ファイルの読み込みに失敗しました
+          </p>
+        )}
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".json"
+          onChange={handleImportFile}
+          className="hidden"
+        />
+
+        <p className="text-[10px] text-muted/60">
+          インポートすると現在のデータは上書きされます。事前にエクスポートしておくことをおすすめします。
+        </p>
+      </section>
     </div>
   );
 }

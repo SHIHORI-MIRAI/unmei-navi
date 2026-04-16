@@ -1,11 +1,17 @@
 export { calcNumerology, calcPersonalYear, getYearWave } from "./numerology";
 export type { NumerologyResult } from "./numerology";
 
-export { calcMayan, calcTodayMayan } from "./mayan";
+export { calcMayan, calcTodayMayan, calcYearlyMayan, getMayanYearWave, getMayanYearLabel } from "./mayan";
 export type { MayanResult } from "./mayan";
 
-export { calcZerology, getZerologyWave, getZerologyPhaseName } from "./zerology";
-export type { ZerologyResult } from "./zerology";
+export { calcNineStar, getNineStarWave, getNineStarPositionName } from "./nine-star";
+export type { NineStarResult } from "./nine-star";
+
+export { calcFourPillars, getFourPillarsWave } from "./four-pillars";
+export type { FourPillarsResult } from "./four-pillars";
+
+export { calcSanmeigaku } from "./sanmeigaku";
+export type { SanmeigakuResult } from "./sanmeigaku";
 
 export { calcLuckyInfo } from "./lucky";
 export type { LuckyInfo } from "./lucky";

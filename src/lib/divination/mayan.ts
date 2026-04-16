@@ -5,18 +5,49 @@
  * ツォルキン暦は260日周期（13の音 × 20の紋章）。
  */
 
-/** 基準日: 2001年1月1日 = KIN 57 */
-const REFERENCE_DATE = new Date(2001, 0, 1);
-const REFERENCE_KIN = 57;
+/**
+ * Dreamspell方式のKIN番号計算
+ *
+ * 基準: 2014年1月1日 = KIN 63
+ * 52年 × 365日 = 18980 = 260 × 73 なので、52年周期で同一KINに戻る。
+ * うるう年の2月29日は「0の日」として扱い、3月1日と同じKINになる。
+ */
 
-/** グレゴリオ暦の日付からKIN番号(1-260)を計算 */
+/** 各月1日の、1月1日からの日数オフセット（平年ベース） */
+const MONTH_OFFSETS = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+
+/** 数学的な正の剰余（JSの % は負を返すことがあるため） */
+function mod(n: number, m: number): number {
+  return ((n % m) + m) % m;
+}
+
+/** うるう年判定 */
+function isLeapYear(year: number): boolean {
+  return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+}
+
+/**
+ * グレゴリオ暦の日付からKIN番号(1-260)を計算
+ *
+ * うるう年の扱い: 2月29日は独自のKINを持ち、3月は+1補正する。
+ * これにより3月31日と4月1日が同じKINになる（日本のマヤ暦主流派の計算方式）。
+ */
 export function calcKinNumber(birthDate: string): number {
   const date = new Date(birthDate + "T00:00:00");
-  const diffMs = date.getTime() - REFERENCE_DATE.getTime();
-  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
-  let kin = ((REFERENCE_KIN - 1 + diffDays) % 260) + 1;
-  if (kin <= 0) kin += 260;
-  return kin;
+  const year = date.getFullYear();
+  const month = date.getMonth(); // 0-indexed
+  const day = date.getDate();
+
+  const yearCycle = mod(year - 2014, 52);
+  let dayOffset = MONTH_OFFSETS[month] + day;
+
+  // うるう年の3月: 2月が29日あるためオフセットを+1補正
+  if (isLeapYear(year) && month === 2) {
+    dayOffset += 1;
+  }
+
+  const raw = mod(62 + yearCycle * 365 + dayOffset, 260);
+  return raw === 0 ? 260 : raw;
 }
 
 /** 銀河の音(1-13): (KIN-1) % 13 + 1 */
@@ -102,4 +133,42 @@ export function calcMayan(birthDate: string): MayanResult {
 export function calcTodayMayan(today: Date = new Date()): MayanResult {
   const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
   return calcMayan(dateStr);
+}
+
+/**
+ * 指定年の誕生日のKINを計算（年間エネルギー）
+ * マヤ暦は260日周期のため、毎年の誕生日で異なるKIN・紋章・音になる
+ */
+export function calcYearlyMayan(birthDate: string, year: number): MayanResult {
+  const [, m, d] = birthDate.split("-");
+  return calcMayan(`${year}-${m}-${d}`);
+}
+
+/** グラフ用: 銀河の音をエネルギー値に変換 */
+const TONE_ENERGY: Record<number, number> = {
+  1: 60,  // 磁気 - 新しい始まり
+  2: 40,  // 月 - 挑戦と葛藤
+  3: 55,  // 電気 - 奉仕・つながり
+  4: 50,  // 自己存在 - 形を定める
+  5: 70,  // 倍音 - 力を与える
+  6: 65,  // 律動 - 組織化
+  7: 75,  // 共振 - 調律・調和
+  8: 70,  // 銀河 - 調和させる
+  9: 80,  // 太陽 - 意図を脈動
+  10: 85, // 惑星 - 顕現
+  11: 60, // スペクトル - 解放（手放し）
+  12: 75, // 水晶 - 協力
+  13: 90, // 宇宙 - 超越
+};
+
+/** グラフ用: 指定年の誕生日KINからエネルギー値を返す */
+export function getMayanYearWave(birthDate: string, year: number): number {
+  const result = calcYearlyMayan(birthDate, year);
+  return TONE_ENERGY[result.galacticTone.tone] ?? 50;
+}
+
+/** グラフ用: 指定年の誕生日KINの紋章名と音を返す */
+export function getMayanYearLabel(birthDate: string, year: number): string {
+  const result = calcYearlyMayan(birthDate, year);
+  return `KIN${result.kinNumber} ${result.solarSeal.name}・音${result.galacticTone.tone}`;
 }
