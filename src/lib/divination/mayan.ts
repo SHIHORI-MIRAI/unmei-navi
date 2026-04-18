@@ -6,11 +6,12 @@
  */
 
 /**
- * Dreamspell方式のKIN番号計算
+ * 銀河のマヤ（Dreamspell / ホゼ・アグエイアス方式）のKIN番号計算
  *
  * 基準: 2014年1月1日 = KIN 63
  * 52年 × 365日 = 18980 = 260 × 73 なので、52年周期で同一KINに戻る。
- * うるう年の2月29日は「0の日」として扱い、3月1日と同じKINになる。
+ * うるう年の2月29日は「時間をはずした日」として2月28日と同じKINを共有し、
+ * 3月以降は平年と同じ数え方を続ける（+1補正は行わない）。
  */
 
 /** 各月1日の、1月1日からの日数オフセット（平年ベース） */
@@ -26,25 +27,19 @@ function isLeapYear(year: number): boolean {
   return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
 }
 
-/**
- * グレゴリオ暦の日付からKIN番号(1-260)を計算
- *
- * うるう年の扱い: 2月29日は独自のKINを持ち、3月は+1補正する。
- * これにより3月31日と4月1日が同じKINになる（日本のマヤ暦主流派の計算方式）。
- */
 export function calcKinNumber(birthDate: string): number {
   const date = new Date(birthDate + "T00:00:00");
   const year = date.getFullYear();
   const month = date.getMonth(); // 0-indexed
-  const day = date.getDate();
+  let day = date.getDate();
+
+  // 2月29日は2月28日と同じKINを返す（時間をはずした日）
+  if (isLeapYear(year) && month === 1 && day === 29) {
+    day = 28;
+  }
 
   const yearCycle = mod(year - 2014, 52);
-  let dayOffset = MONTH_OFFSETS[month] + day;
-
-  // うるう年の3月: 2月が29日あるためオフセットを+1補正
-  if (isLeapYear(year) && month === 2) {
-    dayOffset += 1;
-  }
+  const dayOffset = MONTH_OFFSETS[month] + day;
 
   const raw = mod(62 + yearCycle * 365 + dayOffset, 260);
   return raw === 0 ? 260 : raw;
