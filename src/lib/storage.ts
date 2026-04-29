@@ -92,9 +92,30 @@ export function loadData(): AppData {
   }
 }
 
-export function saveData(data: AppData): void {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+/** localStorage への書き込みは容量超過でサイレント失敗するため必ず try/catch する */
+export function saveData(data: AppData): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    return true;
+  } catch (e) {
+    console.error("[storage] saveData failed:", e);
+    return false;
+  }
+}
+
+/** localStorage の使用容量を計測（単位: バイト）。ブラウザ実装上限は約5MB */
+export function getStorageUsage(): { used: number; limit: number; ratio: number } {
+  const limit = 5 * 1024 * 1024;
+  if (typeof window === "undefined") return { used: 0, limit, ratio: 0 };
+  let used = 0;
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (!key) continue;
+    const value = localStorage.getItem(key) ?? "";
+    used += (key.length + value.length) * 2;
+  }
+  return { used, limit, ratio: used / limit };
 }
 
 // --- Profiles (複数プロフィール管理) ---
@@ -127,26 +148,30 @@ export function getActiveProfileId(): string {
   return loadData().activeProfileId;
 }
 
-export function saveProfile(profile: UserProfile): void {
+/**
+ * 既存プロフィール編集時は activeProfileId を変更しない（家族の編集中にアクティブが切り替わる
+ * 副作用を防ぐ）。新規追加時のみアクティブにする。
+ */
+export function saveProfile(profile: UserProfile): boolean {
   const data = loadData();
-  // IDがなければ付与
   if (!profile.id) {
     profile.id = generateId();
   }
 
   const idx = data.profiles.findIndex((p) => p.id === profile.id);
+  const isNew = idx < 0;
   if (idx >= 0) {
     data.profiles[idx] = profile;
   } else {
     data.profiles.push(profile);
   }
 
-  // activeProfileIdを設定
-  data.activeProfileId = profile.id;
-  // 後方互換: profileフィールドも更新
-  data.profile = profile;
+  if (isNew || data.activeProfileId === profile.id || !data.activeProfileId) {
+    data.activeProfileId = profile.id;
+    data.profile = profile;
+  }
 
-  saveData(data);
+  return saveData(data);
 }
 
 export function switchProfile(profileId: string): void {

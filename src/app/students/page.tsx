@@ -40,7 +40,7 @@ function buildSummary(profile: UserProfile): StudentSummary {
   const isTenchuYear = checkTenchusatsuYear(
     profile.birthDate,
     new Date().getFullYear()
-  );
+  ).isTenchusatsu;
   return {
     profile,
     age: calcAge(profile.birthDate),

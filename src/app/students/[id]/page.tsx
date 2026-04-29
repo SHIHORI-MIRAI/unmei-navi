@@ -56,7 +56,7 @@ function buildCalculated(profile: UserProfile): Calculated {
     sanmeigaku: calcSanmeigaku(profile.birthDate),
     personalMonth,
     personalMonthMeaning: getPersonalMonthMeaning(personalMonth),
-    isTenchuYear: checkTenchusatsuYear(profile.birthDate, year),
+    isTenchuYear: checkTenchusatsuYear(profile.birthDate, year).isTenchusatsu,
   };
 }
 
@@ -223,7 +223,7 @@ export default function StudentDetailPage({
           </div>
           <div className="bg-background rounded-lg px-3 py-2">
             <p className="text-muted text-[11px]">マヤ暦KIN</p>
-            <p className="text-foreground font-medium">KIN {calc.mayan.kin}</p>
+            <p className="text-foreground font-medium">KIN {calc.mayan.kinNumber}</p>
             <p className="text-[11px] text-muted mt-0.5">{calc.mayan.solarSeal.name}</p>
           </div>
           <div className="bg-background rounded-lg px-3 py-2">

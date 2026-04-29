@@ -13,6 +13,7 @@ import {
   markExported,
   getLastExportDate,
   getDataSummary,
+  getStorageUsage,
   type UserProfile,
 } from "@/lib/storage";
 
@@ -37,12 +38,15 @@ export default function ProfilePage() {
   const [importStatus, setImportStatus] = useState<"" | "success" | "error">("");
   const [lastExport, setLastExport] = useState<Date | null>(null);
   const [summary, setSummary] = useState({ profileCount: 0, diaryCount: 0, goalCount: 0, readingCount: 0 });
+  const [usage, setUsage] = useState({ used: 0, limit: 5 * 1024 * 1024, ratio: 0 });
+  const [saveError, setSaveError] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const refreshProfiles = useCallback(() => {
     setProfiles(loadProfiles());
     setLastExport(getLastExportDate());
     setSummary(getDataSummary());
+    setUsage(getStorageUsage());
   }, []);
 
   useEffect(() => {
@@ -64,7 +68,14 @@ export default function ProfilePage() {
     e.preventDefault();
     if (!form.birthDate) return;
     const toSave = { ...form, id: form.id || generateId() };
-    saveProfile(toSave);
+    const ok = saveProfile(toSave);
+    if (!ok) {
+      setSaveError(
+        "保存に失敗しました。ブラウザの容量上限に達した可能性があります。エクスポートで現在のデータをバックアップしたあと、不要な鑑定結果（特に画像つき）を削除してから再度お試しください。"
+      );
+      return;
+    }
+    setSaveError("");
     setSaved(true);
     setIsEditing(false);
     refreshProfiles();
@@ -194,6 +205,63 @@ export default function ProfilePage() {
               <p className="text-[11px] text-muted mt-1">
                 現在の保存数：プロフィール{summary.profileCount}件・日記{summary.diaryCount}件・ゴール{summary.goalCount}件・鑑定{summary.readingCount}件
               </p>
+              {(() => {
+                const pct = Math.round(usage.ratio * 100);
+                const usedMB = (usage.used / 1024 / 1024).toFixed(2);
+                const limitMB = (usage.limit / 1024 / 1024).toFixed(0);
+                const isWarn = usage.ratio >= 0.8;
+                const isAlert = usage.ratio >= 0.95;
+                const barColor = isAlert
+                  ? "bg-red-500"
+                  : isWarn
+                  ? "bg-amber-500"
+                  : "bg-emerald-500";
+                return (
+                  <div className="mt-2">
+                    <div className="flex items-center justify-between text-[11px] text-muted">
+                      <span>使用容量</span>
+                      <span className={isWarn ? "text-amber-700 font-medium" : ""}>
+                        {usedMB} MB / {limitMB} MB（{pct}%）
+                      </span>
+                    </div>
+                    <div className="mt-1 h-1.5 bg-card-border rounded-full overflow-hidden">
+                      <div
+                        className={`h-full ${barColor} transition-all`}
+                        style={{ width: `${Math.min(100, pct)}%` }}
+                      />
+                    </div>
+                    {isAlert && (
+                      <p className="text-[11px] text-red-600 mt-1 leading-relaxed">
+                        ⚠ 容量がほぼ満杯です。新しい保存に失敗する可能性があります。エクスポート後に古い鑑定結果（画像つき）を削除してください。
+                      </p>
+                    )}
+                    {!isAlert && isWarn && (
+                      <p className="text-[11px] text-amber-700 mt-1 leading-relaxed">
+                        容量が80%を超えました。早めにエクスポートして、不要なデータの整理をおすすめします。
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* 保存エラー */}
+      {saveError && (
+        <section className="bg-red-50 border border-red-200 rounded-2xl p-3 shadow-sm">
+          <div className="flex items-start gap-2">
+            <span className="text-red-500">⚠</span>
+            <div className="flex-1 text-xs leading-relaxed">
+              <p className="font-medium text-red-700">保存できませんでした</p>
+              <p className="text-[11px] text-foreground/80 mt-1">{saveError}</p>
+              <button
+                onClick={() => setSaveError("")}
+                className="mt-2 text-[11px] text-red-700 underline"
+              >
+                閉じる
+              </button>
             </div>
           </div>
         </section>
