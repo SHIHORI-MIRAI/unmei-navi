@@ -161,14 +161,36 @@ export default function StudentDetailPage({
 
   return (
     <div className="space-y-6">
-      {/* 戻る */}
-      <div>
+      {/* 印刷時のみ表示するヘッダー（鑑定シートの紙面トップ） */}
+      <div className="print-show" style={{ marginBottom: "12mm" }}>
+        <div style={{ borderBottom: "1px solid #999", paddingBottom: "6mm", marginBottom: "6mm" }}>
+          <p style={{ fontSize: "18pt", fontWeight: 700, color: "#1a1a1a", margin: 0 }}>
+            運命ナビ 鑑定シート
+          </p>
+          <p style={{ fontSize: "9pt", color: "#666", marginTop: "2mm" }}>
+            東洋・西洋の占術を統合した参考鑑定資料 / 未来アカデミー
+          </p>
+        </div>
+        <p style={{ fontSize: "9pt", color: "#666", margin: 0 }}>
+          作成日: {new Date().toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" })}
+        </p>
+      </div>
+
+      {/* 戻る・印刷ボタン（画面表示用） */}
+      <div className="no-print flex items-center justify-between">
         <Link
           href="/students"
           className="text-xs text-muted hover:text-foreground"
         >
-          ← 受講生一覧
+          ← 対象者一覧
         </Link>
+        <button
+          onClick={() => window.print()}
+          className="text-xs bg-card-bg border border-card-border text-foreground px-3 py-1.5 rounded-full hover:border-accent-orange/50 transition-colors flex items-center gap-1"
+          aria-label="この鑑定結果を印刷またはPDFに保存"
+        >
+          🖨 印刷／PDF保存
+        </button>
       </div>
 
       {/* ヘッダー */}
@@ -294,14 +316,24 @@ export default function StudentDetailPage({
         </section>
       )}
 
-      {/* 編集導線 */}
-      <div className="pt-2">
+      {/* 編集導線（画面のみ） */}
+      <div className="no-print pt-2">
         <Link
           href="/profile"
           className="block w-full text-center py-2.5 bg-card-bg border border-card-border rounded-xl text-sm font-medium text-foreground hover:border-accent-orange/50 transition-colors"
         >
           プロフィール・メモを編集
         </Link>
+      </div>
+
+      {/* 印刷時のフッター（免責・運営者情報） */}
+      <div className="print-show" style={{ marginTop: "10mm", paddingTop: "4mm", borderTop: "1px solid #999" }}>
+        <p style={{ fontSize: "8pt", color: "#666", lineHeight: 1.6, margin: 0 }}>
+          ※ 本シートに記載の鑑定内容は、占術にもとづく参考情報です。医療・法律・投資・進路・結婚等の重要な判断は、必ずご自身の責任で行ってください。
+        </p>
+        <p style={{ fontSize: "8pt", color: "#666", lineHeight: 1.6, marginTop: "2mm" }}>
+          作成: 未来アカデミー（運命ナビ） / お問い合わせ: mamaeri0617@gmail.com
+        </p>
       </div>
     </div>
   );

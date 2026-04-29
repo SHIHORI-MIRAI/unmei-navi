@@ -12,11 +12,14 @@ import {
   type DailyMessage,
 } from "@/lib/divination";
 
+const GUIDE_BANNER_KEY = "unmei-guide-banner-dismissed";
+
 export default function Home() {
   const [hasProfile, setHasProfile] = useState(false);
   const [daily, setDaily] = useState<DailyMessage | null>(null);
   const [lucky, setLucky] = useState<LuckyInfo | null>(null);
   const [numerology, setNumerology] = useState<NumerologyResult | null>(null);
+  const [showGuideBanner, setShowGuideBanner] = useState(false);
 
   useEffect(() => {
     const profile = loadProfile();
@@ -28,7 +31,19 @@ export default function Home() {
     setNumerology(num);
     setDaily(generateDailyMessage(profile.birthDate, today));
     setLucky(calcLuckyInfo(today, num.lifePathNumber));
+
+    // ガイドバナーは閉じたフラグがなければ表示
+    if (typeof window !== "undefined") {
+      setShowGuideBanner(localStorage.getItem(GUIDE_BANNER_KEY) !== "1");
+    }
   }, []);
+
+  function dismissGuideBanner() {
+    setShowGuideBanner(false);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(GUIDE_BANNER_KEY, "1");
+    }
+  }
 
   if (!hasProfile) {
     return (
@@ -57,6 +72,37 @@ export default function Home() {
 
   return (
     <div className="space-y-5">
+      {/* 使い方ガイドバナー（初回のみ） */}
+      {showGuideBanner && (
+        <section className="bg-gradient-to-br from-accent-orange/10 to-accent-gold/10 border border-accent-orange/30 rounded-2xl p-3 shadow-sm">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl flex-shrink-0">📖</span>
+            <div className="flex-1 min-w-0 space-y-1.5">
+              <p className="text-sm font-medium text-accent-orange">
+                はじめての方へ
+              </p>
+              <p className="text-xs text-foreground/80 leading-relaxed">
+                個人で楽しむ使い方と、結婚相談所などの業務で使う方法を、ガイドにまとめました。
+              </p>
+              <div className="flex items-center gap-3 pt-1">
+                <Link
+                  href="/guide"
+                  className="text-xs bg-accent-orange text-white px-3 py-1 rounded-full hover:bg-accent-light transition-colors"
+                >
+                  使い方ガイドを見る →
+                </Link>
+                <button
+                  onClick={dismissGuideBanner}
+                  className="text-[11px] text-muted hover:text-foreground"
+                >
+                  閉じる
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* 今日のメッセージ */}
       <section className="bg-card-bg border border-card-border rounded-2xl p-5 shadow-sm space-y-3">
         <div className="flex items-center gap-2 text-accent-gold text-sm">
