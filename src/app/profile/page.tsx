@@ -10,6 +10,9 @@ import {
   deleteProfile,
   exportData,
   importData,
+  markExported,
+  getLastExportDate,
+  getDataSummary,
   type UserProfile,
 } from "@/lib/storage";
 
@@ -26,14 +29,20 @@ export default function ProfilePage() {
     birthDate: "",
     birthTime: "",
     birthPlace: "",
+    category: "self",
+    note: "",
   });
   const [isEditing, setIsEditing] = useState(false);
   const [saved, setSaved] = useState(false);
   const [importStatus, setImportStatus] = useState<"" | "success" | "error">("");
+  const [lastExport, setLastExport] = useState<Date | null>(null);
+  const [summary, setSummary] = useState({ profileCount: 0, diaryCount: 0, goalCount: 0, readingCount: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const refreshProfiles = useCallback(() => {
     setProfiles(loadProfiles());
+    setLastExport(getLastExportDate());
+    setSummary(getDataSummary());
   }, []);
 
   useEffect(() => {
@@ -44,7 +53,9 @@ export default function ProfilePage() {
     }
   }, [refreshProfiles]);
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleChange(
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     setSaved(false);
   }
@@ -69,6 +80,12 @@ export default function ProfilePage() {
   }
 
   function handleDelete(profileId: string) {
+    const target = profiles.find((p) => p.id === profileId);
+    const name = target?.name || "このプロフィール";
+    const ok = window.confirm(
+      `「${name}」を削除しますか？\n\n※ 削除したデータは元に戻せません。念のため「エクスポート」でバックアップしてからの削除をおすすめします。`
+    );
+    if (!ok) return;
     deleteProfile(profileId);
     refreshProfiles();
     const profile = loadProfile();
@@ -80,13 +97,25 @@ export default function ProfilePage() {
   }
 
   function handleAddNew() {
-    setForm({ id: "", name: "", birthDate: "", birthTime: "", birthPlace: "" });
+    setForm({
+      id: "",
+      name: "",
+      birthDate: "",
+      birthTime: "",
+      birthPlace: "",
+      category: "self",
+      note: "",
+    });
     setIsEditing(true);
     setSaved(false);
   }
 
   function handleEditProfile(profile: UserProfile) {
-    setForm(profile);
+    setForm({
+      ...profile,
+      category: profile.category ?? "self",
+      note: profile.note ?? "",
+    });
     setIsEditing(true);
     setSaved(false);
   }
@@ -100,6 +129,8 @@ export default function ProfilePage() {
     a.download = `unmei-navi-backup-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
+    markExported();
+    setLastExport(new Date());
   }
 
   function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -122,12 +153,51 @@ export default function ProfilePage() {
 
   const activeProfile = loadProfile();
 
+  const daysSinceExport = lastExport
+    ? Math.floor((Date.now() - lastExport.getTime()) / (1000 * 60 * 60 * 24))
+    : null;
+  const needsBackup = daysSinceExport === null || daysSinceExport >= 7;
+
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-bold text-accent-orange flex items-center gap-2">
         <span className="text-accent-gold">✦</span>
         プロフィール設定
       </h2>
+
+      {/* 保存状況バナー */}
+      {profiles.length > 0 && (
+        <section
+          className={`rounded-2xl p-3 border shadow-sm ${
+            needsBackup
+              ? "bg-amber-50 border-amber-200"
+              : "bg-emerald-50 border-emerald-200"
+          }`}
+        >
+          <div className="flex items-start gap-2">
+            <span className={needsBackup ? "text-amber-500" : "text-emerald-500"}>
+              {needsBackup ? "⚠" : "✓"}
+            </span>
+            <div className="flex-1 text-xs leading-relaxed">
+              <p className={`font-medium ${needsBackup ? "text-amber-700" : "text-emerald-700"}`}>
+                {needsBackup
+                  ? lastExport
+                    ? `バックアップ推奨：最後のエクスポートから${daysSinceExport}日経過`
+                    : "まだバックアップしていません"
+                  : `バックアップ済み（${daysSinceExport}日前）`}
+              </p>
+              <p className="text-[11px] text-muted mt-1">
+                データは<strong>この端末のブラウザ内</strong>に保存されます。
+                別の端末では見えません。ブラウザのデータが消えると失われます。
+                定期的に下の「エクスポート」でバックアップしてください。
+              </p>
+              <p className="text-[11px] text-muted mt-1">
+                現在の保存数：プロフィール{summary.profileCount}件・日記{summary.diaryCount}件・ゴール{summary.goalCount}件・鑑定{summary.readingCount}件
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* プロフィール一覧 */}
       {profiles.length > 0 && !isEditing && (
@@ -157,10 +227,26 @@ export default function ProfilePage() {
                   }`}
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-medium text-foreground truncate">
                         {p.name || "名前未設定"}
                       </p>
+                      {(() => {
+                        const cat = p.category ?? "self";
+                        const badge =
+                          cat === "self"
+                            ? { label: "自分", cls: "bg-accent-gold/15 text-accent-gold" }
+                            : cat === "family"
+                            ? { label: "家族", cls: "bg-emerald-100 text-emerald-700" }
+                            : { label: "受講生", cls: "bg-sky-100 text-sky-700" };
+                        return (
+                          <span
+                            className={`text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0 ${badge.cls}`}
+                          >
+                            {badge.label}
+                          </span>
+                        );
+                      })()}
                       {isActive && (
                         <span className="text-[10px] bg-accent-orange/20 text-accent-orange px-1.5 py-0.5 rounded-full flex-shrink-0">
                           表示中
@@ -173,25 +259,26 @@ export default function ProfilePage() {
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-1 flex-shrink-0">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     {!isActive && (
                       <button
                         onClick={() => handleSwitch(p.id)}
-                        className="text-xs bg-accent-orange/10 text-accent-orange px-2.5 py-1.5 rounded-lg hover:bg-accent-orange/20 transition-colors"
+                        className="text-xs bg-accent-orange/10 text-accent-orange px-3 py-2 rounded-lg hover:bg-accent-orange/20 transition-colors"
                       >
                         切替
                       </button>
                     )}
                     <button
                       onClick={() => handleEditProfile(p)}
-                      className="text-xs text-muted px-2 py-1.5 hover:text-foreground transition-colors"
+                      className="text-xs bg-background border border-card-border text-foreground px-3 py-2 rounded-lg hover:border-accent-orange/50 transition-colors"
                     >
                       編集
                     </button>
                     {profiles.length > 1 && (
                       <button
                         onClick={() => handleDelete(p.id)}
-                        className="text-xs text-muted px-2 py-1.5 hover:text-danger transition-colors"
+                        aria-label={`${p.name || "このプロフィール"}を削除`}
+                        className="text-[11px] text-muted/70 border border-transparent hover:text-red-600 hover:border-red-200 hover:bg-red-50 px-2.5 py-2 rounded-lg transition-colors ml-1"
                       >
                         削除
                       </button>
@@ -231,7 +318,12 @@ export default function ProfilePage() {
                 onClick={() => {
                   setIsEditing(false);
                   const profile = loadProfile();
-                  if (profile) setForm(profile);
+                  if (profile)
+                    setForm({
+                      ...profile,
+                      category: profile.category ?? "self",
+                      note: profile.note ?? "",
+                    });
                 }}
                 className="text-xs text-muted hover:text-foreground"
               >
@@ -241,6 +333,47 @@ export default function ProfilePage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
+            {/* 種別 */}
+            <div className="space-y-2">
+              <label className="block text-sm text-accent-gold">
+                種別
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {(
+                  [
+                    { value: "self", label: "自分" },
+                    { value: "family", label: "家族" },
+                    { value: "student", label: "受講生" },
+                  ] as const
+                ).map((opt) => {
+                  const active = (form.category ?? "self") === opt.value;
+                  return (
+                    <label
+                      key={opt.value}
+                      className={`text-center text-sm rounded-xl py-2.5 cursor-pointer border transition-colors ${
+                        active
+                          ? "bg-accent-orange text-white border-accent-orange"
+                          : "bg-card-bg text-foreground border-card-border hover:border-accent-orange/50"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="category"
+                        value={opt.value}
+                        checked={active}
+                        onChange={handleChange}
+                        className="hidden"
+                      />
+                      {opt.label}
+                    </label>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted">
+                「受講生」を選ぶと <a href="/students" className="text-accent-orange underline">受講生一覧</a> に表示されます
+              </p>
+            </div>
+
             {/* 名前 */}
             <div className="space-y-2">
               <label className="block text-sm text-accent-gold">
@@ -302,6 +435,26 @@ export default function ProfilePage() {
                 className="w-full bg-card-bg border border-card-border rounded-xl px-4 py-3 text-foreground placeholder:text-muted/50 focus:outline-none focus:border-accent-orange transition-colors"
               />
             </div>
+
+            {/* メモ（受講生用） */}
+            {(form.category ?? "self") === "student" && (
+              <div className="space-y-2">
+                <label className="block text-sm text-accent-gold">
+                  受講生メモ
+                </label>
+                <textarea
+                  name="note"
+                  value={form.note ?? ""}
+                  onChange={handleChange}
+                  rows={4}
+                  placeholder="例：1月入講、月3回個別セッション、ゴールは独立開業"
+                  className="w-full bg-card-bg border border-card-border rounded-xl px-4 py-3 text-foreground placeholder:text-muted/50 focus:outline-none focus:border-accent-orange transition-colors resize-y"
+                />
+                <p className="text-xs text-muted">
+                  進捗・面談メモなど、伴走に必要な情報を残せます
+                </p>
+              </div>
+            )}
 
             {/* 保存ボタン */}
             <button
