@@ -35,17 +35,25 @@ export default function Header() {
           </h1>
           <span className="text-accent-gold text-sm">✦</span>
         </Link>
-        <Link
-          href="/profile"
-          className="text-muted hover:text-accent-gold transition-colors text-sm flex items-center gap-1.5"
-        >
-          {name && (
-            <span className="text-accent-orange font-medium text-xs max-w-[80px] truncate">
-              {name}
-            </span>
-          )}
-          設定
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/students"
+            className="text-muted hover:text-accent-gold transition-colors text-xs"
+          >
+            受講生
+          </Link>
+          <Link
+            href="/profile"
+            className="text-muted hover:text-accent-gold transition-colors text-sm flex items-center gap-1.5"
+          >
+            {name && (
+              <span className="text-accent-orange font-medium text-xs max-w-[80px] truncate">
+                {name}
+              </span>
+            )}
+            設定
+          </Link>
+        </div>
       </div>
     </header>
   );
