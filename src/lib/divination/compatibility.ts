@@ -258,47 +258,153 @@ export const MODE_LABELS: Record<RelationMode, string> = {
   family: "家族・友人",
 };
 
-function buildAdvice(score: number, mode: RelationMode): { advice: string; strength: string; caution: string } {
-  const modeMap: Record<RelationMode, { high: string; mid: string; low: string; strengthHigh: string; strengthMid: string; strengthLow: string; cautionHigh: string; cautionMid: string; cautionLow: string }> = {
-    love: {
-      high: "自然に惹かれ合い、安心できる関係。深い絆が育つ組み合わせです",
-      mid: "お互いを尊重し合える関係。違いを受け入れることで関係が深まります",
-      low: "最初は違和感を感じやすい関係。対話を重ねることで、唯一無二の絆になり得ます",
-      strengthHigh: "感性が共鳴しやすく、言わなくても伝わる瞬間が多い",
-      strengthMid: "適度な距離感で長く続く関係を築ける",
-      strengthLow: "違いを理解した時、他の誰とも得られない深い繋がりになる",
-      cautionHigh: "似すぎて同じ弱点を持つことも。外の世界との交流も大切に",
-      cautionMid: "遠慮しすぎず、本音を少しずつ開示していくと深まります",
-      cautionLow: "相手を変えようとせず、違いを受け入れる姿勢を忘れずに",
+/**
+ * 占術ごとの「人生の側面」と、モードごとの位置づけ。
+ * アドバイス文面の生成で「○○の観点で...」と具体的に表現するための辞書。
+ */
+const DIMENSION_META: Record<
+  "numerology" | "mayan" | "nineStar" | "fourPillars",
+  { name: string; aspect: Record<RelationMode, string> }
+> = {
+  numerology: {
+    name: "数秘術",
+    aspect: {
+      love: "価値観・人生観の方向性",
+      business: "目的意識・キャリア観の方向性",
+      family: "生き方・人生観の重なり",
     },
-    business: {
-      high: "補い合える最高のパートナー。役割分担が自然に決まります",
-      mid: "お互いの強みを活かせる関係。事前の役割・期待値合わせが鍵",
-      low: "得意分野が真逆。明確な役割分担と合意形成があれば結果を出せます",
-      strengthHigh: "意思決定が早く、同じゴールに向かって動ける",
-      strengthMid: "お互いの得意・不得意を補完できる",
-      strengthLow: "違う視点からアイデアが生まれ、新しい価値を創造できる",
-      cautionHigh: "視点が似通うため、異なる意見を持つ第三者を入れると◎",
-      cautionMid: "コミュニケーション頻度を意識的に上げると誤解を防げます",
-      cautionLow: "感情ではなく事実ベースで対話を。合意書やルール化が効果的",
+  },
+  mayan: {
+    name: "マヤ暦",
+    aspect: {
+      love: "魂のリズム・本質的な惹かれ合い",
+      business: "発想・直感のリズム",
+      family: "本質的な共鳴・絆の深さ",
     },
-    family: {
-      high: "安心感と信頼が自然に育つ関係。家族や親友として長く続く縁",
-      mid: "穏やかでバランスの取れた関係。節目ごとに関係を見直すと良好",
-      low: "近すぎると摩擦も。適度な距離感を保つことで良い関係を維持できます",
-      strengthHigh: "一緒にいるだけで癒される、帰る場所のような存在",
-      strengthMid: "必要な時に支え合える、ちょうど良い距離感",
-      strengthLow: "違いがあるからこそ、お互いの世界を広げ合える",
-      cautionHigh: "近すぎて依存にならないよう、それぞれの世界も大切に",
-      cautionMid: "期待しすぎず、相手の選択を尊重することで関係が続きます",
-      cautionLow: "『こうあるべき』を押し付けず、違いを認め合う関わり方を",
+  },
+  nineStar: {
+    name: "九星気学",
+    aspect: {
+      love: "気のエネルギーの相性",
+      business: "立場・役割の相性（五行関係）",
+      family: "日常エネルギーの調和",
     },
+  },
+  fourPillars: {
+    name: "四柱推命",
+    aspect: {
+      love: "生まれ持った性質の合い方",
+      business: "実務的な噛み合い",
+      family: "日常の関わり方の相性",
+    },
+  },
+};
+
+interface DimensionLite {
+  key: "numerology" | "mayan" | "nineStar" | "fourPillars";
+  score: number;
+  label: string;
+  detail: string;
+}
+
+/** 占術ごとの「強さの位置づけ語」をモード×スコアで返す */
+function modePhrase(mode: RelationMode, score: number): string {
+  const high = score >= 80;
+  const mid = score >= 60 && score < 80;
+  if (mode === "love") return high ? "深く惹かれ合う基盤" : mid ? "穏やかに共鳴できる土台" : "違いから学べる余地";
+  if (mode === "business") return high ? "強力な協働基盤" : mid ? "補完的な役割分担が機能" : "視点の多様性が武器";
+  return high ? "安心感のある絆の素地" : mid ? "互いを支え合う土台" : "成長を促し合う伸びしろ";
+}
+
+/** 注意点の文脈語：低いと「すれ違い」、中庸だと「微調整ポイント」になる */
+function modeCautionPhrase(mode: RelationMode, score: number): string {
+  if (score < 50) {
+    if (mode === "love") return "感情のすれ違いやテンポの差";
+    if (mode === "business") return "決定プロセスや進め方のズレ";
+    return "価値観の摩擦・距離感の取り方";
+  }
+  if (mode === "love") return "言葉にしないと伝わりにくい点";
+  if (mode === "business") return "期待値のすり合わせが必要な点";
+  return "踏み込み方の調整が必要な点";
+}
+
+function buildStrengthMsg(top: DimensionLite, mode: RelationMode): string {
+  const meta = DIMENSION_META[top.key];
+  return `${meta.name}（${meta.aspect[mode]}）で${top.score}点と最も高く、${modePhrase(mode, top.score)}になります。${top.detail}`;
+}
+
+function buildCautionMsg(bottom: DimensionLite, mode: RelationMode): string {
+  const meta = DIMENSION_META[bottom.key];
+  if (bottom.score >= 70) {
+    return `4占術すべてで${bottom.score}点以上と全体的に高水準。${meta.name}の観点でも安定しており、特に大きな注意点はありません。`;
+  }
+  return `${meta.name}（${meta.aspect[mode]}）が${bottom.score}点とやや低く、${modeCautionPhrase(mode, bottom.score)}が起きやすい面があります。${bottom.detail}`;
+}
+
+/** ばらつき・スコア帯から「どんなタイプの相性か」を5分類して具体的に説明する */
+function buildAdviceMsg(
+  overall: number,
+  top: DimensionLite,
+  bottom: DimensionLite,
+  mode: RelationMode
+): string {
+  const variance = top.score - bottom.score;
+  const topMeta = DIMENSION_META[top.key];
+  const bottomMeta = DIMENSION_META[bottom.key];
+
+  type Pattern = "balanced-high" | "balanced-mid" | "balanced-low" | "spike-high" | "spike-low";
+  let pattern: Pattern;
+  if (variance < 15 && overall >= 72) pattern = "balanced-high";
+  else if (variance < 15 && overall >= 55) pattern = "balanced-mid";
+  else if (variance < 15) pattern = "balanced-low";
+  else if (top.score >= 80) pattern = "spike-high";
+  else pattern = "spike-low";
+
+  const goal: Record<RelationMode, string> = {
+    love: "関係を深めるコツ",
+    business: "協働を成功させるコツ",
+    family: "絆を育むコツ",
   };
 
-  const map = modeMap[mode];
-  if (score >= 75) return { advice: map.high, strength: map.strengthHigh, caution: map.cautionHigh };
-  if (score >= 55) return { advice: map.mid, strength: map.strengthMid, caution: map.cautionMid };
-  return { advice: map.low, strength: map.strengthLow, caution: map.cautionLow };
+  switch (pattern) {
+    case "balanced-high":
+      return `総合${overall}点。4占術すべてで高水準、ばらつきも小さい安定型のペア。本質から相性が良く、特別な工夫なしに自然な関係が築けます。${goal[mode]}は、当たり前すぎて見えなくなりがちな相手の良さを言葉にして伝えること。`;
+    case "balanced-mid":
+      return `総合${overall}点。4占術すべてが中庸、ばらつきも小さいバランス型。派手な相性ではなく、穏やかに長く続くタイプです。${goal[mode]}は、相手の小さな変化に気づくこと。安定のなかに変化を見つけられると関係が深まります。`;
+    case "balanced-low":
+      return `総合${overall}点。4占術すべてで違いが大きく、ばらつきも小さいチャレンジ型。表面的な居心地より、共に乗り越えるテーマがある関係です。真剣に向き合う覚悟があるなら、他では得られない唯一無二の絆になり得ます。`;
+    case "spike-high":
+      return `総合${overall}点。${topMeta.name}が際立って強く（${top.score}点）、${bottomMeta.name}は控えめ（${bottom.score}点）の凸凹型。${topMeta.aspect[mode]}を活かす場面で関係が輝きます。${bottomMeta.aspect[mode]}の領域では、無理に同じテンポを求めず距離感を意識すると◎。`;
+    case "spike-low":
+      return `総合${overall}点。${topMeta.name}（${top.score}点）と${bottomMeta.name}（${bottom.score}点）の差が大きく、得意・苦手がはっきり分かれるペア。${topMeta.aspect[mode]}で繋がっている時間を意識的に増やし、${bottomMeta.aspect[mode]}の領域は無理に合わせず割り切ると上手くいきます。`;
+  }
+}
+
+function buildAdvice(
+  result: {
+    overall: number;
+    numerology: CompatibilityDimension;
+    mayan: CompatibilityDimension;
+    nineStar: CompatibilityDimension;
+    fourPillars: CompatibilityDimension;
+  },
+  mode: RelationMode
+): { advice: string; strength: string; caution: string } {
+  const dims: DimensionLite[] = [
+    { key: "numerology", ...result.numerology },
+    { key: "mayan", ...result.mayan },
+    { key: "nineStar", ...result.nineStar },
+    { key: "fourPillars", ...result.fourPillars },
+  ];
+  const sorted = [...dims].sort((a, b) => b.score - a.score);
+  const top = sorted[0];
+  const bottom = sorted[sorted.length - 1];
+
+  return {
+    advice: buildAdviceMsg(result.overall, top, bottom, mode),
+    strength: buildStrengthMsg(top, mode),
+    caution: buildCautionMsg(bottom, mode),
+  };
 }
 
 export function calcCompatibility(
@@ -317,7 +423,10 @@ export function calcCompatibility(
   const totalWeight = w.numerology + w.mayan + w.nineStar + w.fourPillars;
   const overall = Math.round(weighted / totalWeight);
 
-  const { advice, strength, caution } = buildAdvice(overall, mode);
+  const { advice, strength, caution } = buildAdvice(
+    { overall, numerology: n, mayan: m, nineStar: ns, fourPillars: fp },
+    mode
+  );
 
   return {
     overall,
