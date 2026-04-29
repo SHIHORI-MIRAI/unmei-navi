@@ -14,9 +14,11 @@ export function middleware(req: NextRequest) {
 
   const path = req.nextUrl.pathname;
 
-  // 認証画面・APIエンドポイント・公開資産はスルー
+  // 認証画面・APIエンドポイント・公開資産・規約類はスルー
   if (
     path === "/unlock" ||
+    path === "/terms" ||
+    path === "/privacy" ||
     path.startsWith("/api/unlock") ||
     path.startsWith("/_next") ||
     path.startsWith("/favicon") ||

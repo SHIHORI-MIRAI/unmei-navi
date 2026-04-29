@@ -177,9 +177,18 @@ export default function Home() {
       </div>
 
       {/* 免責事項 */}
-      <p className="text-center text-xs text-muted/60 px-4">
-        ※ 占いは参考情報です。人生の重要な判断はご自身の責任で行ってください。
-      </p>
+      <div className="text-center text-xs text-muted/60 px-4 space-y-1">
+        <p>※ 占いは参考情報です。人生の重要な判断はご自身の責任で行ってください。</p>
+        <p>
+          <Link href="/terms" className="underline hover:text-accent-orange">
+            利用規約
+          </Link>
+          <span className="mx-2">/</span>
+          <Link href="/privacy" className="underline hover:text-accent-orange">
+            プライバシーポリシー
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }

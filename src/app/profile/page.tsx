@@ -691,6 +691,23 @@ export default function ProfilePage() {
           インポートすると現在のデータは上書きされます。事前にエクスポートしておくことをおすすめします。
         </p>
       </section>
+
+      {/* 規約類リンク */}
+      <section className="pt-2 text-center text-xs space-x-3">
+        <a
+          href="/terms"
+          className="text-muted underline hover:text-accent-orange"
+        >
+          利用規約
+        </a>
+        <span className="text-muted/40">/</span>
+        <a
+          href="/privacy"
+          className="text-muted underline hover:text-accent-orange"
+        >
+          プライバシーポリシー
+        </a>
+      </section>
     </div>
   );
 }
