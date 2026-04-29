@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { loadProfile } from "@/lib/storage";
 
 export default function Header() {
+  const pathname = usePathname();
   const [name, setName] = useState("");
 
   useEffect(() => {
@@ -25,6 +27,8 @@ export default function Header() {
     };
   }, []);
 
+  if (pathname === "/unlock") return null;
+
   return (
     <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-sm border-b border-card-border shadow-sm">
       <div className="max-w-md mx-auto flex items-center justify-between h-14 px-4 text-foreground">
@@ -40,7 +44,7 @@ export default function Header() {
             href="/students"
             className="text-muted hover:text-accent-gold transition-colors text-xs"
           >
-            受講生
+            対象者
           </Link>
           <Link
             href="/profile"

@@ -1,5 +1,17 @@
-export type ProfileCategory = "self" | "family" | "student";
+export type ProfileCategory = "self" | "family" | "student" | "client";
 export type Gender = "male" | "female" | "other";
+
+/** 種別ごとの表示ラベル。結婚相談所など業務利用時の文脈にあわせて使う */
+export const CATEGORY_LABEL: Record<ProfileCategory, string> = {
+  self: "自分",
+  family: "家族",
+  student: "受講生",
+  client: "顧客",
+};
+
+export function getProfileCategoryLabel(p: UserProfile): string {
+  return CATEGORY_LABEL[p.category ?? "self"];
+}
 
 export interface UserProfile {
   id: string;
@@ -128,6 +140,17 @@ export function loadProfiles(): UserProfile[] {
 
 export function loadStudents(): UserProfile[] {
   return loadProfiles().filter((p) => p.category === "student");
+}
+
+export function loadClients(): UserProfile[] {
+  return loadProfiles().filter((p) => p.category === "client");
+}
+
+/** 受講生・顧客など、管理対象として登録された人を返す */
+export function loadManaged(): UserProfile[] {
+  return loadProfiles().filter(
+    (p) => p.category === "student" || p.category === "client"
+  );
 }
 
 export function getProfileCategory(p: UserProfile): ProfileCategory {

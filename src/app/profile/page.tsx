@@ -372,6 +372,8 @@ export default function ProfilePage() {
                             ? { label: "自分", cls: "bg-accent-gold/15 text-accent-gold" }
                             : cat === "family"
                             ? { label: "家族", cls: "bg-emerald-100 text-emerald-700" }
+                            : cat === "client"
+                            ? { label: "顧客", cls: "bg-rose-100 text-rose-700" }
                             : { label: "受講生", cls: "bg-sky-100 text-sky-700" };
                         return (
                           <span
@@ -472,12 +474,13 @@ export default function ProfilePage() {
               <label className="block text-sm text-accent-gold">
                 種別
               </label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {(
                   [
                     { value: "self", label: "自分" },
                     { value: "family", label: "家族" },
                     { value: "student", label: "受講生" },
+                    { value: "client", label: "顧客" },
                   ] as const
                 ).map((opt) => {
                   const active = (form.category ?? "self") === opt.value;
@@ -504,7 +507,7 @@ export default function ProfilePage() {
                 })}
               </div>
               <p className="text-xs text-muted">
-                「受講生」を選ぶと <a href="/students" className="text-accent-orange underline">受講生一覧</a> に表示されます
+                「受講生」「顧客」のいずれかを選ぶと <a href="/students" className="text-accent-orange underline">対象者一覧</a> に表示され、伴走アドバイスが見られます
               </p>
             </div>
 
