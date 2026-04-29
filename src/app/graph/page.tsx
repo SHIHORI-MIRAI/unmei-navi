@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { loadProfile } from "@/lib/storage";
 import {
@@ -235,10 +236,21 @@ export default function GraphPage() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-bold text-accent-orange flex items-center gap-2">
-        <span className="text-accent-gold">☽</span>
-        運勢グラフ
-      </h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold text-accent-orange flex items-center gap-2">
+          <span className="text-accent-gold">☽</span>
+          運勢グラフ
+        </h2>
+        <div className="flex gap-2 text-xs">
+          <Link href="/yearly" className="text-accent-gold hover:text-accent-orange transition-colors">
+            年運詳細
+          </Link>
+          <span className="text-muted">/</span>
+          <Link href="/monthly" className="text-accent-gold hover:text-accent-orange transition-colors">
+            月運勢
+          </Link>
+        </div>
+      </div>
 
       {/* グラフ */}
       <div className="bg-card-bg border border-card-border rounded-2xl p-4 shadow-sm">
@@ -323,6 +335,24 @@ export default function GraphPage() {
             advice={selected.nineStar.advice}
             caution={selected.nineStar.caution}
           />
+
+          {/* 月ごとの運勢への導線 */}
+          <Link
+            href="/monthly"
+            className="block bg-accent-orange/10 hover:bg-accent-orange/15 border border-accent-orange/30 rounded-2xl p-4 shadow-sm transition-colors"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-accent-orange">
+                  {selected.year}年の月ごとの運勢を見る
+                </p>
+                <p className="text-xs text-muted mt-0.5">
+                  12ヶ月の流れ・今月のテーマをチェック
+                </p>
+              </div>
+              <span className="text-accent-orange text-xl">→</span>
+            </div>
+          </Link>
         </div>
       )}
 

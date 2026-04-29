@@ -140,6 +140,34 @@ export default function Home() {
         各占術の詳細を見る →
       </Link>
 
+      {/* 機能ショートカット */}
+      <div className="grid grid-cols-2 gap-2">
+        <Link
+          href="/yearly"
+          className="block py-3 bg-card-bg border border-card-border rounded-2xl shadow-sm text-center hover:bg-accent-orange/5 transition-colors"
+        >
+          <div className="text-accent-gold text-lg">✦</div>
+          <div className="text-xs text-foreground font-medium mt-0.5">年運詳細</div>
+          <div className="text-[10px] text-muted">今年・来年の流れ</div>
+        </Link>
+        <Link
+          href="/monthly"
+          className="block py-3 bg-card-bg border border-card-border rounded-2xl shadow-sm text-center hover:bg-accent-orange/5 transition-colors"
+        >
+          <div className="text-accent-gold text-lg">☾</div>
+          <div className="text-xs text-foreground font-medium mt-0.5">月の運勢</div>
+          <div className="text-[10px] text-muted">毎月のテーマ</div>
+        </Link>
+        <Link
+          href="/compatibility"
+          className="block py-3 bg-card-bg border border-card-border rounded-2xl shadow-sm text-center hover:bg-accent-orange/5 transition-colors col-span-2"
+        >
+          <div className="text-accent-gold text-lg">♡</div>
+          <div className="text-xs text-foreground font-medium mt-0.5">相性診断</div>
+          <div className="text-[10px] text-muted">登録済みの人 / 手入力で誰とでも</div>
+        </Link>
+      </div>
+
       {/* 免責事項 */}
       <p className="text-center text-xs text-muted/60 px-4">
         ※ 占いは参考情報です。人生の重要な判断はご自身の責任で行ってください。
