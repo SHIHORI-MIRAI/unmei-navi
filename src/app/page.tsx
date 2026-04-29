@@ -180,6 +180,10 @@ export default function Home() {
       <div className="text-center text-xs text-muted/60 px-4 space-y-1">
         <p>※ 占いは参考情報です。人生の重要な判断はご自身の責任で行ってください。</p>
         <p>
+          <Link href="/guide" className="underline hover:text-accent-orange">
+            使い方ガイド
+          </Link>
+          <span className="mx-2">/</span>
           <Link href="/terms" className="underline hover:text-accent-orange">
             利用規約
           </Link>
