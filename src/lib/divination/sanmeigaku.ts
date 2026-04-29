@@ -144,6 +144,29 @@ const TENCHU_GROUPS = [
  * 41-50番(40-49) → 寅卯天中殺
  * 51-60番(50-59) → 子丑天中殺
  */
+/**
+ * 指定年が天中殺年かどうか判定
+ * その人の天中殺に含まれる地支を持つ年が天中殺年
+ */
+export function checkTenchusatsuYear(
+  birthDate: string,
+  year: number
+): { isTenchusatsu: boolean; group: string; yearBranch: string } {
+  const [y, m, d] = birthDate.split("-").map(Number);
+  const dayPillar = calcDayPillar(y, m, d);
+  const group = calcTenchu(dayPillar);
+
+  // 対象年の年柱（立春基準）
+  const yearPillar = calcYearPillar(year, 6, 15);
+  const yearBranch = yearPillar.branch.name;
+
+  return {
+    isTenchusatsu: (group.branches as readonly string[]).includes(yearBranch),
+    group: group.name,
+    yearBranch,
+  };
+}
+
 function calcTenchu(dayPillar: StemBranch): (typeof TENCHU_GROUPS)[number] {
   const stemIdx = HEAVENLY_STEMS.findIndex((s) => s.name === dayPillar.stem.name);
   const branchIdx = EARTHLY_BRANCHES.findIndex((b) => b.name === dayPillar.branch.name);

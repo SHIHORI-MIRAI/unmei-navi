@@ -263,6 +263,60 @@ export function calcFourPillars(
   };
 }
 
+/**
+ * 四柱推命の月運エネルギーを算出（グラフ用）
+ * 日主と月柱（対象年月）の五行相性で点数化
+ */
+export function getFourPillarsMonthWave(
+  birthDate: string,
+  year: number,
+  month: number
+): number {
+  const [by, bm, bd] = birthDate.split("-").map(Number);
+  const dayPillar = calcDayPillar(by, bm, bd);
+  const dayElement = dayPillar.stem.element as FiveElement;
+
+  // 対象年月の月柱を代表日(15日)で取得
+  const monthPillar = calcMonthPillar(year, month, 15);
+  const monthElement = monthPillar.stem.element as FiveElement;
+
+  const generates: Record<FiveElement, FiveElement> = {
+    木: "火", 火: "土", 土: "金", 金: "水", 水: "木",
+  };
+  const generatedBy: Record<FiveElement, FiveElement> = {
+    木: "水", 火: "木", 土: "火", 金: "土", 水: "金",
+  };
+
+  let score = 50;
+  if (generatedBy[dayElement] === monthElement) score = 80;
+  else if (generates[dayElement] === monthElement) score = 65;
+  else if (dayElement === monthElement) score = 70;
+  else if (generates[monthElement] === dayElement) score = 35;
+  else score = 45;
+
+  const monthBranchElement = monthPillar.branch.element as FiveElement;
+  if (generatedBy[dayElement] === monthBranchElement) score += 10;
+  else if (generates[monthBranchElement] === dayElement) score -= 10;
+
+  return Math.max(10, Math.min(100, score));
+}
+
+/**
+ * 月柱の天干・地支（月運表示用）
+ */
+export function getFourPillarsMonthInfo(
+  year: number,
+  month: number
+): { stem: string; branch: string; kanshi: string; element: string } {
+  const monthPillar = calcMonthPillar(year, month, 15);
+  return {
+    stem: monthPillar.stem.name,
+    branch: monthPillar.branch.name,
+    kanshi: monthPillar.kanshi,
+    element: monthPillar.stem.element,
+  };
+}
+
 /** 四柱推命の年運エネルギーを算出（グラフ用） */
 export function getFourPillarsWave(birthDate: string, year: number): number {
   const [, bm, bd] = birthDate.split("-").map(Number);

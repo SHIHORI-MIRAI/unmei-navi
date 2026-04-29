@@ -331,3 +331,45 @@ export function getNineStarPositionName(birthDate: string, year: number): string
   const position = getPositionInBoard(honmei, yearCenter);
   return `${position.direction}（${POSITION_FORTUNES[position.direction].theme}）`;
 }
+
+/**
+ * 月盤で本命星がどの位置にあるか（月運）
+ * month: カレンダー月(1-12)。節入りで前月扱いになる場合あり
+ * 代表日として各月の15日を使って月家九星を算出する
+ */
+export interface NineStarMonthly {
+  positionDirection: string;
+  theme: string;
+  energy: number;
+  advice: string;
+  caution: string;
+  monthCenterStar: number;
+}
+
+export function calcNineStarMonthly(
+  birthDate: string,
+  year: number,
+  month: number
+): NineStarMonthly {
+  const honmei = calcHonmeisei(birthDate);
+  // 節入り後の日を代表日とする（15日なら確実に節入り後）
+  const monthCenter = calcMonthStar(year, month, 15);
+  const position = getPositionInBoard(honmei, monthCenter);
+  const fortune = POSITION_FORTUNES[position.direction];
+  return {
+    positionDirection: position.direction,
+    theme: fortune.theme,
+    energy: fortune.energy,
+    advice: fortune.advice,
+    caution: fortune.caution,
+    monthCenterStar: monthCenter,
+  };
+}
+
+export function getNineStarMonthlyWave(
+  birthDate: string,
+  year: number,
+  month: number
+): number {
+  return calcNineStarMonthly(birthDate, year, month).energy;
+}

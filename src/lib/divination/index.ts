@@ -1,17 +1,38 @@
-export { calcNumerology, calcPersonalYear, getYearWave } from "./numerology";
+export {
+  calcNumerology,
+  calcPersonalYear,
+  calcPersonalMonth,
+  getYearWave,
+  getPersonalMonthWave,
+  getPersonalMonthMeaning,
+} from "./numerology";
 export type { NumerologyResult } from "./numerology";
 
 export { calcMayan, calcTodayMayan, calcYearlyMayan, getMayanYearWave, getMayanYearLabel } from "./mayan";
 export type { MayanResult } from "./mayan";
 
-export { calcNineStar, getNineStarWave, getNineStarPositionName } from "./nine-star";
-export type { NineStarResult } from "./nine-star";
+export {
+  calcNineStar,
+  calcNineStarMonthly,
+  getNineStarWave,
+  getNineStarMonthlyWave,
+  getNineStarPositionName,
+} from "./nine-star";
+export type { NineStarResult, NineStarMonthly } from "./nine-star";
 
-export { calcFourPillars, getFourPillarsWave } from "./four-pillars";
+export {
+  calcFourPillars,
+  getFourPillarsWave,
+  getFourPillarsMonthWave,
+  getFourPillarsMonthInfo,
+} from "./four-pillars";
 export type { FourPillarsResult } from "./four-pillars";
 
-export { calcSanmeigaku } from "./sanmeigaku";
+export { calcSanmeigaku, checkTenchusatsuYear } from "./sanmeigaku";
 export type { SanmeigakuResult } from "./sanmeigaku";
+
+export { calcCompatibility, MODE_LABELS } from "./compatibility";
+export type { CompatibilityResult, RelationMode, CompatibilityDimension } from "./compatibility";
 
 export { calcLuckyInfo } from "./lucky";
 export type { LuckyInfo } from "./lucky";

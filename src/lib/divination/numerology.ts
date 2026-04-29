@@ -103,6 +103,25 @@ export function getPersonalYearMeaning(num: number) {
   return personalYearMeanings[num] || personalYearMeanings[reduceToSingle(num)] || personalYearMeanings[1];
 }
 
+const personalMonthMeanings: Record<number, { theme: string; advice: string; caution: string }> = {
+  1: { theme: "スタートの月", advice: "新しい挑戦を始めるのに最適。小さな一歩でも踏み出して", caution: "勢いだけで突き進まず、方向性を決めてから動きましょう" },
+  2: { theme: "協力と調整の月", advice: "人との対話・パートナーシップを大切に。縁が育つ時期", caution: "迷いが出やすい月。決断は焦らず、信頼できる人に相談を" },
+  3: { theme: "表現と楽しさの月", advice: "創作・発信・交流を活発に。喜びが運を呼ぶ時期です", caution: "浪費・気の緩みに注意。楽しみながらも目的を忘れずに" },
+  4: { theme: "整理と積み上げの月", advice: "コツコツ作業・環境整備に向く月。土台を固めましょう", caution: "頑張りすぎて疲れやすい時期。休息とペース配分を意識して" },
+  5: { theme: "変化と動きの月", advice: "新しい体験・出会いに飛び込んで◎。行動量が運を広げます", caution: "衝動的な決断は控えめに。変化を楽しむ余裕を持って" },
+  6: { theme: "家庭と愛情の月", advice: "身近な人との時間、居場所を整える時期。温かさが循環します", caution: "抱え込みすぎに注意。自分のケアも忘れずに" },
+  7: { theme: "内省と学びの月", advice: "静かに自分と向き合う時期。読書・研究・振り返りが吉", caution: "孤立感が出やすい月。無理に動かず、一人時間を大切に" },
+  8: { theme: "実り・前進の月", advice: "成果が出やすい月。勝負所には積極的に動きましょう", caution: "お金や責任の扱いは丁寧に。強引さは避けて" },
+  9: { theme: "手放しと完成の月", advice: "不要なものを整理し、次サイクルへの準備を。感謝の月です", caution: "終わりに執着しないで。新しいものは来月以降に" },
+  11: { theme: "直感が冴える月", advice: "ひらめき・気づきを大切に。精神的な学びが深まります", caution: "現実感を失わないよう、地に足をつけて" },
+  22: { theme: "大きく形にする月", advice: "ビジョンを具体化するチャンス。仲間と共に進めて◎", caution: "一人で抱えず、周囲を巻き込みましょう" },
+  33: { theme: "愛と奉仕の月", advice: "周囲を支えることが自分の幸せに返ってくる月", caution: "自己犠牲にならないよう、自分自身のケアも優先して" },
+};
+
+export function getPersonalMonthMeaning(num: number) {
+  return personalMonthMeanings[num] || personalMonthMeanings[reduceToSingle(num)] || personalMonthMeanings[1];
+}
+
 /** 年運の波（グラフ用）: 1-9のサイクルで高低を返す */
 export function getYearWave(personalYear: number): number {
   const waveMap: Record<number, number> = {
@@ -110,6 +129,15 @@ export function getYearWave(personalYear: number): number {
     11: 85, 22: 95, 33: 75,
   };
   return waveMap[personalYear] ?? 50;
+}
+
+/** 月運の波（グラフ用） */
+export function getPersonalMonthWave(personalMonth: number): number {
+  const waveMap: Record<number, number> = {
+    1: 60, 2: 40, 3: 70, 4: 50, 5: 80, 6: 65, 7: 45, 8: 90, 9: 55,
+    11: 85, 22: 95, 33: 75,
+  };
+  return waveMap[personalMonth] ?? 50;
 }
 
 export interface NumerologyResult {

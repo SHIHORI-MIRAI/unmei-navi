@@ -1,9 +1,13 @@
+export type ProfileCategory = "self" | "family" | "student";
+
 export interface UserProfile {
   id: string;
   name: string;
   birthDate: string; // YYYY-MM-DD
   birthTime: string; // HH:MM or ""
   birthPlace: string;
+  category?: ProfileCategory; // 未設定は "self" として扱う
+  note?: string; // 受講生メモ（進捗・面談メモなど）
 }
 
 export interface DiaryEntry {
@@ -97,6 +101,18 @@ export function saveData(data: AppData): void {
 
 export function loadProfiles(): UserProfile[] {
   return loadData().profiles;
+}
+
+export function loadStudents(): UserProfile[] {
+  return loadProfiles().filter((p) => p.category === "student");
+}
+
+export function getProfileCategory(p: UserProfile): ProfileCategory {
+  return p.category ?? "self";
+}
+
+export function loadProfileById(id: string): UserProfile | null {
+  return loadProfiles().find((p) => p.id === id) ?? null;
 }
 
 export function loadProfile(): UserProfile | null {
@@ -240,6 +256,36 @@ export function deleteReading(id: string): void {
   const data = loadData();
   data.manualReadings = data.manualReadings.filter((r) => r.id !== id);
   saveData(data);
+}
+
+const LAST_EXPORT_KEY = "unmei-navi-last-export";
+
+export function markExported(): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(LAST_EXPORT_KEY, new Date().toISOString());
+}
+
+export function getLastExportDate(): Date | null {
+  if (typeof window === "undefined") return null;
+  const raw = localStorage.getItem(LAST_EXPORT_KEY);
+  if (!raw) return null;
+  const d = new Date(raw);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+export function getDataSummary(): {
+  profileCount: number;
+  diaryCount: number;
+  goalCount: number;
+  readingCount: number;
+} {
+  const data = loadData();
+  return {
+    profileCount: data.profiles.length,
+    diaryCount: data.diary.length,
+    goalCount: data.goals.length,
+    readingCount: data.manualReadings.length,
+  };
 }
 
 export function exportData(): string {
