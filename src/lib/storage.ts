@@ -317,13 +317,77 @@ export function exportData(): string {
   return JSON.stringify(loadData(), null, 2);
 }
 
+/**
+ * インポートデータを検証して取り込む。型チェックが緩いと不正JSONで全件破壊される
+ * ため、各フィールドが期待通りの型かを必ず確認する。
+ */
 export function importData(json: string): boolean {
   try {
-    const data = JSON.parse(json) as AppData;
-    if (!data || typeof data !== "object") return false;
-    saveData({ ...getDefaultData(), ...data });
-    return true;
+    const parsed: unknown = JSON.parse(json);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return false;
+    const obj = parsed as Record<string, unknown>;
+
+    const profiles = Array.isArray(obj.profiles)
+      ? (obj.profiles.filter(
+          (p) =>
+            p &&
+            typeof p === "object" &&
+            typeof (p as UserProfile).birthDate === "string"
+        ) as UserProfile[])
+      : [];
+    const diary = Array.isArray(obj.diary)
+      ? (obj.diary.filter(
+          (d) => d && typeof d === "object" && typeof (d as DiaryEntry).date === "string"
+        ) as DiaryEntry[])
+      : [];
+    const goals = Array.isArray(obj.goals)
+      ? (obj.goals.filter((g) => g && typeof g === "object") as GoalData[])
+      : [];
+    const manualReadings = Array.isArray(obj.manualReadings)
+      ? (obj.manualReadings.filter(
+          (r) => r && typeof r === "object"
+        ) as ManualReading[])
+      : [];
+
+    if (profiles.length === 0 && diary.length === 0 && goals.length === 0 && manualReadings.length === 0) {
+      return false;
+    }
+
+    const activeProfileId =
+      typeof obj.activeProfileId === "string" && profiles.some((p) => p.id === obj.activeProfileId)
+        ? (obj.activeProfileId as string)
+        : profiles[0]?.id ?? "";
+
+    const next: AppData = {
+      profile: profiles.find((p) => p.id === activeProfileId) ?? profiles[0] ?? null,
+      profiles,
+      activeProfileId,
+      diary,
+      goals,
+      manualReadings,
+    };
+    return saveData(next);
   } catch {
     return false;
   }
+}
+
+/**
+ * 書き込み直後に再ロードして件数が期待通りか検証する。
+ * 容量逼迫やブラウザのストレージ無効化で「保存できたつもり」になる事故を検知。
+ */
+export function verifyWrite(expected: {
+  profiles: number;
+  diary: number;
+  goals: number;
+  readings: number;
+}): boolean {
+  if (typeof window === "undefined") return true;
+  const actual = loadData();
+  return (
+    actual.profiles.length === expected.profiles &&
+    actual.diary.length === expected.diary &&
+    actual.goals.length === expected.goals &&
+    actual.manualReadings.length === expected.readings
+  );
 }

@@ -14,6 +14,7 @@ import {
   getLastExportDate,
   getDataSummary,
   getStorageUsage,
+  verifyWrite,
   type UserProfile,
 } from "@/lib/storage";
 
@@ -40,6 +41,7 @@ export default function ProfilePage() {
   const [summary, setSummary] = useState({ profileCount: 0, diaryCount: 0, goalCount: 0, readingCount: 0 });
   const [usage, setUsage] = useState({ used: 0, limit: 5 * 1024 * 1024, ratio: 0 });
   const [saveError, setSaveError] = useState<string>("");
+  const [externalChange, setExternalChange] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const refreshProfiles = useCallback(() => {
@@ -57,6 +59,19 @@ export default function ProfilePage() {
     }
   }, [refreshProfiles]);
 
+  // 別タブ・別ウィンドウで同じアプリが開かれてデータを書き換えた場合、
+  // このタブで編集中の内容を上書きする事故を防ぐため検知して警告する。
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === "unmei-navi-data" && e.oldValue !== e.newValue) {
+        setExternalChange(true);
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) {
@@ -68,13 +83,35 @@ export default function ProfilePage() {
     e.preventDefault();
     if (!form.birthDate) return;
     const toSave = { ...form, id: form.id || generateId() };
+
+    // 保存前の件数を控えて、保存後に再ロードして同じ／+1になっているか確認する。
+    // setItem が成功しても容量逼迫やブラウザの特殊状態でデータが残らない事故を捕まえる。
+    const beforeSummary = getDataSummary();
+    const expectedProfiles = profiles.some((p) => p.id === toSave.id)
+      ? beforeSummary.profileCount
+      : beforeSummary.profileCount + 1;
+
     const ok = saveProfile(toSave);
     if (!ok) {
       setSaveError(
-        "保存に失敗しました。ブラウザの容量上限に達した可能性があります。エクスポートで現在のデータをバックアップしたあと、不要な鑑定結果（特に画像つき）を削除してから再度お試しください。"
+        "保存に失敗しました。ブラウザの容量上限に達した可能性があります。下の「エクスポート」で現在のデータをバックアップしたあと、不要な鑑定結果（特に画像つき）を /readings から削除してから再度お試しください。"
       );
       return;
     }
+
+    const verified = verifyWrite({
+      profiles: expectedProfiles,
+      diary: beforeSummary.diaryCount,
+      goals: beforeSummary.goalCount,
+      readings: beforeSummary.readingCount,
+    });
+    if (!verified) {
+      setSaveError(
+        "保存処理は完了しましたが、再読込したらデータが反映されていませんでした。プライベートブラウズ／シークレットモードを使っていないかご確認ください。今すぐ「エクスポート」でバックアップを取ることをおすすめします。"
+      );
+      return;
+    }
+
     setSaveError("");
     setSaved(true);
     setIsEditing(false);
@@ -243,6 +280,35 @@ export default function ProfilePage() {
                   </div>
                 );
               })()}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* 他タブ変更通知 */}
+      {externalChange && (
+        <section className="bg-sky-50 border border-sky-200 rounded-2xl p-3 shadow-sm">
+          <div className="flex items-start gap-2">
+            <span className="text-sky-500">ℹ</span>
+            <div className="flex-1 text-xs leading-relaxed">
+              <p className="font-medium text-sky-700">別の画面でデータが更新されました</p>
+              <p className="text-[11px] text-foreground/80 mt-1">
+                別のタブやスマホでこのアプリを開いて編集した可能性があります。このまま保存すると、そちらの変更を上書きしてしまいます。一度ページを再読込して最新の状態を確認してください。
+              </p>
+              <div className="flex gap-3 mt-2">
+                <button
+                  onClick={() => location.reload()}
+                  className="text-[11px] bg-sky-600 text-white px-3 py-1 rounded-full hover:bg-sky-700 transition-colors"
+                >
+                  再読込する
+                </button>
+                <button
+                  onClick={() => setExternalChange(false)}
+                  className="text-[11px] text-sky-700 underline"
+                >
+                  あとで
+                </button>
+              </div>
             </div>
           </div>
         </section>
