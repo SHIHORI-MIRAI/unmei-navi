@@ -160,11 +160,19 @@ export default function Home() {
         </Link>
         <Link
           href="/compatibility"
-          className="block py-3 bg-card-bg border border-card-border rounded-2xl shadow-sm text-center hover:bg-accent-orange/5 transition-colors col-span-2"
+          className="block py-3 bg-card-bg border border-card-border rounded-2xl shadow-sm text-center hover:bg-accent-orange/5 transition-colors"
         >
           <div className="text-accent-gold text-lg">♡</div>
           <div className="text-xs text-foreground font-medium mt-0.5">相性診断</div>
-          <div className="text-[10px] text-muted">登録済みの人 / 手入力で誰とでも</div>
+          <div className="text-[10px] text-muted">2人を選んで詳しく</div>
+        </Link>
+        <Link
+          href="/matrix"
+          className="block py-3 bg-card-bg border border-card-border rounded-2xl shadow-sm text-center hover:bg-accent-orange/5 transition-colors"
+        >
+          <div className="text-accent-gold text-lg">⚯</div>
+          <div className="text-xs text-foreground font-medium mt-0.5">相性マトリックス</div>
+          <div className="text-[10px] text-muted">全員クロス・ランキング</div>
         </Link>
       </div>
 

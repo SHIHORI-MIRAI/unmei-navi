@@ -508,6 +508,45 @@ export default function ProfilePage() {
               </p>
             </div>
 
+            {/* 性別（任意） */}
+            <div className="space-y-2">
+              <label className="block text-sm text-accent-gold">
+                性別（相性マトリックスで使用、任意）
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {(
+                  [
+                    { value: "female", label: "女性" },
+                    { value: "male", label: "男性" },
+                    { value: "other", label: "未設定" },
+                  ] as const
+                ).map((opt) => {
+                  const current = form.gender ?? "other";
+                  const active = current === opt.value;
+                  return (
+                    <label
+                      key={opt.value}
+                      className={`text-center text-sm rounded-xl py-2.5 cursor-pointer border transition-colors ${
+                        active
+                          ? "bg-accent-orange text-white border-accent-orange"
+                          : "bg-card-bg text-foreground border-card-border hover:border-accent-orange/50"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="gender"
+                        value={opt.value}
+                        checked={active}
+                        onChange={handleChange}
+                        className="hidden"
+                      />
+                      {opt.label}
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* 名前 */}
             <div className="space-y-2">
               <label className="block text-sm text-accent-gold">

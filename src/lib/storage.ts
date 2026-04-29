@@ -1,4 +1,5 @@
 export type ProfileCategory = "self" | "family" | "student";
+export type Gender = "male" | "female" | "other";
 
 export interface UserProfile {
   id: string;
@@ -7,6 +8,7 @@ export interface UserProfile {
   birthTime: string; // HH:MM or ""
   birthPlace: string;
   category?: ProfileCategory; // 未設定は "self" として扱う
+  gender?: Gender; // 結婚相談所など男女クロス相性で使用、任意
   note?: string; // 受講生メモ（進捗・面談メモなど）
 }
 
