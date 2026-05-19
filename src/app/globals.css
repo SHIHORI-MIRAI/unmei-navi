@@ -112,3 +112,27 @@ body {
 .print-show {
   display: none;
 }
+
+/* フィットネス: 判定テキストのフェード */
+@keyframes judgment-pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  20% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+.animate-judgment {
+  animation: judgment-pop 0.7s ease-out forwards;
+}
+
+/* フィットネスゲーム画面では占いの星背景を消す */
+body:has(.fitness-scope) .stars {
+  display: none;
+}

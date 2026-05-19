@@ -28,6 +28,7 @@ export default function Header() {
   }, []);
 
   if (pathname === "/unlock") return null;
+  if (pathname?.startsWith("/fitness")) return null;
 
   return (
     <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-sm border-b border-card-border shadow-sm">
