@@ -186,6 +186,23 @@ export default function Home() {
         各占術の詳細を見る →
       </Link>
 
+      {/* 強み発見ワークシート */}
+      <Link
+        href="/worksheet"
+        className="block bg-gradient-to-br from-accent-orange/15 to-accent-gold/15 border border-accent-orange/30 rounded-2xl p-4 shadow-sm hover:from-accent-orange/20 hover:to-accent-gold/20 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-2xl flex-shrink-0">📝</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-accent-orange">強み発見ワークシート</p>
+            <p className="text-xs text-foreground/70 mt-0.5">
+              人生経験を強みに変える9ステップ＋強みタイプ診断
+            </p>
+          </div>
+          <span className="text-accent-orange text-sm">→</span>
+        </div>
+      </Link>
+
       {/* 機能ショートカット */}
       <div className="grid grid-cols-2 gap-2">
         <Link

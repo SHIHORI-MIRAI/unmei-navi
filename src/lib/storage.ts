@@ -56,6 +56,40 @@ export interface ManualReading {
   updatedAt?: string;
 }
 
+/** 「人生経験が強みに変わるワークシート」の回答。占いとは独立した自己ワーク用データ */
+export interface WorksheetData {
+  // STEP1 人生の振り返り
+  joyful: string;
+  painful: string;
+  turning: string;
+  // STEP2 乗り越えてきたこと
+  overcameEvent: string;
+  overcameHow: string;
+  overcameLearned: string;
+  // STEP3 人からよく言われること
+  oftenSaid: string;
+  // STEP4 人から相談されること
+  consulted: string;
+  // STEP5 当たり前にできること
+  natural: string;
+  // STEP6 何度も繰り返してきたこと（選択）
+  patterns: string[];
+  mostApplicable: string;
+  // STEP7 強みを言葉にする
+  expSentence: string;
+  strengthSentence: string;
+  // STEP8 誰の役に立てそうか
+  whoToHelp: string;
+  // STEP9 価値に変える
+  valueWho: string;
+  valueWhat: string;
+  valueFuture: string;
+  // 強みタイプ診断
+  quizAnswers: Record<number, string>; // 質問id -> タイプid
+  resultType: string; // 算出された強みタイプid
+  updatedAt: string;
+}
+
 export interface AppData {
   profile: UserProfile | null;
   profiles: UserProfile[];
@@ -63,6 +97,7 @@ export interface AppData {
   diary: DiaryEntry[];
   goals: GoalData[];
   manualReadings: ManualReading[];
+  worksheet: WorksheetData | null;
 }
 
 const STORAGE_KEY = "unmei-navi-data";
@@ -79,6 +114,7 @@ function getDefaultData(): AppData {
     diary: [],
     goals: [],
     manualReadings: [],
+    worksheet: null,
   };
 }
 
@@ -308,6 +344,24 @@ export function deleteReading(id: string): void {
   saveData(data);
 }
 
+// --- Worksheet (人生経験が強みに変わるワークシート) ---
+
+export function loadWorksheet(): WorksheetData | null {
+  return loadData().worksheet ?? null;
+}
+
+export function saveWorksheet(ws: WorksheetData): boolean {
+  const data = loadData();
+  data.worksheet = ws;
+  return saveData(data);
+}
+
+export function deleteWorksheet(): void {
+  const data = loadData();
+  data.worksheet = null;
+  saveData(data);
+}
+
 const LAST_EXPORT_KEY = "unmei-navi-last-export";
 
 export function markExported(): void {
@@ -374,7 +428,18 @@ export function importData(json: string): boolean {
         ) as ManualReading[])
       : [];
 
-    if (profiles.length === 0 && diary.length === 0 && goals.length === 0 && manualReadings.length === 0) {
+    const worksheet =
+      obj.worksheet && typeof obj.worksheet === "object" && !Array.isArray(obj.worksheet)
+        ? (obj.worksheet as WorksheetData)
+        : null;
+
+    if (
+      profiles.length === 0 &&
+      diary.length === 0 &&
+      goals.length === 0 &&
+      manualReadings.length === 0 &&
+      !worksheet
+    ) {
       return false;
     }
 
@@ -390,6 +455,7 @@ export function importData(json: string): boolean {
       diary,
       goals,
       manualReadings,
+      worksheet,
     };
     return saveData(next);
   } catch {
