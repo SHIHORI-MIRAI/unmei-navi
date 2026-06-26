@@ -42,8 +42,10 @@ export type { DailyMessage } from "./daily-message";
 
 export {
   ORACLE_CARDS,
+  ORACLE_CATEGORIES,
+  getCategoryInfo,
   getCardById,
   drawTodayCard,
   drawRandomCard,
 } from "./oracle";
-export type { OracleCard } from "./oracle";
+export type { OracleCard, OracleCategory, OracleCategoryInfo } from "./oracle";
