@@ -27,10 +27,25 @@
 }
 
 body {
-  background: var(--background);
+  /* 柔らかいクリーム×ゴールドの水彩グラデーション背景 */
+  background:
+    radial-gradient(1100px 560px at 50% -8%, #fcefdc 0%, rgba(252, 239, 220, 0) 60%),
+    radial-gradient(820px 480px at 108% 8%, #f8ead2 0%, rgba(248, 234, 210, 0) 55%),
+    radial-gradient(760px 520px at -8% 105%, #f7e6cf 0%, rgba(247, 230, 207, 0) 55%),
+    var(--background);
+  background-attachment: fixed;
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* 見出し用の上品な明朝体（日本語システムフォント・読み込み負荷ゼロ） */
+.font-mincho {
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", "YuMincho",
+    "Shippori Mincho", "Noto Serif JP", "Times New Roman", serif;
+  font-feature-settings: "palt";
+}
+
+/* ===== アニメーション ===== */
 
 /* オラクルカードのめくり演出 */
 @keyframes fadeIn {
@@ -44,6 +59,63 @@ body {
   }
 }
 
+/* カードがふわっと下から登場 */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-up {
+  animation: fadeInUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* 装飾がゆっくり漂う（月・植物など） */
+@keyframes floaty {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-9px) rotate(2.5deg); }
+}
+.float-slow { animation: floaty 7s ease-in-out infinite; }
+
+@keyframes drift {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(7px) rotate(-2deg); }
+}
+.drift-slow { animation: drift 9s ease-in-out infinite; }
+
+/* 星のまたたき */
+@keyframes starsTwinkle {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+/* キラッと光るスパークル */
+@keyframes sparkle {
+  0%, 100% { opacity: 0.4; transform: scale(0.9) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.15) rotate(15deg); }
+}
+.sparkle { animation: sparkle 3.5s ease-in-out infinite; }
+
+/* 水彩イラストなどの装飾レイヤー（背景画像を差し込むだけで表示） */
+.deco {
+  position: absolute;
+  pointer-events: none;
+  background-repeat: no-repeat;
+  background-size: contain;
+  background-position: center;
+  z-index: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up, .float-slow, .drift-slow, .sparkle, .stars {
+    animation: none !important;
+  }
+}
+
 /* Star decoration */
 .stars {
   position: fixed;
@@ -53,6 +125,7 @@ body {
   height: 100%;
   pointer-events: none;
   z-index: 0;
+  animation: starsTwinkle 8s ease-in-out infinite;
   background-image:
     radial-gradient(2px 2px at 10% 20%, rgba(232, 130, 12, 0.15) 0%, transparent 100%),
     radial-gradient(2px 2px at 30% 60%, rgba(196, 148, 42, 0.12) 0%, transparent 100%),

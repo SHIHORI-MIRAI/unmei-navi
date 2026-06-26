@@ -33,11 +33,18 @@ export default function Header() {
     <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-sm border-b border-card-border shadow-sm">
       <div className="max-w-md mx-auto flex items-center justify-between h-14 px-4 text-foreground">
         <Link href="/" className="flex items-center gap-2">
-          <span className="text-accent-gold text-xl">☽</span>
-          <h1 className="text-lg font-bold text-accent-orange tracking-wide">
-            運命ナビ
-          </h1>
-          <span className="text-accent-gold text-sm">✦</span>
+          <span className="text-accent-gold text-xl float-slow">☽</span>
+          <span className="flex flex-col leading-none">
+            <span className="flex items-center gap-1.5">
+              <h1 className="font-mincho text-lg font-bold text-accent-orange tracking-[0.12em]">
+                運命ナビ
+              </h1>
+              <span className="text-accent-gold text-sm sparkle">✦</span>
+            </span>
+            <span className="text-accent-gold/80 text-[8px] tracking-[0.4em] mt-0.5 pl-0.5">
+              UNMEI NAVI
+            </span>
+          </span>
         </Link>
         <div className="flex items-center gap-3">
           <Link
