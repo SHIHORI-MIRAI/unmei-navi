@@ -121,8 +121,8 @@ export const ORACLE_CARDS: OracleCard[] = [
     message: "小さな努力の積み重ねが、大きな結果を生み出します。信じて、楽しみながら、あなたのペースで続けていきましょう。" },
   { id: 33, category: "sanmeigaku", name: "感謝する", emoji: "🙏",
     message: "感謝の気持ちは、さらなる豊かさを引き寄せます。小さな「ありがとう」を毎日の習慣にしていきましょう。" },
-  { id: 34, category: "sanmeigaku", name: "境界線を引く", emoji: "🌿",
-    message: "自分を守ることは相手を尊重すること。健全な距離を保ちましょう。" },
+  { id: 34, category: "sanmeigaku", name: "行動する", emoji: "🚪",
+    message: "行動は、未来の扉を開く鍵です。完璧でなくても大丈夫。今日できることから始めて、理想の未来を創っていきましょう。" },
   { id: 35, category: "sanmeigaku", name: "信頼する", emoji: "🤝",
     message: "信頼は、すべての成功の土台です。信頼を育てることで、人との絆が深まり、大きな力が生まれます。" },
 
