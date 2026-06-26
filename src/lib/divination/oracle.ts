@@ -52,7 +52,7 @@ export const ORACLE_CARDS: OracleCard[] = [
   { id: 2, category: "nine-star", name: "光を信じる", emoji: "☀️",
     message: "希望の光があなたを照らしています。今は小さくても、前を向いて進みましょう。" },
   { id: 3, category: "nine-star", name: "整える", emoji: "🍃",
-    message: "環境や心を整えることで、運気が動き出します。" },
+    message: "環境や心を整えることで、運気が動き出します。無理をせず、今できることから少しずつ始めましょう。" },
   { id: 4, category: "nine-star", name: "出会い", emoji: "🌷",
     message: "素敵なご縁が近づいています。心を開いて、受け取りましょう。" },
   { id: 5, category: "nine-star", name: "変化を楽しむ", emoji: "🦋",
