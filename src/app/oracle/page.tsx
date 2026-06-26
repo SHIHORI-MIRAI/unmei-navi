@@ -41,65 +41,100 @@ function saltFromProfile(profile: UserProfile | null): number {
  * カード表示。public/cards/NN.png があればその画像（完成カード）を表示し、
  * 無ければ絵文字ベースのカード（EmojiCardFace）にフォールバックする。
  */
-function CardFace({ card }: { card: OracleCard }) {
+/**
+ * カードの絵柄部分。public/cards/NN.png（イラストのみ）があれば表示し、
+ * 無ければカテゴリ色のモチーフ絵文字にフォールバックする。
+ */
+function CardArt({ card }: { card: OracleCard }) {
   const [imgFailed, setImgFailed] = useState(false);
+  const cat = getCategoryInfo(card.category);
   const src = `/cards/${String(card.id).padStart(2, "0")}.png`;
 
-  if (imgFailed) return <EmojiCardFace card={card} />;
+  if (imgFailed) {
+    return (
+      <div
+        className="w-full aspect-[4/3] rounded-2xl flex items-center justify-center text-6xl shadow-inner"
+        style={{ background: `${cat.hex}1f` }}
+      >
+        <span className="float-slow">{card.emoji}</span>
+      </div>
+    );
+  }
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={src}
-      alt={`${card.name}：${card.message}`}
+      alt={card.name}
       onError={() => setImgFailed(true)}
-      className="animate-[fadeIn_0.5s_ease] w-full rounded-3xl shadow-md border border-card-border block"
+      className="w-full aspect-[4/3] object-cover rounded-2xl shadow-inner block"
     />
   );
 }
 
-/** 画像が無いカード用の、絵文字ベースの表示 */
-function EmojiCardFace({ card }: { card: OracleCard }) {
+/**
+ * カード1枚の表示。アプリ側でカード枠（番号・カード名・メッセージ）を
+ * 明朝体で描き、中央にイラスト（CardArt）を載せる。
+ */
+function CardFace({ card }: { card: OracleCard }) {
   const cat = getCategoryInfo(card.category);
   const isRainbow = card.category === "common";
-  const bg = isRainbow
-    ? "linear-gradient(135deg, #f6d6e6 0%, #e6d6f2 30%, #d6e4f5 55%, #d8f0e2 80%, #faeccf 100%)"
-    : `linear-gradient(160deg, ${cat.hex}26, ${cat.hex}0d)`;
+  const frameBg = isRainbow
+    ? "linear-gradient(160deg, #fffaf3, #fdf4ea)"
+    : `linear-gradient(160deg, ${cat.hex}12, #fffdf8)`;
 
   return (
     <div
-      className="animate-[fadeIn_0.5s_ease] rounded-3xl p-6 shadow-md border border-card-border text-center space-y-4"
-      style={{ background: bg }}
+      className="animate-[fadeIn_0.5s_ease] relative rounded-[26px] p-5"
+      style={{
+        background: frameBg,
+        border: `2px solid ${cat.hex}55`,
+        boxShadow: `inset 0 0 0 1px ${cat.hex}22, 0 8px 24px rgba(120, 90, 30, 0.10)`,
+      }}
     >
       {/* カテゴリ（叡智）バッジ */}
-      <div className="flex items-center justify-center gap-2">
+      <div className="flex items-center justify-center mb-2">
         <span
-          className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1 rounded-full"
-          style={{ background: `${cat.hex}22`, color: cat.hex }}
+          className="inline-flex items-center gap-1.5 text-[11px] font-medium px-3 py-0.5 rounded-full"
+          style={{ background: `${cat.hex}1f`, color: cat.hex }}
         >
           <span>{cat.emoji}</span>
           {cat.label}
         </span>
-        <span className="text-muted/60 text-xs">No.{card.id}</span>
       </div>
 
-      {/* モチーフ */}
+      {/* 番号バッジ */}
       <div
-        className="mx-auto w-24 h-24 rounded-full flex items-center justify-center text-5xl shadow-inner float-slow"
-        style={{ background: isRainbow ? "#ffffff66" : `${cat.hex}1f` }}
+        className="mx-auto mb-2 w-12 h-12 rounded-full flex items-center justify-center font-mincho text-xl font-bold sparkle"
+        style={{
+          color: cat.hex,
+          border: `2px solid ${cat.hex}66`,
+          background: "#fffdf8",
+        }}
       >
-        {card.emoji}
+        {card.id}
       </div>
 
-      <h2 className="font-mincho text-2xl font-bold text-foreground">
+      {/* カード名 */}
+      <h2 className="font-mincho text-2xl font-bold text-foreground text-center">
         {card.name}
       </h2>
+      <div className="text-center text-accent-gold/70 text-sm mb-3">— ✦ —</div>
 
-      <p className="font-mincho text-foreground leading-relaxed px-2">
-        {card.message}
-      </p>
+      {/* イラスト */}
+      <CardArt card={card} />
 
-      <p className="text-[11px] text-muted/70">{cat.theme}</p>
+      {/* メッセージ */}
+      <div
+        className="mt-4 rounded-2xl px-4 py-3 text-center"
+        style={{ background: "rgba(255,253,248,0.6)", border: `1px solid ${cat.hex}33` }}
+      >
+        <p className="font-mincho text-foreground leading-relaxed">
+          {card.message}
+        </p>
+      </div>
+
+      <p className="text-center text-[11px] text-muted/70 mt-3">{cat.theme}</p>
     </div>
   );
 }
