@@ -74,9 +74,9 @@ export const ORACLE_CARDS: OracleCard[] = [
   { id: 12, category: "four-pillars", name: "感謝する", emoji: "🙏",
     message: "感謝の気持ちは、あなたの心を満たし、幸せを引き寄せます。小さなことにも「ありがとう」を。" },
   { id: 13, category: "four-pillars", name: "選ばれる存在になる", emoji: "👑",
-    message: "あなたが届ける価値は、あなただからこそ届けられるもの。自信を持って価値を伝えましょう。" },
-  { id: 14, category: "four-pillars", name: "信じて行動する", emoji: "✨",
-    message: "信じて、まず一歩を踏み出すこと。行動することでしか、未来は動き出しません。" },
+    message: "あなたが輝くことで、誰かの人生が動き出します。それが、あなたの使命です。" },
+  { id: 14, category: "four-pillars", name: "信じて行動する", emoji: "🏮",
+    message: "信じることは、行動する勇気をくれます。小さな一歩の積み重ねが、大きな未来を創ります。" },
 
   // ── 数秘術（数字が語るあなたの本質）──
   { id: 15, category: "numerology", name: "自由を選ぶ", emoji: "🕊️",
