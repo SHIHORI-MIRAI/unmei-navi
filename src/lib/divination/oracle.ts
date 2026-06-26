@@ -114,21 +114,21 @@ export const ORACLE_CARDS: OracleCard[] = [
   { id: 29, category: "sanmeigaku", name: "小さな積み重ねを大切にし、着実に夢を形にする", emoji: "🌱",
     message: "どんな大きな夢も、最初は小さな一歩から。日々の積み重ねが、やがて大きな奇跡を生み出します。" },
   { id: 30, category: "sanmeigaku", name: "リーダーシップ", emoji: "👑",
-    message: "あなたには人を導く力があります。自信を持って。" },
-  { id: 31, category: "sanmeigaku", name: "直感と理性の調和", emoji: "☯️",
-    message: "感情と理性のバランスが、正しい判断を導きます。" },
-  { id: 32, category: "sanmeigaku", name: "努力を続ける", emoji: "🪜",
-    message: "継続する力が大きな成功を生み出します。" },
-  { id: 33, category: "sanmeigaku", name: "人間関係を大切に", emoji: "🤝",
-    message: "信頼関係があなたの未来を広げます。" },
-  { id: 34, category: "sanmeigaku", name: "境界線を引く", emoji: "🚪",
+    message: "あなたには人を導く力があります。自信を持って、その役割を果たしましょう。" },
+  { id: 31, category: "sanmeigaku", name: "チャンスをつかむ", emoji: "🚪",
+    message: "チャンスは、準備ができた人のところに訪れます。今こそ、自分の可能性を信じて、新しい一歩を踏み出しましょう。" },
+  { id: 32, category: "sanmeigaku", name: "継続する", emoji: "🌙",
+    message: "小さな努力の積み重ねが、大きな結果を生み出します。信じて、楽しみながら、あなたのペースで続けていきましょう。" },
+  { id: 33, category: "sanmeigaku", name: "感謝する", emoji: "🙏",
+    message: "感謝の気持ちは、さらなる豊かさを引き寄せます。小さな「ありがとう」を毎日の習慣にしていきましょう。" },
+  { id: 34, category: "sanmeigaku", name: "境界線を引く", emoji: "🌿",
     message: "自分を守ることは相手を尊重すること。健全な距離を保ちましょう。" },
-  { id: 35, category: "sanmeigaku", name: "未来を創る", emoji: "🔭",
-    message: "あなたの選択が未来を創ります。主体性を大切に。" },
+  { id: 35, category: "sanmeigaku", name: "信頼する", emoji: "🤝",
+    message: "信頼は、すべての成功の土台です。信頼を育てることで、人との絆が深まり、大きな力が生まれます。" },
 
   // ── 共通カード（すべての叡智からの祝福）──
-  { id: 36, category: "common", name: "すべてはうまくいっている", emoji: "🌈",
-    message: "すべての叡智があなたを祝福しています。安心して、あなたの道を進みましょう。" },
+  { id: 36, category: "common", name: "変化を受け入れる", emoji: "🦋",
+    message: "変化は、新しい可能性への招待状です。柔軟な心で流れに身を任せると、人生はより豊かで輝かしいものになります。" },
 ];
 
 /** 日付ベースのシード（lucky.ts と同じ簡易ハッシュ） */
