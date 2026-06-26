@@ -220,6 +220,14 @@ export default function Home() {
           <div className="text-xs text-foreground font-medium mt-0.5">相性マトリックス</div>
           <div className="text-[10px] text-muted">全員クロス・ランキング</div>
         </Link>
+        <Link
+          href="/oracle"
+          className="block py-3 bg-card-bg border border-card-border rounded-2xl shadow-sm text-center hover:bg-accent-orange/5 transition-colors"
+        >
+          <div className="text-accent-gold text-lg">🃏</div>
+          <div className="text-xs text-foreground font-medium mt-0.5">オラクルカード</div>
+          <div className="text-[10px] text-muted">今日のメッセージを1枚</div>
+        </Link>
       </div>
 
       {/* 免責事項 */}

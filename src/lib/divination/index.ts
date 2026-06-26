@@ -39,3 +39,11 @@ export type { LuckyInfo } from "./lucky";
 
 export { generateDailyMessage } from "./daily-message";
 export type { DailyMessage } from "./daily-message";
+
+export {
+  ORACLE_CARDS,
+  getCardById,
+  drawTodayCard,
+  drawRandomCard,
+} from "./oracle";
+export type { OracleCard } from "./oracle";

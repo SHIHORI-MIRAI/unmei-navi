@@ -56,6 +56,14 @@ export interface ManualReading {
   updatedAt?: string;
 }
 
+export interface OracleDraw {
+  id: string;
+  date: string; // YYYY-MM-DD
+  cardId: number; // OracleCard.id
+  mode: "today" | "random"; // 今日の1枚 / シャッフル引き
+  createdAt: string;
+}
+
 export interface AppData {
   profile: UserProfile | null;
   profiles: UserProfile[];
@@ -63,6 +71,7 @@ export interface AppData {
   diary: DiaryEntry[];
   goals: GoalData[];
   manualReadings: ManualReading[];
+  oracleDraws: OracleDraw[];
 }
 
 const STORAGE_KEY = "unmei-navi-data";
@@ -79,6 +88,7 @@ function getDefaultData(): AppData {
     diary: [],
     goals: [],
     manualReadings: [],
+    oracleDraws: [],
   };
 }
 
@@ -308,6 +318,33 @@ export function deleteReading(id: string): void {
   saveData(data);
 }
 
+// --- Oracle Draws ---
+
+export function loadOracleDraws(): OracleDraw[] {
+  return loadData().oracleDraws.map((o) => ({
+    ...o,
+    id: o.id || generateId(),
+    mode: o.mode || "random",
+  }));
+}
+
+export function saveOracleDraw(draw: OracleDraw): void {
+  const data = loadData();
+  const idx = data.oracleDraws.findIndex((o) => o.id === draw.id);
+  if (idx >= 0) {
+    data.oracleDraws[idx] = draw;
+  } else {
+    data.oracleDraws.push(draw);
+  }
+  saveData(data);
+}
+
+export function deleteOracleDraw(id: string): void {
+  const data = loadData();
+  data.oracleDraws = data.oracleDraws.filter((o) => o.id !== id);
+  saveData(data);
+}
+
 const LAST_EXPORT_KEY = "unmei-navi-last-export";
 
 export function markExported(): void {
@@ -328,6 +365,7 @@ export function getDataSummary(): {
   diaryCount: number;
   goalCount: number;
   readingCount: number;
+  oracleCount: number;
 } {
   const data = loadData();
   return {
@@ -335,6 +373,7 @@ export function getDataSummary(): {
     diaryCount: data.diary.length,
     goalCount: data.goals.length,
     readingCount: data.manualReadings.length,
+    oracleCount: data.oracleDraws.length,
   };
 }
 
@@ -373,8 +412,22 @@ export function importData(json: string): boolean {
           (r) => r && typeof r === "object"
         ) as ManualReading[])
       : [];
+    const oracleDraws = Array.isArray(obj.oracleDraws)
+      ? (obj.oracleDraws.filter(
+          (o) =>
+            o &&
+            typeof o === "object" &&
+            typeof (o as OracleDraw).cardId === "number"
+        ) as OracleDraw[])
+      : [];
 
-    if (profiles.length === 0 && diary.length === 0 && goals.length === 0 && manualReadings.length === 0) {
+    if (
+      profiles.length === 0 &&
+      diary.length === 0 &&
+      goals.length === 0 &&
+      manualReadings.length === 0 &&
+      oracleDraws.length === 0
+    ) {
       return false;
     }
 
@@ -390,6 +443,7 @@ export function importData(json: string): boolean {
       diary,
       goals,
       manualReadings,
+      oracleDraws,
     };
     return saveData(next);
   } catch {
