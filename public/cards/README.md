@@ -1,73 +1,68 @@
-# オラクルカードの絵柄画像の置き場所
+# オラクルカードの画像の置き場所
 
-ここに `01.png`〜`36.png` の名前で画像を置くと、その番号のカードに表示されます。
-**置いてあるカードだけ画像になり、無いカードは自動で絵文字カードになります**（崩れません）。
-アプリ側のコードを編集する必要はありません。フォルダに入れるだけです。
+ここに `01.jpg`〜`36.jpg` の名前で**完成カード画像**を置くと、その番号のカードに表示されます。
+**置いてあるカードだけ画像になり、無いカードはアプリが描く枠＋絵文字カードになります**（崩れません）。
 
-- ファイル名: `01.png`, `02.png` … `36.png`（2桁ゼロ埋め）
-- 形式: PNG（または JPG を `.png` 名で。透過は不要）
-- 推奨: 縦長（カード①は 1024×1536）。横幅 720px 程度に縮小すると軽くて綺麗です。
-- 容量: 1枚 500KB 以下が目安
+- ファイル名: `01.jpg`, `02.jpg` … `36.jpg`（2桁ゼロ埋め）
+- 縦長の完成カード（番号・カード名・メッセージまで入った1枚絵）でOK
+- 画像は私（Claude）が受け取って、横幅720px・JPEG（約150KB）に最適化して配置します
 
-カード①（`01.png`）は見本として設定済みです。
+> ダウンロードした画像は、チャットで「○番入れた」と伝えてください。
+> こちらで `public/cards/` に配置してデプロイします。ファイル名の変更も不要です。
 
----
-
-## 文字（番号・カード名・メッセージ）について
-
-**この仕組みは「絵だけ」方式です。** 番号・カード名・メッセージはアプリが明朝体で表示するので、
-**画像にはイラスト（絵）だけ**を入れてください（文字は入れない）。日本語が必ず正しく・綺麗に出ます。
-
-- 画像の形は **横長〜正方形のイラスト**が最適（カード枠の中央に `4:3` で表示されます）。
-- 文字や枠は不要。風景・モチーフの絵だけでOK。
-- 見本の `01.png` も、イラスト部分だけにしてあります。
+設定済み: `01.jpg`（流れに乗る）、`02.jpg`（光を信じる）
 
 ---
 
-## 36枚ぶん 画像生成プロンプト（コピペ用）
+## 画像の作り方（ChatGPT等の画像生成）
 
-各行の「シーン」を下の【共通スタイル】の前に入れて生成してください。
+カード②のように、**番号・カード名・メッセージまで入った完成カード**を生成してください。
+日本語の文字もChatGPTの画像生成できれいに出ます。
 
-【共通スタイル】（末尾に付ける）
-> soft watercolor illustration, warm golden-hour light, cream and gold color palette,
-> delicate flowers, sparkling light particles, dreamy and ethereal, elegant ornate gold
-> art-nouveau border frame, portrait orientation, highly detailed, no text
+各カードの番号・名前・メッセージは、アプリの一覧（下表）と揃えると統一感が出ます。
+スタイルは1枚目（流れに乗る）に合わせると全体がそろいます：
 
-| # | カード名 | シーン（プロンプト先頭に入れる英語） |
+> 縦長のオラクルカード。上部に番号、その下にカード名（明朝体）、中央に水彩イラスト、
+> 下部の枠にメッセージ。クリーム＆ゴールドの水彩、繊細な花、きらめく光、
+> エレガントな金の装飾枠。
+
+## カード一覧（番号・名前・メッセージ）
+
+| # | カード名 | メッセージ |
 |---|---|---|
-| 01 | 流れに乗る | a shining river winding through misty golden mountains at sunrise, wildflowers |
-| 02 | 光を信じる | radiant golden light beams bursting from the center, a warm sun, hopeful |
-| 03 | 整える | a balanced stack of smooth zen stones, cherry blossoms, calm and serene |
-| 04 | 出会い | a stone archway gate covered in blooming flowers, soft light beyond |
-| 05 | 変化を楽しむ | delicate butterflies fluttering upward among flowers, transformation |
-| 06 | 手放し | a dandelion releasing glowing seeds into the wind, letting go |
-| 07 | 豊かさの受け取り | an ornate golden chalice overflowing with light, abundance |
-| 08 | 自分を知る | an antique hand mirror reflecting a starry sky, self-discovery |
-| 09 | 使命を思い出す | an open ancient book glowing with golden light, destiny |
-| 10 | 根を大切にする | a majestic tree with deep glowing golden roots, family and roots |
-| 11 | 努力は実る | a path of light climbing a mountain toward a bright star, effort rewarded |
-| 12 | 信頼する | a golden compass glowing softly, trust and direction |
-| 13 | 学びの時 | a lit candle beside a stack of old books, learning |
-| 14 | タイミングを見る | an elegant hourglass with golden sand, timing |
-| 15 | 自由を選ぶ | a white dove flying freely across a bright sky, freedom |
-| 16 | 直感を信じる | a crescent moon over a tranquil river at night, intuition |
-| 17 | 表現する | a feather quill pen and an inkwell, self-expression |
-| 18 | 自信を育てる | a noble white lion sitting calmly, confidence |
-| 19 | バランスをとる | a golden balance scale, harmony and balance |
-| 20 | 行動する | a silhouette of a person running toward the dawn, taking action |
-| 21 | 可能性を信じる | a brilliant shining star above mountain ranges, infinite possibility |
-| 22 | 宇宙とつながる | a beautiful spiral galaxy in deep space, cosmic connection |
-| 23 | 感謝する | a glowing heart surrounded by blooming flowers, gratitude |
-| 24 | 浄化する | a clear waterfall in a lush green forest, purification |
-| 25 | リズムに乗る | the phases of the moon in a starry sky, cosmic rhythm |
-| 26 | 夢を描く | a person standing under a vast starry sky, dreaming |
-| 27 | 許す | a gentle white dove with soft light, forgiveness |
-| 28 | 今を楽しむ | colorful hot-air balloons floating in a bright sky, joy of now |
-| 29 | 才能を活かす | a glowing lotus crystal gem, talent |
-| 30 | リーダーシップ | a radiant golden crown, leadership |
-| 31 | 直感と理性の調和 | two faces of sun and moon merged in harmony, balance of heart and mind |
-| 32 | 努力を続ける | a staircase of light ascending, lined with flowers, perseverance |
-| 33 | 人間関係を大切に | two hands holding a glowing heart, relationships |
-| 34 | 境界線を引く | a flowering garden gate, healthy boundaries |
-| 35 | 未来を創る | a person looking through a telescope at the stars, creating the future |
-| 36 | すべてはうまくいっている | radiant rainbow light beaming from the center, blessing, everything is well |
+| 1 | 流れに乗る | タイミングは最適です。自然の流れに身を委ねましょう。 |
+| 2 | 光を信じる | 希望の光があなたを照らしています。前を向いて進みましょう。 |
+| 3 | 整える | 環境や心を整えることで、運気が動き出します。 |
+| 4 | 出会い | 素敵なご縁が近づいています。心を開いて受け取りましょう。 |
+| 5 | 変化を楽しむ | 変化は成長のチャンスです。新しい自分に出会えます。 |
+| 6 | 手放し | 不要なものを手放すことで、新しい運が入ってきます。 |
+| 7 | 豊かさの受け取り | 受け取ることを許可しましょう。豊かさはあなたのものです。 |
+| 8 | 自分を知る | 本当の自分を知ることが、人生を変える第一歩です。 |
+| 9 | 使命を思い出す | あなたには果たすべき使命があります。思い出しましょう。 |
+| 10 | 根を大切にする | あなたを支える家族やルーツに感謝の気持ちを伝えましょう。 |
+| 11 | 努力は実る | 今の努力は必ず未来の実りとなって返ってきます。 |
+| 12 | 信頼する | 人生の流れを信じて、安心して進みましょう。 |
+| 13 | 学びの時 | 学びは、未来の自分への最高の贈り物です。 |
+| 14 | タイミングを見る | 焦らず、最適なタイミングを見極めることが成功の鍵です。 |
+| 15 | 自由を選ぶ | 自分の人生を自分で選ぶ勇気を持ちましょう。 |
+| 16 | 直感を信じる | あなたの直感は宇宙からのメッセージです。信じて行動を。 |
+| 17 | 表現する | あなたの言葉や表現が、誰かの心を動かします。 |
+| 18 | 自信を育てる | 小さな成功体験があなたの自信を育てていきます。 |
+| 19 | バランスをとる | 心・体・魂のバランスを大切に。調和が運を引き寄せます。 |
+| 20 | 行動する | 思い立ったらすぐ行動。その一歩が道を開きます。 |
+| 21 | 可能性を信じる | あなたには無限の可能性があります。信じて進みましょう。 |
+| 22 | 宇宙とつながる | 宇宙はいつもあなたをサポートしています。 |
+| 23 | 感謝する | 感謝の気持ちはさらなる幸せを引き寄せます。 |
+| 24 | 浄化する | 心と体を浄化して、新しいエネルギーを受け取りましょう。 |
+| 25 | リズムに乗る | 宇宙のリズムに合わせることで、スムーズに進みます。 |
+| 26 | 夢を描く | 夢を明確に描くことで、現実が動き出します。 |
+| 27 | 許す | 自分も相手も許すことで、心が自由になります。 |
+| 28 | 今を楽しむ | 今この瞬間を楽しむことが、未来を豊かにします。 |
+| 29 | 才能を活かす | あなたの才能は誰かの役に立つためにあります。 |
+| 30 | リーダーシップ | あなたには人を導く力があります。自信を持って。 |
+| 31 | 直感と理性の調和 | 感情と理性のバランスが、正しい判断を導きます。 |
+| 32 | 努力を続ける | 継続する力が大きな成功を生み出します。 |
+| 33 | 人間関係を大切に | 信頼関係があなたの未来を広げます。 |
+| 34 | 境界線を引く | 自分を守ることは相手を尊重すること。健全な距離を保ちましょう。 |
+| 35 | 未来を創る | あなたの選択が未来を創ります。主体性を大切に。 |
+| 36 | すべてはうまくいっている | すべての叡智があなたを祝福しています。安心して、あなたの道を進みましょう。 |

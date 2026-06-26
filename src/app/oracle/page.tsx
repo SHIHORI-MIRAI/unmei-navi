@@ -38,45 +38,33 @@ function saltFromProfile(profile: UserProfile | null): number {
 }
 
 /**
- * カード表示。public/cards/NN.png があればその画像（完成カード）を表示し、
- * 無ければ絵文字ベースのカード（EmojiCardFace）にフォールバックする。
+ * カード表示。public/cards/NN.jpg があれば完成カード画像をそのまま表示し、
+ * 無ければアプリが枠・番号・名前・メッセージを描く FallbackCard を表示する。
  */
-/**
- * カードの絵柄部分。public/cards/NN.png（イラストのみ）があれば表示し、
- * 無ければカテゴリ色のモチーフ絵文字にフォールバックする。
- */
-function CardArt({ card }: { card: OracleCard }) {
+function CardFace({ card }: { card: OracleCard }) {
   const [imgFailed, setImgFailed] = useState(false);
-  const cat = getCategoryInfo(card.category);
-  const src = `/cards/${String(card.id).padStart(2, "0")}.png`;
+  const src = `/cards/${String(card.id).padStart(2, "0")}.jpg`;
 
-  if (imgFailed) {
+  if (!imgFailed) {
     return (
-      <div
-        className="w-full aspect-[4/3] rounded-2xl flex items-center justify-center text-6xl shadow-inner"
-        style={{ background: `${cat.hex}1f` }}
-      >
-        <span className="float-slow">{card.emoji}</span>
-      </div>
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt={`${card.name}：${card.message}`}
+        onError={() => setImgFailed(true)}
+        className="animate-[fadeIn_0.5s_ease] w-full rounded-[26px] shadow-md border border-card-border block mx-auto max-w-[20rem]"
+      />
     );
   }
 
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={src}
-      alt={card.name}
-      onError={() => setImgFailed(true)}
-      className="w-full aspect-[4/3] object-cover rounded-2xl shadow-inner block"
-    />
-  );
+  return <FallbackCard card={card} />;
 }
 
 /**
- * カード1枚の表示。アプリ側でカード枠（番号・カード名・メッセージ）を
- * 明朝体で描き、中央にイラスト（CardArt）を載せる。
+ * 画像がまだ無いカード用。アプリ側でカード枠（番号・カード名・メッセージ・
+ * モチーフ絵文字）を明朝体で描画する。
  */
-function CardFace({ card }: { card: OracleCard }) {
+function FallbackCard({ card }: { card: OracleCard }) {
   const cat = getCategoryInfo(card.category);
   const isRainbow = card.category === "common";
   const frameBg = isRainbow
@@ -85,7 +73,7 @@ function CardFace({ card }: { card: OracleCard }) {
 
   return (
     <div
-      className="animate-[fadeIn_0.5s_ease] relative rounded-[26px] p-5"
+      className="animate-[fadeIn_0.5s_ease] relative rounded-[26px] p-5 mx-auto max-w-[20rem]"
       style={{
         background: frameBg,
         border: `2px solid ${cat.hex}55`,
@@ -121,8 +109,13 @@ function CardFace({ card }: { card: OracleCard }) {
       </h2>
       <div className="text-center text-accent-gold/70 text-sm mb-3">— ✦ —</div>
 
-      {/* イラスト */}
-      <CardArt card={card} />
+      {/* モチーフ */}
+      <div
+        className="w-full aspect-[4/3] rounded-2xl flex items-center justify-center text-6xl shadow-inner"
+        style={{ background: `${cat.hex}1f` }}
+      >
+        <span className="float-slow">{card.emoji}</span>
+      </div>
 
       {/* メッセージ */}
       <div
