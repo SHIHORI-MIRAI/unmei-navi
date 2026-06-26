@@ -37,8 +37,29 @@ function saltFromProfile(profile: UserProfile | null): number {
     .reduce((acc, ch) => acc + (ch >= "0" && ch <= "9" ? Number(ch) : 0), 0);
 }
 
-/** カード1枚の表示 */
+/**
+ * カード表示。public/cards/NN.png があればその画像（完成カード）を表示し、
+ * 無ければ絵文字ベースのカード（EmojiCardFace）にフォールバックする。
+ */
 function CardFace({ card }: { card: OracleCard }) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const src = `/cards/${String(card.id).padStart(2, "0")}.png`;
+
+  if (imgFailed) return <EmojiCardFace card={card} />;
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={`${card.name}：${card.message}`}
+      onError={() => setImgFailed(true)}
+      className="animate-[fadeIn_0.5s_ease] w-full rounded-3xl shadow-md border border-card-border block"
+    />
+  );
+}
+
+/** 画像が無いカード用の、絵文字ベースの表示 */
+function EmojiCardFace({ card }: { card: OracleCard }) {
   const cat = getCategoryInfo(card.category);
   const isRainbow = card.category === "common";
   const bg = isRainbow
