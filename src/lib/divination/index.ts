@@ -31,6 +31,15 @@ export type { FourPillarsResult } from "./four-pillars";
 export { calcSanmeigaku, checkTenchusatsuYear } from "./sanmeigaku";
 export type { SanmeigakuResult } from "./sanmeigaku";
 
+export {
+  getNumerologyDetail,
+  getMayanDetail,
+  getFourPillarsDetail,
+  getSanmeigakuDetail,
+  getNineStarDetail,
+} from "./detailed-traits";
+export type { DetailedTrait } from "./detailed-traits";
+
 export { calcCompatibility, MODE_LABELS } from "./compatibility";
 export type { CompatibilityResult, RelationMode, CompatibilityDimension } from "./compatibility";
 

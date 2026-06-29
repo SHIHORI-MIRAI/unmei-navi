@@ -16,6 +16,7 @@ import {
   calcNineStar,
   calcLuckyInfo,
 } from "@/lib/divination";
+import UsageHelp from "@/components/UsageHelp";
 
 const MOOD_OPTIONS = [
   { value: 1, label: "低調", emoji: "🌧️" },
@@ -209,6 +210,17 @@ export default function DiaryPage() {
         <span className="text-accent-gold">📖</span>
         振り返り日記
       </h2>
+
+      <UsageHelp
+        storageKey="usage-help-diary"
+        title="振り返り日記の使い方"
+        steps={[
+          <>その日の<strong>気分を5段階</strong>から選び、ひとことメモを書いて保存します。タグ（仕事・恋愛など）も付けられます。</>,
+          <>日付を選べば、今日だけでなく<strong>過去の日</strong>の記録もできます。</>,
+          <>保存すると、その日の運勢（数秘・マヤ暦・九星気学・月齢）も一緒に記録され、<strong>「気分と運気の関係」</strong>をあとから見返せます。</>,
+          <>続けるほど、自分の<strong>調子の波と運気のパターン</strong>が見えてきます。まずは一言からでOKです。</>,
+        ]}
+      />
 
       {/* 今日書いていない場合のプロンプト */}
       {!todayEntry && !showForm && (

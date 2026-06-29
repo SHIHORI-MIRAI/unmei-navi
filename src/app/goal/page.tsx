@@ -19,6 +19,7 @@ import {
   getYearWave,
   calcPersonalYear,
 } from "@/lib/divination";
+import UsageHelp from "@/components/UsageHelp";
 
 const CATEGORIES = [
   { value: "business", label: "ビジネス・仕事", icon: "💼" },
@@ -328,6 +329,17 @@ export default function GoalPage() {
         <span className="text-accent-gold">☽</span>
         ゴール＋ロードマップ
       </h2>
+
+      <UsageHelp
+        storageKey="usage-help-goal"
+        title="目標（ゴール）の使い方"
+        steps={[
+          <>「<strong>＋新しいゴールを設定する</strong>」を押し、叶えたいことをカテゴリ（仕事・お金・健康・人間関係など）から選んで登録します。</>,
+          <>登録すると、<strong>今のあなたの運気と掛け合わせて</strong>「今やるべきこと」や「動き出すのにベストな時期」が自動で表示されます。</>,
+          <>運気は<strong>春＝上昇／夏＝盛運／秋＝整理／冬＝充電</strong>の4つの季節で表示。低い時期も“悪い”ではなく、準備や見直しに向く時期として活かせます。</>,
+          <>叶ったら丸をタップしてチェック。あとから達成を振り返れます。</>,
+        ]}
+      />
 
       {/* 新規追加ボタン */}
       {!showForm && (

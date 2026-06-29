@@ -14,6 +14,45 @@ import {
 
 const GUIDE_BANNER_KEY = "unmei-guide-banner-dismissed";
 
+/** ホームの機能メニュー（水彩アイコン＋カードごとの淡い色味） */
+const MENU_ITEMS = [
+  {
+    href: "/yearly",
+    title: "年運詳細",
+    subtitle: "今年・来年の流れ",
+    icon: "/menu/year.png",
+    bg: "linear-gradient(135deg, rgba(245,158,11,0.10), rgba(255,255,255,0.55))",
+  },
+  {
+    href: "/monthly",
+    title: "月の運勢",
+    subtitle: "毎月のテーマ",
+    icon: "/menu/month.png",
+    bg: "linear-gradient(135deg, rgba(167,139,250,0.12), rgba(255,255,255,0.55))",
+  },
+  {
+    href: "/compatibility",
+    title: "相性診断",
+    subtitle: "2人を選んで詳しく",
+    icon: "/menu/compat.png",
+    bg: "linear-gradient(135deg, rgba(244,114,182,0.12), rgba(255,255,255,0.55))",
+  },
+  {
+    href: "/matrix",
+    title: "相性マトリックス",
+    subtitle: "全員クロス・ランキング",
+    icon: "/menu/matrix.png",
+    bg: "linear-gradient(135deg, rgba(139,92,246,0.12), rgba(255,255,255,0.55))",
+  },
+  {
+    href: "/oracle",
+    title: "オラクルカード",
+    subtitle: "今日のメッセージを1枚",
+    icon: "/menu/oracle.png",
+    bg: "linear-gradient(135deg, rgba(217,180,74,0.12), rgba(255,255,255,0.55))",
+  },
+] as const;
+
 export default function Home() {
   const [hasProfile, setHasProfile] = useState(false);
   const [daily, setDaily] = useState<DailyMessage | null>(null);
@@ -204,56 +243,39 @@ export default function Home() {
         </section>
       )}
 
-      {/* 詳細へのリンク */}
+      {/* 詳細へのリンク（ゴールド枠のピル） */}
       <Link
         href="/detail"
-        className="block text-center py-3 bg-card-bg border border-card-border rounded-2xl shadow-sm text-accent-orange text-sm font-medium hover:bg-accent-orange/5 transition-colors"
+        className="block text-center font-mincho text-base font-bold tracking-wide text-accent-gold py-3.5 rounded-full border border-accent-gold/40 bg-gradient-to-r from-accent-gold/5 via-card-bg to-accent-gold/5 shadow-sm hover:from-accent-gold/10 hover:to-accent-gold/10 transition-colors"
       >
         各占術の詳細を見る →
       </Link>
 
-      {/* 機能ショートカット */}
-      <div className="grid grid-cols-2 gap-2">
-        <Link
-          href="/yearly"
-          className="block py-3 bg-card-bg border border-card-border rounded-2xl shadow-sm text-center hover:bg-accent-orange/5 transition-colors"
-        >
-          <div className="text-accent-gold text-lg">✦</div>
-          <div className="text-xs text-foreground font-medium mt-0.5">年運詳細</div>
-          <div className="text-[10px] text-muted">今年・来年の流れ</div>
-        </Link>
-        <Link
-          href="/monthly"
-          className="block py-3 bg-card-bg border border-card-border rounded-2xl shadow-sm text-center hover:bg-accent-orange/5 transition-colors"
-        >
-          <div className="text-accent-gold text-lg">☾</div>
-          <div className="text-xs text-foreground font-medium mt-0.5">月の運勢</div>
-          <div className="text-[10px] text-muted">毎月のテーマ</div>
-        </Link>
-        <Link
-          href="/compatibility"
-          className="block py-3 bg-card-bg border border-card-border rounded-2xl shadow-sm text-center hover:bg-accent-orange/5 transition-colors"
-        >
-          <div className="text-accent-gold text-lg">♡</div>
-          <div className="text-xs text-foreground font-medium mt-0.5">相性診断</div>
-          <div className="text-[10px] text-muted">2人を選んで詳しく</div>
-        </Link>
-        <Link
-          href="/matrix"
-          className="block py-3 bg-card-bg border border-card-border rounded-2xl shadow-sm text-center hover:bg-accent-orange/5 transition-colors"
-        >
-          <div className="text-accent-gold text-lg">⚯</div>
-          <div className="text-xs text-foreground font-medium mt-0.5">相性マトリックス</div>
-          <div className="text-[10px] text-muted">全員クロス・ランキング</div>
-        </Link>
-        <Link
-          href="/oracle"
-          className="block py-3 bg-card-bg border border-card-border rounded-2xl shadow-sm text-center hover:bg-accent-orange/5 transition-colors"
-        >
-          <div className="text-accent-gold text-lg">🃏</div>
-          <div className="text-xs text-foreground font-medium mt-0.5">オラクルカード</div>
-          <div className="text-[10px] text-muted">今日のメッセージを1枚</div>
-        </Link>
+      {/* 機能メニュー（水彩アイコン） */}
+      <div className="space-y-2.5">
+        {MENU_ITEMS.map((m, i) => (
+          <Link
+            key={m.href}
+            href={m.href}
+            className="animate-fade-up group flex items-center gap-3.5 rounded-2xl border border-card-border p-2.5 shadow-sm transition-transform active:scale-[0.99]"
+            style={{ background: m.bg, animationDelay: `${0.3 + i * 0.05}s` }}
+          >
+            <img
+              src={m.icon}
+              alt=""
+              width={64}
+              height={64}
+              className="w-16 h-16 rounded-xl object-cover flex-shrink-0 shadow-sm"
+            />
+            <div className="flex-1 min-w-0">
+              <p className="font-mincho text-base font-bold text-foreground">{m.title}</p>
+              <p className="text-[11px] text-muted mt-0.5">{m.subtitle}</p>
+            </div>
+            <span className="text-accent-gold/60 text-2xl mr-1 transition-transform group-hover:translate-x-0.5">
+              ›
+            </span>
+          </Link>
+        ))}
       </div>
 
       {/* 免責事項 */}

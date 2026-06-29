@@ -3,17 +3,24 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { loadProfile } from "@/lib/storage";
+import UsageHelp from "@/components/UsageHelp";
 import {
   calcNumerology,
   calcMayan,
   calcNineStar,
   calcFourPillars,
   calcSanmeigaku,
+  getNumerologyDetail,
+  getMayanDetail,
+  getFourPillarsDetail,
+  getSanmeigakuDetail,
+  getNineStarDetail,
   type NumerologyResult,
   type MayanResult,
   type NineStarResult,
   type FourPillarsResult,
   type SanmeigakuResult,
+  type DetailedTrait,
 } from "@/lib/divination";
 
 /** 全占術の強みキーワードを統合して頻出テーマを抽出 */
@@ -149,6 +156,17 @@ export default function AnalysisPage() {
         <span className="text-accent-gold">✦</span>
         強み・性格分析
       </h2>
+
+      <UsageHelp
+        storageKey="usage-help-analysis"
+        title="強み・性格分析の見方"
+        steps={[
+          <>5つの占術（数秘術・マヤ暦・四柱推命・算命学・九星気学）の結果を<strong>まとめて分析</strong>したページです。入力は不要、自動で表示されます。</>,
+          <><strong>コアの強み</strong>は、複数の占術で共通して出たあなたの軸。最も信頼できる長所です。</>,
+          <>下の「<strong>それぞれの占いをさらにくわしく</strong>」を開くと、占術ごとの本質・仕事・人間関係の特徴が読めます。</>,
+          <>仕事・人間関係・成長のヒントも載っているので、自己紹介や強みの言語化に活用できます。</>,
+        ]}
+      />
 
       {/* 総合サマリー */}
       <div className="bg-card-bg border border-card-border rounded-2xl p-5 shadow-sm">
@@ -297,6 +315,42 @@ export default function AnalysisPage() {
         />
       </section>
 
+      {/* それぞれの占いをさらにくわしく */}
+      <DetailSection
+        details={[
+          {
+            title: "数秘術",
+            subtitle: `ライフパスナンバー ${numerology.lifePathNumber}「${numerology.lifePathMeaning.title}」`,
+            color: "#8b5cf6",
+            trait: getNumerologyDetail(numerology.lifePathNumber),
+          },
+          {
+            title: "マヤ暦",
+            subtitle: `太陽の紋章「${mayan.solarSeal.name}」`,
+            color: "#e11d48",
+            trait: getMayanDetail(mayan.solarSeal.name),
+          },
+          {
+            title: "四柱推命",
+            subtitle: `日主「${fourPillars.dayMaster.stem}・${fourPillars.dayMaster.title}」`,
+            color: "#06b6d4",
+            trait: getFourPillarsDetail(fourPillars.dayMaster.stem),
+          },
+          {
+            title: "算命学",
+            subtitle: `主星「${sanmeigaku.mainStar.name}」`,
+            color: "#f59e0b",
+            trait: getSanmeigakuDetail(sanmeigaku.mainStar.name),
+          },
+          {
+            title: "九星気学",
+            subtitle: `本命星「${nineStar.honmeisei.name}」`,
+            color: "#10b981",
+            trait: getNineStarDetail(nineStar.honmeisei.name),
+          },
+        ]}
+      />
+
       {/* 強みの活かし方ヒント */}
       <div className="bg-card-bg border border-card-border rounded-2xl p-5 shadow-sm">
         <h3 className="text-sm font-medium text-accent-gold mb-3 flex items-center gap-1.5">
@@ -355,6 +409,73 @@ function LayerCard({
           </p>
         </div>
       ))}
+    </div>
+  );
+}
+
+interface DetailItem {
+  title: string;
+  subtitle: string;
+  color: string;
+  trait: DetailedTrait;
+}
+
+function DetailSection({ details }: { details: DetailItem[] }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <section className="space-y-3">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full bg-gradient-to-r from-accent-orange to-accent-gold text-white rounded-2xl px-5 py-4 shadow-sm flex items-center justify-between active:scale-[0.99] transition-transform"
+      >
+        <span className="flex items-center gap-2 text-sm font-bold">
+          <span>✧</span>
+          それぞれの占いをさらにくわしく
+        </span>
+        <span className={`text-lg transition-transform ${open ? "rotate-180" : ""}`}>⌄</span>
+      </button>
+
+      {open && (
+        <div className="space-y-3">
+          <p className="text-xs text-muted px-1">
+            5つの占術それぞれの視点から見た、あなたの深い特徴です。
+          </p>
+          {details.map((d) => (
+            <DetailCard key={d.title} item={d} />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function DetailCard({ item }: { item: DetailItem }) {
+  const rows: { label: string; text: string }[] = [
+    { label: "本質・性格", text: item.trait.character },
+    { label: "仕事・才能", text: item.trait.work },
+    { label: "人間関係", text: item.trait.relationship },
+    { label: "輝くヒント", text: item.trait.advice },
+  ];
+
+  return (
+    <div className="bg-card-bg border border-card-border rounded-2xl p-4 shadow-sm space-y-3">
+      <div className="flex items-center gap-2">
+        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+        <span className="text-sm font-bold text-foreground">{item.title}</span>
+      </div>
+      <p className="text-sm font-medium text-accent-orange">{item.subtitle}</p>
+      <div className="space-y-2.5">
+        {rows.map((r) => (
+          <div key={r.label} className="space-y-0.5">
+            <p className="text-xs font-medium text-accent-gold flex items-center gap-1">
+              <span>▸</span>
+              {r.label}
+            </p>
+            <p className="text-sm text-foreground/80 leading-relaxed pl-3.5">{r.text}</p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

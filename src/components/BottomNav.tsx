@@ -4,11 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const navItems = [
-  { href: "/", label: "ホーム", icon: "☽" },
-  { href: "/graph", label: "運勢", icon: "📊" },
-  { href: "/goal", label: "目標", icon: "🎯" },
-  { href: "/analysis", label: "強み", icon: "✦" },
-  { href: "/diary", label: "日記", icon: "📖" },
+  { href: "/", label: "ホーム", icon: "/nav/home.png" },
+  { href: "/graph", label: "運勢", icon: "/nav/fortune.png" },
+  { href: "/goal", label: "目標", icon: "/nav/goal.png" },
+  { href: "/analysis", label: "強み", icon: "/nav/strength.png" },
+  { href: "/diary", label: "日記", icon: "/nav/diary.png" },
 ];
 
 export default function BottomNav() {
@@ -30,7 +30,15 @@ export default function BottomNav() {
                   : "text-muted hover:text-accent-gold"
               }`}
             >
-              <span className="text-lg">{item.icon}</span>
+              <img
+                src={item.icon}
+                alt=""
+                width={28}
+                height={28}
+                className={`w-7 h-7 object-contain transition-all ${
+                  isActive ? "opacity-100" : "opacity-55 grayscale-[0.15] group-hover:opacity-90"
+                }`}
+              />
               <span>{item.label}</span>
             </Link>
           );

@@ -31,10 +31,20 @@ import {
   Legend,
 } from "chart.js";
 import { Line } from "react-chartjs-2";
+import UsageHelp from "@/components/UsageHelp";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
 const YEAR_RANGE = 6; // 前後6年（計13年分）
+
+/** グラフ凡例（色・名前・説明・バッジ内アイコン） */
+const SERIES_LEGEND = [
+  { name: "総合", color: "#f97316", desc: "全体的な運勢の流れ", icon: "★" },
+  { name: "数秘術", color: "#8b5cf6", desc: "内面の力・才能・使命", icon: "✦" },
+  { name: "マヤ暦", color: "#e11d48", desc: "本質的なエネルギーの流れ", icon: "◆" },
+  { name: "九星気学", color: "#10b981", desc: "環境や人間関係の流れ", icon: "✿" },
+  { name: "四柱推命", color: "#06b6d4", desc: "運命の土台・人生の基盤", icon: "▲" },
+] as const;
 
 interface YearDetail {
   year: number;
@@ -124,6 +134,19 @@ export default function GraphPage() {
     return <p className="text-muted text-center py-10">読み込み中...</p>;
   }
 
+  // 補助線（占術別）の共通マーカー設定：白フチの色付き丸
+  const subPoint = (color: string) => ({
+    borderColor: color,
+    borderWidth: 2,
+    borderDash: [5, 4],
+    pointRadius: yearDetails.map((d) => (d.year === selectedYear ? 5 : 4)),
+    pointHoverRadius: 6,
+    pointBackgroundColor: color,
+    pointBorderColor: "#ffffff",
+    pointBorderWidth: 1.5,
+    tension: 0.35,
+  });
+
   const chartData = {
     labels: yearDetails.map((d) => `${d.year}`),
     datasets: [
@@ -131,51 +154,23 @@ export default function GraphPage() {
         label: "総合",
         data: yearDetails.map((d) => d.average),
         borderColor: "#f97316",
-        backgroundColor: "rgba(249, 115, 22, 0.1)",
-        borderWidth: 3,
-        pointRadius: yearDetails.map((d) => (d.year === selectedYear ? 8 : d.year === currentYear ? 6 : 3)),
+        backgroundColor: "rgba(249, 165, 80, 0.14)",
+        borderWidth: 3.5,
+        pointRadius: yearDetails.map((d) => (d.year === selectedYear ? 9 : d.year === currentYear ? 8 : 5)),
+        pointHoverRadius: 10,
         pointBackgroundColor: yearDetails.map((d) =>
-          d.year === selectedYear ? "#f97316" : d.year === currentYear ? "#eab308" : "#f9731680"
+          d.year === currentYear ? "#f59e0b" : "#f97316"
         ),
+        pointBorderColor: "#ffffff",
+        pointBorderWidth: 2.5,
         fill: true,
-        tension: 0.3,
+        tension: 0.35,
+        order: 0,
       },
-      {
-        label: "数秘術",
-        data: yearDetails.map((d) => d.numerology.wave),
-        borderColor: "#8b5cf6",
-        borderWidth: 1.5,
-        pointRadius: 2,
-        borderDash: [4, 4],
-        tension: 0.3,
-      },
-      {
-        label: "マヤ暦",
-        data: yearDetails.map((d) => d.mayan.wave),
-        borderColor: "#e11d48",
-        borderWidth: 1.5,
-        pointRadius: 2,
-        borderDash: [4, 4],
-        tension: 0.3,
-      },
-      {
-        label: "九星気学",
-        data: yearDetails.map((d) => d.nineStar.wave),
-        borderColor: "#10b981",
-        borderWidth: 1.5,
-        pointRadius: 2,
-        borderDash: [4, 4],
-        tension: 0.3,
-      },
-      {
-        label: "四柱推命",
-        data: yearDetails.map((d) => d.fourPillars.wave),
-        borderColor: "#06b6d4",
-        borderWidth: 1.5,
-        pointRadius: 2,
-        borderDash: [4, 4],
-        tension: 0.3,
-      },
+      { label: "数秘術", data: yearDetails.map((d) => d.numerology.wave), ...subPoint("#8b5cf6"), order: 1 },
+      { label: "マヤ暦", data: yearDetails.map((d) => d.mayan.wave), ...subPoint("#e11d48"), order: 2 },
+      { label: "九星気学", data: yearDetails.map((d) => d.nineStar.wave), ...subPoint("#10b981"), order: 3 },
+      { label: "四柱推命", data: yearDetails.map((d) => d.fourPillars.wave), ...subPoint("#06b6d4"), order: 4 },
     ],
   };
 
@@ -211,14 +206,7 @@ export default function GraphPage() {
     },
     plugins: {
       legend: {
-        display: true,
-        position: "bottom" as const,
-        labels: {
-          boxWidth: 12,
-          padding: 8,
-          font: { size: 10 },
-          color: "#a0917b",
-        },
+        display: false,
       },
       tooltip: {
         backgroundColor: "rgba(45, 35, 25, 0.9)",
@@ -234,29 +222,87 @@ export default function GraphPage() {
     },
   };
 
+  // 今年の総合ポイントの背後にやわらかい光を描くプラグイン
+  const currentYearIndex = yearDetails.findIndex((d) => d.year === currentYear);
+  const glowPlugin = {
+    id: "currentYearGlow",
+    beforeDatasetsDraw(chart: {
+      ctx: CanvasRenderingContext2D;
+      getDatasetMeta: (i: number) => { data: { x: number; y: number }[] };
+    }) {
+      if (currentYearIndex < 0) return;
+      const pt = chart.getDatasetMeta(0).data[currentYearIndex];
+      if (!pt) return;
+      const { ctx } = chart;
+      ctx.save();
+      const grad = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, 24);
+      grad.addColorStop(0, "rgba(245, 158, 11, 0.55)");
+      grad.addColorStop(0.6, "rgba(245, 158, 11, 0.22)");
+      grad.addColorStop(1, "rgba(245, 158, 11, 0)");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, 24, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    },
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <h2 className="text-xl font-bold text-accent-orange flex items-center gap-2">
           <span className="text-accent-gold">☽</span>
           運勢グラフ
         </h2>
-        <div className="flex gap-2 text-xs">
-          <Link href="/yearly" className="text-accent-gold hover:text-accent-orange transition-colors">
+        <div className="flex items-center gap-2 text-xs rounded-full border border-accent-gold/40 bg-card-bg px-3.5 py-1.5 shadow-sm">
+          <Link href="/yearly" className="text-accent-gold font-medium hover:text-accent-orange transition-colors">
             年運詳細
           </Link>
-          <span className="text-muted">/</span>
-          <Link href="/monthly" className="text-accent-gold hover:text-accent-orange transition-colors">
+          <span className="text-accent-gold/40">/</span>
+          <Link href="/monthly" className="text-accent-gold font-medium hover:text-accent-orange transition-colors">
             月運勢
           </Link>
         </div>
       </div>
 
+      <UsageHelp
+        storageKey="usage-help-graph"
+        title="運勢グラフの見方"
+        steps={[
+          <>折れ線は<strong>占術ごとの運気の流れ</strong>です。上にいくほど勢いがあり、下がる時期は充電・準備に向きます（“悪い”ではありません）。</>,
+          <><strong>★は今年</strong>の位置。過去から約10年先までの流れをひと目で確認できます。</>,
+          <>気になる<strong>年（点）をタップ</strong>すると、その年のテーマ・おすすめの過ごし方・注意点が下に表示されます。</>,
+          <>上の「年運詳細／月運勢」リンクから、さらに細かい流れも見られます。</>,
+        ]}
+      />
+
       {/* グラフ */}
-      <div className="bg-card-bg border border-card-border rounded-2xl p-4 shadow-sm">
-        <p className="text-xs text-muted mb-2">タップで年を選択 / ★は今年</p>
+      <div className="bg-card-bg border border-card-border rounded-2xl p-4 shadow-sm space-y-3">
+        <p className="text-xs text-muted flex items-center gap-1.5">
+          <span className="text-accent-gold">✦</span>
+          タップで年を選択 / ★は今年
+        </p>
         <div style={{ height: "260px" }}>
-          <Line data={chartData} options={chartOptions} />
+          <Line data={chartData} options={chartOptions} plugins={[glowPlugin]} />
+        </div>
+
+        {/* 凡例（色付きバッジ＋説明） */}
+        <div className="grid grid-cols-1 gap-2 pt-1">
+          {SERIES_LEGEND.map((s) => (
+            <div key={s.name} className="flex items-center gap-2.5">
+              <span
+                className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-white text-xs shadow-sm ring-2 ring-white"
+                style={{ backgroundColor: s.color }}
+              >
+                {s.icon}
+              </span>
+              <span className="text-sm font-bold" style={{ color: s.color }}>
+                {s.name}
+              </span>
+              <span className="flex-1 border-b border-dotted border-muted/30 mx-1" />
+              <span className="text-xs text-muted whitespace-nowrap">{s.desc}</span>
+            </div>
+          ))}
         </div>
       </div>
 
