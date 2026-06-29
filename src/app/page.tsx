@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { loadProfile } from "@/lib/storage";
 import {
   calcNumerology,
@@ -53,6 +53,20 @@ const MENU_ITEMS = [
   },
 ] as const;
 
+/** 初回ウェルカム画面の4つのベネフィット（水彩アイコン） */
+const WELCOME_BENEFITS = [
+  { icon: "/welcome/benefit-star.png", label: "あなただけの\n運勢をお届け" },
+  { icon: "/welcome/benefit-moon.png", label: "毎日をより良く\nするヒントに" },
+  { icon: "/welcome/benefit-book.png", label: "人生の選択に\n自信が持てる" },
+  { icon: "/welcome/benefit-crystal.png", label: "未来を味方に\nつけましょう" },
+] as const;
+
+/** イラストの左端をカード背景になじませる共通マスク */
+const LEFT_FADE: CSSProperties = {
+  WebkitMaskImage: "linear-gradient(to right, transparent, #000 42%)",
+  maskImage: "linear-gradient(to right, transparent, #000 42%)",
+};
+
 export default function Home() {
   const [hasProfile, setHasProfile] = useState(false);
   const [daily, setDaily] = useState<DailyMessage | null>(null);
@@ -87,21 +101,50 @@ export default function Home() {
   if (!hasProfile) {
     return (
       <div className="space-y-6">
-        <section className="bg-card-bg border border-card-border rounded-2xl p-5 shadow-sm space-y-3">
-          <div className="flex items-center gap-2 text-accent-gold text-sm">
-            <span>✦</span>
-            <span>ようこそ、運命ナビへ</span>
+        {/* ようこそカード */}
+        <section className="animate-fade-up relative overflow-hidden rounded-3xl border border-card-border shadow-sm bg-gradient-to-br from-card-bg via-card-bg to-[#ece4f7] p-5 min-h-[210px]">
+          {/* コンパス＋クリスタルの水彩イラスト */}
+          <img
+            src="/welcome/hero.png"
+            alt=""
+            aria-hidden
+            className="pointer-events-none select-none absolute top-1/2 -translate-y-1/2 -right-2 w-36 float-slow"
+            style={{
+              WebkitMaskImage: "radial-gradient(circle at 60% 50%, #000 58%, transparent 80%)",
+              maskImage: "radial-gradient(circle at 60% 50%, #000 58%, transparent 80%)",
+            }}
+          />
+          <div className="relative z-10 space-y-3.5 pr-28">
+            <div className="flex items-center gap-1.5 text-accent-gold text-sm">
+              <span className="sparkle">✦</span>
+              <span>ようこそ、運命ナビへ</span>
+            </div>
+            <p className="font-mincho text-xl font-bold text-foreground leading-relaxed">
+              まずはプロフィールを設定して、あなただけの占い結果を受け取りましょう
+            </p>
+            <Link
+              href="/profile"
+              className="inline-flex items-center gap-1.5 mt-1 px-6 py-3 rounded-full text-white text-sm font-bold shadow-md bg-gradient-to-r from-accent-orange to-accent-gold hover:opacity-90 transition-opacity"
+            >
+              プロフィールを設定する <span className="sparkle">✦</span>
+            </Link>
           </div>
-          <p className="text-lg font-medium text-foreground leading-relaxed">
-            まずはプロフィールを設定して、あなただけの占い結果を受け取りましょう
-          </p>
-          <Link
-            href="/profile"
-            className="inline-block mt-2 px-5 py-2.5 bg-accent-orange text-white rounded-full text-sm font-medium hover:bg-accent-light transition-colors"
-          >
-            プロフィールを設定する
-          </Link>
         </section>
+
+        {/* 4つのベネフィット */}
+        <div className="animate-fade-up grid grid-cols-4 gap-2" style={{ animationDelay: "0.08s" }}>
+          {WELCOME_BENEFITS.map((b) => (
+            <div key={b.label} className="flex flex-col items-center gap-1.5 text-center">
+              <span className="w-16 h-16 rounded-full overflow-hidden border border-accent-gold/25 bg-card-bg shadow-sm">
+                <img src={b.icon} alt="" className="w-full h-full object-cover" />
+              </span>
+              <span className="text-[10px] leading-tight text-muted whitespace-pre-line">
+                {b.label}
+              </span>
+            </div>
+          ))}
+        </div>
+
         <p className="text-center text-xs text-muted/60 px-4">
           ※ 占いは参考情報です。人生の重要な判断はご自身の責任で行ってください。
         </p>
@@ -150,78 +193,91 @@ export default function Home() {
       )}
 
       {/* 今日のメッセージ */}
-      <section className="animate-fade-up relative overflow-hidden bg-card-bg border border-card-border rounded-3xl p-5 shadow-sm space-y-3" style={{ animationDelay: "0.05s" }}>
-        {/* 水彩の月（/decorations/moon.png を置くと表示） */}
-        <div
-          className="deco float-slow -top-2 -right-2 w-28 h-28 opacity-90"
-          style={{ backgroundImage: "url('/decorations/moon.png')" }}
+      <section className="animate-fade-up relative overflow-hidden rounded-3xl border border-card-border shadow-sm bg-gradient-to-r from-card-bg via-card-bg to-[#ece4f7] p-5 min-h-[190px]" style={{ animationDelay: "0.05s" }}>
+        {/* 水彩イラスト（コンパス・羽・月） */}
+        <img
+          src="/home/msg.png"
+          alt=""
+          aria-hidden
+          className="pointer-events-none select-none absolute top-0 right-0 h-full w-[44%] object-cover object-center"
+          style={LEFT_FADE}
         />
-        {/* 水彩の植物（/decorations/leaf.png を置くと表示） */}
-        <div
-          className="deco drift-slow bottom-0 right-2 w-24 h-24 opacity-80"
-          style={{ backgroundImage: "url('/decorations/leaf.png')" }}
-        />
-        <div className="relative z-10 flex items-center gap-2 text-accent-gold text-sm">
-          <span className="sparkle">✦</span>
-          <span>今日のメッセージ</span>
-        </div>
-        <p className="relative z-10 font-mincho text-xl font-medium text-foreground leading-relaxed pr-8">
-          {daily?.message ?? "計算中..."}
-        </p>
-        {daily && (
-          <p className="relative z-10 text-xs text-muted mt-1">
-            {daily.source}
+        <div className="relative z-10 space-y-3 pr-[40%]">
+          <div className="flex items-center gap-2 text-accent-gold text-sm">
+            <span className="sparkle">✦</span>
+            <span>今日のメッセージ</span>
+          </div>
+          <p className="font-mincho text-xl font-medium text-foreground leading-relaxed">
+            {daily?.message ?? "計算中..."}
           </p>
-        )}
+          {daily && <p className="text-xs text-muted mt-1">{daily.source}</p>}
+        </div>
       </section>
 
       {/* 今日の注意点 */}
-      <section className="animate-fade-up relative overflow-hidden bg-card-bg border border-card-border rounded-3xl p-5 shadow-sm space-y-3" style={{ animationDelay: "0.12s" }}>
-        {/* 水彩の植物（/decorations/leaf2.png を置くと表示） */}
-        <div
-          className="deco drift-slow -bottom-2 right-0 w-28 h-28 opacity-70"
-          style={{ backgroundImage: "url('/decorations/leaf2.png')" }}
+      <section className="animate-fade-up relative overflow-hidden rounded-3xl border border-card-border shadow-sm bg-gradient-to-r from-card-bg via-card-bg to-[#ece4f7] p-5 min-h-[112px]" style={{ animationDelay: "0.12s" }}>
+        {/* 水彩イラスト（キャンドル・花） */}
+        <img
+          src="/home/candle.png"
+          alt=""
+          aria-hidden
+          className="pointer-events-none select-none absolute top-0 right-0 h-full w-[34%] object-cover object-center"
+          style={LEFT_FADE}
         />
-        <div className="relative z-10 flex items-center gap-2 text-accent-orange text-sm">
-          <span className="float-slow">☾</span>
-          <span>今日の注意点</span>
+        <div className="relative z-10 space-y-3 pr-[32%]">
+          <div className="flex items-center gap-2 text-accent-orange text-sm">
+            <span className="float-slow">☾</span>
+            <span>今日の注意点</span>
+          </div>
+          <p className="font-mincho text-foreground/80 leading-relaxed">
+            {daily?.caution ?? "計算中..."}
+          </p>
         </div>
-        <p className="relative z-10 font-mincho text-foreground/80 leading-relaxed pr-8">
-          {daily?.caution ?? "計算中..."}
-        </p>
       </section>
 
       {/* ラッキー情報 */}
       {lucky && (
-        <section className="animate-fade-up relative overflow-hidden bg-card-bg border border-card-border rounded-3xl p-5 shadow-sm" style={{ animationDelay: "0.19s" }}>
-          <div
-            className="deco sparkle top-3 right-4 w-6 h-6"
-            style={{ backgroundImage: "url('/decorations/sparkle.png')" }}
-          />
-          <div className="relative z-10 grid grid-cols-2 gap-4 text-sm">
-            <div className="space-y-1">
-              <span className="text-muted">ラッキーカラー</span>
+        <section className="animate-fade-up bg-card-bg border border-card-border rounded-3xl p-5 shadow-sm" style={{ animationDelay: "0.19s" }}>
+          <div className="grid grid-cols-2 text-sm">
+            {/* ラッキーカラー */}
+            <div className="space-y-1.5 pb-3.5 pr-3.5">
+              <span className="flex items-center gap-1 text-xs text-muted">
+                <span className="text-accent-gold">✦</span> ラッキーカラー
+              </span>
               <div className="flex items-center gap-2">
                 <span
-                  className="inline-block w-4 h-4 rounded-full border border-card-border"
+                  className="inline-block w-5 h-5 rounded-full border border-card-border shadow-inner"
                   style={{ backgroundColor: lucky.color.hex }}
                 />
-                <span className="text-foreground font-medium">{lucky.color.name}</span>
+                <span className="text-foreground font-bold text-lg">{lucky.color.name}</span>
               </div>
             </div>
-            <div className="space-y-1">
-              <span className="text-muted">ラッキーナンバー</span>
-              <p className="text-foreground font-medium text-lg">{lucky.number}</p>
+            {/* ラッキーナンバー */}
+            <div className="space-y-1.5 pb-3.5 pl-3.5 border-l border-card-border">
+              <span className="flex items-center gap-1 text-xs text-muted">
+                <span className="text-accent-gold">✦</span> ラッキーナンバー
+              </span>
+              <p className="text-foreground font-bold text-xl">{lucky.number}</p>
             </div>
-            <div className="space-y-1">
-              <span className="text-muted">吉方位</span>
-              <p className="text-foreground font-medium">{lucky.direction}</p>
+            {/* 吉方位 */}
+            <div className="space-y-1.5 pt-3.5 pr-3.5 border-t border-card-border">
+              <span className="flex items-center gap-1 text-xs text-muted">
+                <span className="text-accent-gold">✦</span> 吉方位
+              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-accent-gold text-lg leading-none">✸</span>
+                <span className="text-foreground font-bold text-lg">{lucky.direction}</span>
+              </div>
             </div>
-            <div className="space-y-1">
-              <span className="text-muted">月齢</span>
-              <p className="text-foreground font-medium">
-                {lucky.moonEmoji} {lucky.moonPhase}
-              </p>
+            {/* 月齢 */}
+            <div className="space-y-1.5 pt-3.5 pl-3.5 border-t border-l border-card-border">
+              <span className="flex items-center gap-1 text-xs text-muted">
+                <span className="text-accent-gold">✦</span> 月齢
+              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-lg leading-none">{lucky.moonEmoji}</span>
+                <span className="text-foreground font-bold text-lg">{lucky.moonPhase}</span>
+              </div>
             </div>
           </div>
         </section>
