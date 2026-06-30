@@ -66,6 +66,7 @@ export default function AstroPage() {
   const [selectedCityId, setSelectedCityId] = useState<string>("");
   const [regionFilter, setRegionFilter] = useState<WorldRegion | "all">("all");
   const [showAll, setShowAll] = useState(false);
+  const [cityQuery, setCityQuery] = useState("");
 
   useEffect(() => {
     const p = loadProfile();
@@ -129,11 +130,22 @@ export default function AstroPage() {
   );
 
   const filtered = useMemo(() => {
-    if (regionFilter === "all") return ranked;
-    return ranked.filter((r) => r.city.region === regionFilter);
-  }, [ranked, regionFilter]);
+    const q = cityQuery.trim().toLowerCase();
+    return ranked.filter((r) => {
+      if (regionFilter !== "all" && r.city.region !== regionFilter) return false;
+      if (!q) return true;
+      const c = r.city;
+      return (
+        c.name.toLowerCase().includes(q) ||
+        c.enName.toLowerCase().includes(q) ||
+        c.country.toLowerCase().includes(q)
+      );
+    });
+  }, [ranked, regionFilter, cityQuery]);
 
-  const visibleList = showAll ? filtered : filtered.slice(0, 12);
+  // 検索中は件数制限を外して全ヒットを表示
+  const searching = cityQuery.trim().length > 0;
+  const visibleList = showAll || searching ? filtered : filtered.slice(0, 12);
 
   const selectedScore = useMemo(
     () => ranked.find((r) => r.city.id === selectedCityId) ?? null,
@@ -335,6 +347,18 @@ export default function AstroPage() {
         <h3 className="text-sm font-medium text-accent-gold flex items-center gap-1.5">
           <span>◈</span> {purpose.emoji} {purpose.label}におすすめの土地
         </h3>
+        <div className="relative">
+          <input
+            type="search"
+            value={cityQuery}
+            onChange={(e) => setCityQuery(e.target.value)}
+            placeholder="都市名・国名で検索（例: 名古屋 / Lyon）"
+            className="w-full border border-card-border rounded-full pl-9 pr-3 py-2 text-sm bg-white text-foreground placeholder:text-muted/60 focus:outline-none focus:border-accent-gold"
+          />
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted/60 text-sm pointer-events-none">
+            ⌕
+          </span>
+        </div>
         <div className="flex flex-wrap gap-1.5">
           {regions.map((r) => {
             const active = r === regionFilter;
@@ -421,11 +445,13 @@ export default function AstroPage() {
 
         {filtered.length === 0 && (
           <p className="text-center text-muted text-sm py-6">
-            この地域の都市はデータにありません。
+            {searching
+              ? `「${cityQuery.trim()}」に一致する都市が見つかりません。`
+              : "この地域の都市はデータにありません。"}
           </p>
         )}
 
-        {!showAll && filtered.length > 12 && (
+        {!showAll && !searching && filtered.length > 12 && (
           <button
             onClick={() => setShowAll(true)}
             className="w-full text-center text-sm text-accent-gold py-2.5 rounded-full border border-accent-gold/40 bg-accent-gold/5 hover:bg-accent-gold/10 transition-colors"
