@@ -377,6 +377,14 @@ export default function DetailPage() {
         </div>
       </section>
 
+      {/* アストロマップへ */}
+      <Link
+        href="/astro"
+        className="block text-center py-3 bg-gradient-to-r from-[#5b8fd6]/10 via-card-bg to-accent-orange/10 border border-accent-gold/30 rounded-2xl shadow-sm text-accent-orange text-sm font-medium hover:opacity-90 transition-opacity"
+      >
+        🌍 アストロマップで運命の土地を見る →
+      </Link>
+
       {/* 鑑定結果登録へ */}
       <Link
         href="/readings"
