@@ -18,26 +18,26 @@ import {
   type CityScore,
 } from "@/lib/divination";
 import { REGION_LABEL, type WorldCity, type WorldRegion } from "@/lib/divination";
+import {
+  BIRTH_LOCATIONS,
+  BIRTH_LOCATION_MAP,
+  LOCATION_GROUPS,
+  offsetHoursForBirth,
+  guessLocationId,
+} from "@/lib/divination";
 import type { Body } from "@/lib/divination";
 import AstroWorldMap, { type AngleVisibility } from "@/components/AstroWorldMap";
 
-const TZ_KEY = "unmei-astro-tz";
+const LOC_KEY = "unmei-astro-loc";
 
-/** よく使うタイムゾーン（UTCオフセット） */
-const TZ_OPTIONS: { label: string; value: number }[] = [
-  { label: "日本 (+9)", value: 9 },
-  { label: "韓国 (+9)", value: 9 },
-  { label: "中国 (+8)", value: 8 },
-  { label: "タイ・ベトナム (+7)", value: 7 },
-  { label: "インド (+5.5)", value: 5.5 },
-  { label: "ドバイ (+4)", value: 4 },
-  { label: "ヨーロッパ中部 (+1)", value: 1 },
-  { label: "イギリス (0)", value: 0 },
-  { label: "ブラジル東部 (-3)", value: -3 },
-  { label: "米国東部 (-5)", value: -5 },
-  { label: "米国西部 (-8)", value: -8 },
-  { label: "ハワイ (-10)", value: -10 },
-];
+/** オフセット（時）を「+9」「+5:30」のように表示 */
+function fmtOffset(h: number): string {
+  const sign = h < 0 ? "-" : "+";
+  const abs = Math.abs(h);
+  const hh = Math.floor(abs);
+  const mm = Math.round((abs - hh) * 60);
+  return mm === 0 ? `${sign}${hh}` : `${sign}${hh}:${String(mm).padStart(2, "0")}`;
+}
 
 /** 星表示 */
 function Stars({ n, className = "" }: { n: number; className?: string }) {
@@ -52,7 +52,7 @@ function Stars({ n, className = "" }: { n: number; className?: string }) {
 export default function AstroPage() {
   const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [tz, setTz] = useState<number>(9);
+  const [locId, setLocId] = useState<string>("jp");
   const [purposeId, setPurposeId] = useState<string>("overall");
   const [visiblePlanets, setVisiblePlanets] = useState<Set<Body>>(
     new Set<Body>(["sun", "venus", "jupiter", "moon"])
@@ -75,15 +75,33 @@ export default function AstroPage() {
     }
     setProfile(p);
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem(TZ_KEY);
-      if (saved !== null && !isNaN(Number(saved))) setTz(Number(saved));
+      const saved = localStorage.getItem(LOC_KEY);
+      if (saved && BIRTH_LOCATION_MAP[saved]) {
+        setLocId(saved);
+      } else {
+        // 保存がなければ出生地テキストから推測
+        setLocId(guessLocationId(p.birthPlace));
+      }
     }
   }, [router]);
 
-  function changeTz(v: number) {
-    setTz(v);
-    if (typeof window !== "undefined") localStorage.setItem(TZ_KEY, String(v));
+  function changeLoc(v: string) {
+    setLocId(v);
+    if (typeof window !== "undefined") localStorage.setItem(LOC_KEY, v);
   }
+
+  const loc = BIRTH_LOCATION_MAP[locId] ?? BIRTH_LOCATIONS[0];
+
+  // 出生地ゾーンと生年月日から、その瞬間の実際の時差（サマータイム込み）
+  const tz = useMemo(() => {
+    if (!profile) return loc.fallback;
+    return offsetHoursForBirth(
+      loc.zone,
+      profile.birthDate,
+      profile.birthTime || "",
+      loc.fallback
+    );
+  }, [profile, loc]);
 
   const chart: AstroChart | null = useMemo(() => {
     if (!profile) return null;
@@ -191,19 +209,27 @@ export default function AstroPage() {
           </span>
         </div>
         <div className="flex items-center justify-between text-sm gap-2">
-          <span className="text-muted whitespace-nowrap">出生地のタイムゾーン</span>
+          <span className="text-muted whitespace-nowrap">生まれた国・地域</span>
           <select
-            value={tz}
-            onChange={(e) => changeTz(Number(e.target.value))}
+            value={locId}
+            onChange={(e) => changeLoc(e.target.value)}
             className="border border-card-border rounded-lg px-2 py-1.5 text-sm bg-white text-foreground max-w-[60%]"
           >
-            {TZ_OPTIONS.map((o, i) => (
-              <option key={i} value={o.value}>
-                {o.label}
-              </option>
+            {LOCATION_GROUPS.map((g) => (
+              <optgroup key={g} label={g}>
+                {BIRTH_LOCATIONS.filter((l) => l.group === g).map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.label}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </div>
+        <p className="text-[11px] text-muted flex items-center justify-between gap-2">
+          <span>適用される時差（出生日基準）</span>
+          <span className="font-mono font-bold text-foreground">UTC {fmtOffset(tz)}</span>
+        </p>
         {!profile.birthTime && (
           <p className="text-[11px] text-danger/80 bg-danger/5 rounded-lg px-3 py-2 leading-relaxed">
             出生時刻が未設定のため正午で計算しています。MC/AC線は時刻で大きく動くため、

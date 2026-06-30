@@ -88,3 +88,12 @@ export type { WorldCity, WorldRegion } from "./world-cities";
 
 export { computeSky, BODIES } from "./astro-core";
 export type { Body, BodyPosition, SkyResult } from "./astro-core";
+
+export {
+  BIRTH_LOCATIONS,
+  BIRTH_LOCATION_MAP,
+  LOCATION_GROUPS,
+  offsetHoursForBirth,
+  guessLocationId,
+} from "./birth-timezone";
+export type { BirthLocation } from "./birth-timezone";

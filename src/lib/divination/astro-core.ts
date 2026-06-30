@@ -299,6 +299,50 @@ function moonPerturbations(
   };
 }
 
+/**
+ * 木星・土星・天王星の摂動補正（Schlyter）。
+ * 太陽中心・黄道の経度/緯度に加える補正量（度）を返す。
+ * Jupiter-Saturn の大不等（great inequality）など、外惑星で無視できない項。
+ * 海王星はこの精度では補正項が定義されないため対象外。
+ */
+function majorPerturbations(body: Body, d: number): { dLon: number; dLat: number } {
+  const Mj = rev(elementsOf("jupiter", d).M);
+  const Ms = rev(elementsOf("saturn", d).M);
+  const Mu = rev(elementsOf("uranus", d).M);
+
+  if (body === "jupiter") {
+    const dLon =
+      -0.332 * sind(2 * Mj - 5 * Ms - 67.6) -
+      0.056 * sind(2 * Mj - 2 * Ms + 21) +
+      0.042 * sind(3 * Mj - 5 * Ms + 21) -
+      0.036 * sind(Mj - 2 * Ms) +
+      0.022 * cosd(Mj - Ms) +
+      0.023 * sind(2 * Mj - 3 * Ms + 52) -
+      0.016 * sind(Mj - 5 * Ms - 69);
+    return { dLon, dLat: 0 };
+  }
+  if (body === "saturn") {
+    const dLon =
+      0.812 * sind(2 * Mj - 5 * Ms - 67.6) -
+      0.229 * cosd(2 * Mj - 4 * Ms - 2) +
+      0.119 * sind(Mj - 2 * Ms - 3) +
+      0.046 * sind(2 * Mj - 6 * Ms - 69) +
+      0.014 * sind(Mj - 3 * Ms + 32);
+    const dLat =
+      -0.02 * cosd(2 * Mj - 4 * Ms - 2) +
+      0.018 * sind(2 * Mj - 6 * Ms - 49);
+    return { dLon, dLat };
+  }
+  if (body === "uranus") {
+    const dLon =
+      0.04 * sind(Ms - 2 * Mu + 6) +
+      0.035 * sind(Ms - 3 * Mu + 33) -
+      0.015 * sind(Mj - Mu + 20);
+    return { dLon, dLat: 0 };
+  }
+  return { dLon: 0, dLat: 0 };
+}
+
 /** 冥王星の地心向け黄道座標（Schlyter の摂動式・太陽中心） */
 function plutoHelio(d: number): { lon: number; lat: number; r: number } {
   const S = 50.03 + 0.033459652 * d;
@@ -403,10 +447,24 @@ export function computeSky(date: Date): SkyResult {
     } else {
       const el = elementsOf(body, d);
       const { rect } = heliocentricRect(el);
+      // 木星・土星・天王星は摂動補正を適用してから地心へ変換
+      let helioRect = rect;
+      if (body === "jupiter" || body === "saturn" || body === "uranus") {
+        const hel = rectToEcl(rect); // 太陽中心の黄経・黄緯・距離
+        const pert = majorPerturbations(body, d);
+        const lon = hel.lon + pert.dLon;
+        const lat = hel.lat + pert.dLat;
+        const r = hel.dist;
+        helioRect = {
+          x: r * cosd(lon) * cosd(lat),
+          y: r * sind(lon) * cosd(lat),
+          z: r * sind(lat),
+        };
+      }
       const geo = rectToEcl({
-        x: rect.x + sunRect.x,
-        y: rect.y + sunRect.y,
-        z: rect.z,
+        x: helioRect.x + sunRect.x,
+        y: helioRect.y + sunRect.y,
+        z: helioRect.z,
       });
       eclLon = geo.lon;
       eclLat = geo.lat;
