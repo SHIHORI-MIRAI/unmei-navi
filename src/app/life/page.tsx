@@ -35,6 +35,22 @@ const EMOTIONS = [
   { value: 5, label: "最高", emoji: "☀️" },
 ];
 
+/** 書き出しを助ける問い（ライフレビューは最初の一件が一番むずかしい） */
+const STARTER_PROMPTS: { label: string; category: string }[] = [
+  { label: "初めての大きな決断", category: "転機" },
+  { label: "転機になった出会い・別れ", category: "人間関係" },
+  { label: "夢中になったこと", category: "学び" },
+  { label: "乗り越えた困難", category: "健康" },
+  { label: "誇りに思う瞬間", category: "仕事" },
+  { label: "価値観が変わった気づき", category: "内的気づき" },
+];
+
+/** 年代グループの見出しラベル */
+function decadeLabel(decade: number): string {
+  if (decade === 0) return "幼少期（0〜9歳）";
+  return `${decade}代`;
+}
+
 function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }
@@ -117,6 +133,12 @@ export default function LifePage() {
     setEvents(loadLifeEvents());
   }, []);
 
+  const startWithPrompt = useCallback((p: { label: string; category: string }) => {
+    setTitle(p.label);
+    setCategory(p.category);
+    setShowForm(true);
+  }, []);
+
   // 年→月の昇順（人生の物語＝時系列）
   const sorted = useMemo(
     () =>
@@ -132,6 +154,19 @@ export default function LifePage() {
   );
 
   const birthYear = profile ? Number(profile.birthDate.split("-")[0]) : nowYear;
+
+  // 年代（0代/10代/20代…）でグルーピング
+  const groups = useMemo(() => {
+    const by = new Map<number, LifeEvent[]>();
+    for (const e of sorted) {
+      const age = e.year - birthYear;
+      const decade = Math.floor(Math.max(0, age) / 10) * 10;
+      const arr = by.get(decade) ?? [];
+      arr.push(e);
+      by.set(decade, arr);
+    }
+    return [...by.entries()].sort((a, b) => a[0] - b[0]);
+  }, [sorted, birthYear]);
 
   if (!profile) {
     return <p className="text-muted text-center py-10">読み込み中...</p>;
@@ -159,14 +194,28 @@ export default function LifePage() {
         ]}
       />
 
-      {/* 追加ボタン */}
+      {/* 追加ボタン＋思い出すヒント */}
       {!showForm && (
-        <button
-          onClick={() => setShowForm(true)}
-          className="w-full bg-accent-orange text-white rounded-xl py-3 text-sm font-medium hover:bg-accent-orange/90 transition-colors"
-        >
-          + 出来事・気づきを追加
-        </button>
+        <div className="space-y-2">
+          <button
+            onClick={() => setShowForm(true)}
+            className="w-full bg-accent-orange text-white rounded-xl py-3 text-sm font-medium hover:bg-accent-orange/90 transition-colors"
+          >
+            + 出来事・気づきを追加
+          </button>
+          <div className="flex flex-wrap gap-1.5 items-center">
+            <span className="text-[11px] text-muted">思い出すヒント：</span>
+            {STARTER_PROMPTS.map((p) => (
+              <button
+                key={p.label}
+                onClick={() => startWithPrompt(p)}
+                className="text-[11px] px-2.5 py-1 rounded-full border border-accent-gold/30 bg-accent-gold/5 text-foreground/70 hover:border-accent-gold hover:text-accent-orange transition-colors"
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* 入力フォーム */}
@@ -318,17 +367,28 @@ export default function LifePage() {
         <InsightCard insight={insight} />
       )}
 
-      {/* タイムライン */}
+      {/* タイムライン（年代グループ） */}
       {sorted.length > 0 ? (
-        <div className="space-y-3">
-          {sorted.map((e) => (
-            <LifeEventCard
-              key={e.id}
-              event={e}
-              birthDate={profile.birthDate}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-            />
+        <div className="space-y-5">
+          {groups.map(([decade, evs]) => (
+            <div key={decade} className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-accent-gold whitespace-nowrap">
+                  {decadeLabel(decade)}
+                </span>
+                <span className="flex-1 h-px bg-accent-gold/20" />
+                <span className="text-[10px] text-muted">{evs.length}件</span>
+              </div>
+              {evs.map((e) => (
+                <LifeEventCard
+                  key={e.id}
+                  event={e}
+                  birthDate={profile.birthDate}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                />
+              ))}
+            </div>
           ))}
         </div>
       ) : (
