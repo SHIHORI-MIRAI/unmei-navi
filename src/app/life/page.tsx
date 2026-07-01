@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   loadProfile,
@@ -116,6 +116,8 @@ export default function LifePage() {
     resetForm();
   }, [year, month, title, category, magnitude, emotion, learning, editingId, events, resetForm]);
 
+  const formRef = useRef<HTMLDivElement>(null);
+
   const handleEdit = useCallback((e: LifeEvent) => {
     setYear(e.year);
     setMonth(e.month ?? "");
@@ -127,6 +129,14 @@ export default function LifePage() {
     setEditingId(e.id);
     setShowForm(true);
   }, []);
+
+  // フォームを開いたら、その位置まで自動スクロール（下のカードで編集を押しても
+  // フォームが画面外で開いて「編集できない」ように見える問題を防ぐ）
+  useEffect(() => {
+    if (showForm && formRef.current) {
+      formRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [showForm, editingId]);
 
   const handleDelete = useCallback((id: string) => {
     deleteLifeEvent(id);
@@ -220,7 +230,10 @@ export default function LifePage() {
 
       {/* 入力フォーム */}
       {showForm && (
-        <div className="bg-card-bg border border-card-border rounded-2xl p-4 shadow-sm space-y-4">
+        <div
+          ref={formRef}
+          className="bg-card-bg border border-card-border rounded-2xl p-4 shadow-sm space-y-4"
+        >
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-medium text-foreground">
               {editingId ? "出来事を編集" : "出来事を記録"}
