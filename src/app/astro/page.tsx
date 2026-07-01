@@ -599,6 +599,22 @@ function TimeGate({ chart }: { chart: AstroChart | null }) {
           も動きます。時刻が未設定のままだと土地の順位はほぼ意味をなさないため、
           正確さを守るために地図とランキングは非表示にしています。
         </p>
+
+        <div className="bg-white/60 rounded-xl px-3.5 py-3 space-y-2 text-[12px] leading-relaxed">
+          <p className="font-bold text-foreground flex items-center gap-1.5">
+            <span className="text-accent-gold">🔎</span> 出生時刻の調べ方
+          </p>
+          <ul className="list-disc pl-4 space-y-1 text-foreground/75">
+            <li><span className="font-medium">母子手帳</span>・出生届の控えに記載されていることが多いです</li>
+            <li>ご家族に「何時ごろ生まれたか」を聞いてみる</li>
+            <li>だいたいの時間帯（朝・昼・夜など）でも、まずは目安として登録できます</li>
+          </ul>
+          <p className="text-[11px] text-muted pt-0.5">
+            ※ どうしても分からない場合は、下の「星の配置」（時刻に左右されない情報）だけご覧いただけます。
+            おおよその時刻で登録した場合、地図は<span className="font-medium">目安</span>としてお使いください。
+          </p>
+        </div>
+
         <Link
           href="/profile"
           className="inline-block bg-accent-orange text-white text-sm font-medium rounded-full px-4 py-2 shadow-sm hover:bg-accent-orange/90 transition-colors"

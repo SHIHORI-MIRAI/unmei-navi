@@ -592,8 +592,10 @@ export default function ProfilePage() {
                 onChange={handleChange}
                 className="w-full bg-card-bg border border-card-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-accent-orange transition-colors"
               />
-              <p className="text-xs text-muted">
-                四柱推命の時柱に影響します
+              <p className="text-xs text-muted leading-relaxed">
+                四柱推命の時柱と、アストロマップ（星が輝く土地）の精度に影響します。
+                母子手帳・出生届の控えに記載があることが多いです。
+                わからない場合は空欄でOK（アストロマップの地図は非表示になります）。
               </p>
             </div>
 
