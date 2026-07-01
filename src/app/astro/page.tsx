@@ -9,8 +9,11 @@ import {
   rankCities,
   citySummary,
   lineMessage,
+  lineDistanceLabel,
+  signOf,
   PLANETS,
   PLANET_META,
+  TONE_META,
   PURPOSES,
   PURPOSE_MAP,
   ANGLE_LABEL,
@@ -169,6 +172,9 @@ export default function AstroPage() {
     return <p className="text-muted text-center py-10">読み込み中...</p>;
   }
 
+  // 出生時刻が有効に入っているか（MC/AC/DC線は時刻がないと定まらない）
+  const hasTime = /^\d{1,2}:\d{2}$/.test(profile.birthTime ?? "");
+
   // 目的別カードで強調する天体（重み上位3）
   const purposeTopPlanets = (Object.keys(purpose.planetWeights) as Body[])
     .sort((a, b) => (purpose.planetWeights[b] ?? 0) - (purpose.planetWeights[a] ?? 0))
@@ -195,7 +201,7 @@ export default function AstroPage() {
         <div className="relative z-10 space-y-2">
           <div className="flex items-center gap-2 text-accent-gold text-sm">
             <span className="sparkle">✦</span>
-            <span>アストロカートグラフィー</span>
+            <span>アストロマップ</span>
           </div>
           <h2 className="font-mincho text-xl font-bold text-foreground leading-relaxed">
             あなたの星が輝く場所を、世界地図で。
@@ -242,14 +248,10 @@ export default function AstroPage() {
           <span>適用される時差（出生日基準）</span>
           <span className="font-mono font-bold text-foreground">UTC {fmtOffset(tz)}</span>
         </p>
-        {!profile.birthTime && (
-          <p className="text-[11px] text-danger/80 bg-danger/5 rounded-lg px-3 py-2 leading-relaxed">
-            出生時刻が未設定のため正午で計算しています。MC/AC線は時刻で大きく動くため、
-            <Link href="/profile" className="underline">プロフィール</Link>で出生時刻を登録すると精度が上がります。
-          </p>
-        )}
       </section>
 
+      {hasTime ? (
+        <>
       {/* 目的選択 */}
       <section className="space-y-2">
         <h3 className="text-sm font-medium text-accent-gold flex items-center gap-1.5">
@@ -413,8 +415,19 @@ export default function AstroPage() {
                       {cs.city.country}
                     </span>
                   </p>
-                  <div className="flex items-center gap-2 mt-0.5">
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                     <Stars n={cs.purposeStars} className="text-xs" />
+                    {cs.activeLines[0] && (
+                      <span
+                        className="text-[9px] rounded-full px-1.5 py-0.5 whitespace-nowrap"
+                        style={{
+                          color: TONE_META[PLANET_META[cs.activeLines[0].body].tone].color,
+                          backgroundColor: `${TONE_META[PLANET_META[cs.activeLines[0].body].tone].color}14`,
+                        }}
+                      >
+                        {TONE_META[PLANET_META[cs.activeLines[0].body].tone].label}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="flex-shrink-0 text-right">
@@ -460,10 +473,17 @@ export default function AstroPage() {
           </button>
         )}
       </section>
+        </>
+      ) : (
+        <TimeGate chart={chart} />
+      )}
 
       {/* 免責 */}
-      <p className="text-center text-xs text-muted/60 px-4">
-        ※ 天体位置は簡易計算による参考値です。占いは参考情報として、人生の重要な判断はご自身の責任で行ってください。
+      <p className="text-center text-xs text-muted/60 px-4 leading-relaxed">
+        ※ 西洋占星術（トロピカル）をベースにした簡易計算による参考値です。
+        天体の性質分類（追い風／成長／刺激）は分かりやすさ優先の簡易的なもので、
+        外惑星（天王星・海王星・冥王星）のラインは特に誤差が大きめです。
+        占いは参考情報として、人生の重要な判断はご自身の責任で行ってください。
       </p>
     </div>
   );
@@ -518,9 +538,28 @@ function CityDetailCard({
                 <span style={{ color: meta.color }} className="text-base leading-none mt-0.5">
                   {meta.symbol}
                 </span>
-                <p className="text-foreground/85 leading-relaxed flex-1">
-                  {lineMessage(al.body, al.angle)}
-                </p>
+                <div className="flex-1 min-w-0">
+                  <p className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                    <span className="font-bold text-foreground">
+                      {meta.name}・{al.angle}線
+                    </span>
+                    <span
+                      className="text-[10px] rounded-full px-1.5 py-0.5 whitespace-nowrap"
+                      style={{
+                        color: TONE_META[meta.tone].color,
+                        backgroundColor: `${TONE_META[meta.tone].color}1a`,
+                      }}
+                    >
+                      {TONE_META[meta.tone].label}
+                    </span>
+                    <span className="text-[10px] text-muted bg-muted/10 rounded-full px-1.5 py-0.5 whitespace-nowrap">
+                      {lineDistanceLabel(al)}
+                    </span>
+                  </p>
+                  <p className="text-foreground/85 leading-relaxed">
+                    {lineMessage(al.body, al.angle)}
+                  </p>
+                </div>
               </div>
             );
           })}
@@ -542,5 +581,61 @@ function CityDetailCard({
         ))}
       </div>
     </section>
+  );
+}
+
+/** 出生時刻が未設定のときの案内＋時刻に依存しにくい星座配置 */
+function TimeGate({ chart }: { chart: AstroChart | null }) {
+  return (
+    <div className="space-y-4">
+      <section className="animate-fade-up bg-gradient-to-br from-danger/5 via-card-bg to-accent-gold/5 border border-danger/25 rounded-2xl p-5 shadow-sm space-y-3">
+        <div className="flex items-center gap-2 text-danger">
+          <span className="text-lg">◷</span>
+          <h3 className="font-bold text-foreground">出生時刻を登録すると地図が使えます</h3>
+        </div>
+        <p className="text-sm text-foreground/80 leading-relaxed">
+          アストロマップの線（MC・IC・AC・DC）は、出生時刻が
+          <span className="font-bold">1時間ずれると地図上で約15度（赤道で約1,500km）</span>
+          も動きます。時刻が未設定のままだと土地の順位はほぼ意味をなさないため、
+          正確さを守るために地図とランキングは非表示にしています。
+        </p>
+        <Link
+          href="/profile"
+          className="inline-block bg-accent-orange text-white text-sm font-medium rounded-full px-4 py-2 shadow-sm hover:bg-accent-orange/90 transition-colors"
+        >
+          プロフィールで出生時刻を登録する →
+        </Link>
+      </section>
+
+      {chart && (
+        <section className="bg-card-bg border border-card-border rounded-2xl p-4 shadow-sm space-y-3">
+          <h3 className="text-sm font-medium text-accent-gold flex items-center gap-1.5">
+            <span>◈</span> 時刻に依存しにくい「星の配置」
+          </h3>
+          <p className="text-[11px] text-muted leading-relaxed">
+            地図は出せませんが、生年月日だけでも分かる10天体の星座配置です
+            （土地とは無関係の、あなたの基本的な星の傾向）。
+          </p>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+            {PLANETS.map((p) => (
+              <div key={p.body} className="flex items-center justify-between text-[12px]">
+                <span className="flex items-center gap-1.5 text-muted">
+                  <span style={{ color: p.color }} className="text-sm leading-none">
+                    {p.symbol}
+                  </span>
+                  {p.name}
+                </span>
+                <span className="text-foreground font-medium">
+                  {signOf(chart.sky.positions[p.body].eclLon)}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="text-[10px] text-muted/70 leading-relaxed">
+            ※ 月は1日に約13度動くため、時刻未設定では星座がずれる場合があります。
+          </p>
+        </section>
+      )}
+    </div>
   );
 }
