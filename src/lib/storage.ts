@@ -390,6 +390,44 @@ export function deleteLifeEvent(id: string): void {
   saveData(data);
 }
 
+// --- Life Reading (AIによる人生の読み解き。別キー保存・バックアップ対象外＝再生成可能) ---
+
+export interface LifeReading {
+  themes: string; // 繰り返すテーマ・癖・課題
+  timing: string; // 出来事と星の重なり
+  strengths: string; // 強み
+  mission: string; // 使命
+  message: string; // これからへのメッセージ
+  generatedAt: string;
+  eventCount: number;
+}
+
+const LIFE_READING_KEY = "unmei-life-reading";
+
+export function loadLifeReading(): LifeReading | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(LIFE_READING_KEY);
+    return raw ? (JSON.parse(raw) as LifeReading) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveLifeReading(r: LifeReading): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(LIFE_READING_KEY, JSON.stringify(r));
+  } catch (e) {
+    console.error("[storage] saveLifeReading failed:", e);
+  }
+}
+
+export function clearLifeReading(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(LIFE_READING_KEY);
+}
+
 const LAST_EXPORT_KEY = "unmei-navi-last-export";
 
 export function markExported(): void {

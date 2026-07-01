@@ -7,7 +7,10 @@ import {
   loadLifeEvents,
   saveLifeEvent,
   deleteLifeEvent,
+  loadLifeReading,
+  saveLifeReading,
   type LifeEvent,
+  type LifeReading,
   type UserProfile,
 } from "@/lib/storage";
 import {
@@ -414,17 +417,8 @@ export default function LifePage() {
         </div>
       )}
 
-      {/* Phase 2 予告（有料・AI） */}
-      <div className="bg-gradient-to-br from-accent-gold/10 via-card-bg to-accent-orange/5 border border-accent-gold/30 rounded-2xl p-4 shadow-sm space-y-2">
-        <p className="text-sm font-bold text-foreground flex items-center gap-1.5">
-          <span className="text-accent-gold">✦</span> AIで深く読み解く（近日公開・準備中）
-        </p>
-        <p className="text-xs text-muted leading-relaxed">
-          出来事がたまったら、AIがあなたの人生を通して読み解き、
-          <strong>繰り返すパターン・人生の課題・使命・強み</strong>を、あなただけの言葉で明確にします。
-          まずはこのページで、あなたの物語を書きためていきましょう。
-        </p>
-      </div>
+      {/* AIで深く読み解く（Phase 2） */}
+      <AiReadingSection profile={profile} events={events} />
 
       <p className="text-center text-xs text-muted/60 px-4 leading-relaxed">
         ※ 星の節目は年齢による目安です。占いは参考情報として、
@@ -577,6 +571,125 @@ function LifeEventCard({
         )}
       </div>
     </div>
+  );
+}
+
+/** AIによる深い読み解き（サーバー経由でClaudeを呼ぶ） */
+function AiReadingSection({
+  profile,
+  events,
+}: {
+  profile: UserProfile;
+  events: LifeEvent[];
+}) {
+  const [reading, setReading] = useState<LifeReading | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setReading(loadLifeReading());
+  }, []);
+
+  const enough = events.length >= 3;
+
+  const SECTIONS: { key: keyof LifeReading; label: string; emoji: string }[] = [
+    { key: "themes", label: "繰り返すテーマ（人生の癖・課題）", emoji: "🔁" },
+    { key: "timing", label: "出来事と星の重なり", emoji: "🪐" },
+    { key: "strengths", label: "あなたの強み", emoji: "💪" },
+    { key: "mission", label: "今世の使命", emoji: "🌟" },
+    { key: "message", label: "これからへのメッセージ", emoji: "💌" },
+  ];
+
+  async function generate() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/life-reading", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: profile.name,
+          birthDate: profile.birthDate,
+          birthTime: profile.birthTime,
+          events,
+        }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        setError(data.message || "読み解きに失敗しました");
+        return;
+      }
+      const r: LifeReading = {
+        ...data.reading,
+        generatedAt: new Date().toISOString(),
+        eventCount: events.length,
+      };
+      saveLifeReading(r);
+      setReading(r);
+    } catch {
+      setError("通信に失敗しました。時間をおいて試してください。");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <section className="space-y-3">
+      <div className="bg-gradient-to-br from-accent-gold/10 via-card-bg to-accent-orange/5 border border-accent-gold/30 rounded-2xl p-4 shadow-sm space-y-3">
+        <p className="text-sm font-bold text-foreground flex items-center gap-1.5">
+          <span className="text-accent-gold">✦</span> AIで深く読み解く
+        </p>
+        <p className="text-xs text-muted leading-relaxed">
+          あなたの年表全体をAIが読み解き、繰り返すパターン・人生の課題・使命・強みを、
+          あなただけの言葉で明確にします。
+        </p>
+        {!enough ? (
+          <p className="text-[11px] text-muted bg-white/50 rounded-lg px-3 py-2">
+            出来事が3件以上たまると読み解けます（今 {events.length}件）。
+          </p>
+        ) : (
+          <button
+            onClick={generate}
+            disabled={loading}
+            className="w-full bg-accent-orange text-white rounded-xl py-2.5 text-sm font-medium hover:bg-accent-orange/90 transition-colors disabled:opacity-50"
+          >
+            {loading
+              ? "読み解いています…（30秒ほどかかります）"
+              : reading
+              ? "もう一度読み解く"
+              : "AIで深く読み解く"}
+          </button>
+        )}
+        {error && (
+          <p className="text-[11px] text-danger bg-danger/5 rounded-lg px-3 py-2 leading-relaxed">
+            {error}
+          </p>
+        )}
+      </div>
+
+      {reading && (
+        <div className="space-y-2.5">
+          {SECTIONS.map((s) => (
+            <div
+              key={s.key}
+              className="animate-fade-up bg-card-bg border border-card-border rounded-2xl p-4 shadow-sm space-y-1.5"
+            >
+              <p className="text-sm font-bold text-accent-orange flex items-center gap-1.5">
+                <span>{s.emoji}</span> {s.label}
+              </p>
+              <p className="text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap">
+                {reading[s.key] as string}
+              </p>
+            </div>
+          ))}
+          <p className="text-[10px] text-muted/60 text-center leading-relaxed">
+             AIによる読み解き（参考）。
+            {new Date(reading.generatedAt).toLocaleDateString("ja-JP")} 時点・
+            {reading.eventCount}件の出来事から生成。
+          </p>
+        </div>
+      )}
+    </section>
   );
 }
 
