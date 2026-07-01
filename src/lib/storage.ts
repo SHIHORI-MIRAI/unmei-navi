@@ -34,6 +34,20 @@ export interface DiaryEntry {
   updatedAt?: string;
 }
 
+/** 人生の棚卸し：出来事1件（人生の年表用） */
+export interface LifeEvent {
+  id: string;
+  year: number; // 出来事の年（必須）
+  month?: number; // 月（任意 1-12）
+  title: string;
+  category: string; // 転機/仕事/家族/人間関係/健康/学び/内的気づき/その他
+  magnitude: number; // 1=小さな気づき, 2=中くらい, 3=人生の節目
+  emotion: number; // 当時の感情 1-5（ありのまま）
+  learning: string; // そこで得た気づき・学び
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface GoalData {
   id: string;
   category: string;
@@ -72,6 +86,7 @@ export interface AppData {
   goals: GoalData[];
   manualReadings: ManualReading[];
   oracleDraws: OracleDraw[];
+  lifeEvents: LifeEvent[];
 }
 
 const STORAGE_KEY = "unmei-navi-data";
@@ -89,6 +104,7 @@ function getDefaultData(): AppData {
     goals: [],
     manualReadings: [],
     oracleDraws: [],
+    lifeEvents: [],
   };
 }
 
@@ -345,6 +361,35 @@ export function deleteOracleDraw(id: string): void {
   saveData(data);
 }
 
+// --- Life Events (人生の棚卸し) ---
+
+export function loadLifeEvents(): LifeEvent[] {
+  return loadData().lifeEvents.map((e) => ({
+    ...e,
+    id: e.id || generateId(),
+    magnitude: e.magnitude || 2,
+    emotion: e.emotion || 3,
+    learning: e.learning || "",
+  }));
+}
+
+export function saveLifeEvent(event: LifeEvent): void {
+  const data = loadData();
+  const idx = data.lifeEvents.findIndex((e) => e.id === event.id);
+  if (idx >= 0) {
+    data.lifeEvents[idx] = event;
+  } else {
+    data.lifeEvents.push(event);
+  }
+  saveData(data);
+}
+
+export function deleteLifeEvent(id: string): void {
+  const data = loadData();
+  data.lifeEvents = data.lifeEvents.filter((e) => e.id !== id);
+  saveData(data);
+}
+
 const LAST_EXPORT_KEY = "unmei-navi-last-export";
 
 export function markExported(): void {
@@ -366,6 +411,7 @@ export function getDataSummary(): {
   goalCount: number;
   readingCount: number;
   oracleCount: number;
+  lifeEventCount: number;
 } {
   const data = loadData();
   return {
@@ -374,6 +420,7 @@ export function getDataSummary(): {
     goalCount: data.goals.length,
     readingCount: data.manualReadings.length,
     oracleCount: data.oracleDraws.length,
+    lifeEventCount: data.lifeEvents.length,
   };
 }
 
@@ -420,13 +467,22 @@ export function importData(json: string): boolean {
             typeof (o as OracleDraw).cardId === "number"
         ) as OracleDraw[])
       : [];
+    const lifeEvents = Array.isArray(obj.lifeEvents)
+      ? (obj.lifeEvents.filter(
+          (e) =>
+            e &&
+            typeof e === "object" &&
+            typeof (e as LifeEvent).year === "number"
+        ) as LifeEvent[])
+      : [];
 
     if (
       profiles.length === 0 &&
       diary.length === 0 &&
       goals.length === 0 &&
       manualReadings.length === 0 &&
-      oracleDraws.length === 0
+      oracleDraws.length === 0 &&
+      lifeEvents.length === 0
     ) {
       return false;
     }
@@ -444,6 +500,7 @@ export function importData(json: string): boolean {
       goals,
       manualReadings,
       oracleDraws,
+      lifeEvents,
     };
     return saveData(next);
   } catch {

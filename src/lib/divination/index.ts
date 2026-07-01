@@ -91,6 +91,13 @@ export type {
   PlanetCityStrength,
 } from "./astrocartography";
 
+export {
+  getLifePeriod,
+  getAgeMilestones,
+  analyzeLifePatterns,
+} from "./life-timeline";
+export type { LifePeriod, AgeMilestone, LifePatternInsight } from "./life-timeline";
+
 export { WORLD_CITIES, REGION_LABEL, getCityById } from "./world-cities";
 export type { WorldCity, WorldRegion } from "./world-cities";
 
