@@ -16,6 +16,9 @@ import {
 import {
   getLifePeriod,
   analyzeLifePatterns,
+  buildYearCycle,
+  CYCLE_LABELS,
+  getPersonalYearMeaning,
   type LifePeriod,
 } from "@/lib/divination";
 import UsageHelp from "@/components/UsageHelp";
@@ -383,6 +386,9 @@ export default function LifePage() {
         <InsightCard insight={insight} />
       )}
 
+      {/* あなたの9年サイクル（数秘×出来事） */}
+      <YearCycleSection profile={profile} events={events} />
+
       {/* タイムライン（年代グループ） */}
       {sorted.length > 0 ? (
         <div className="space-y-5">
@@ -571,6 +577,135 @@ function LifeEventCard({
         )}
       </div>
     </div>
+  );
+}
+
+/** あなたの9年サイクル（数秘パーソナルイヤー × 出来事）— ルールベース・API不要 */
+function YearCycleSection({
+  profile,
+  events,
+}: {
+  profile: UserProfile;
+  events: LifeEvent[];
+}) {
+  const [open, setOpen] = useState(false);
+  const nowYear = new Date().getFullYear();
+
+  const cycle = useMemo(
+    () => buildYearCycle(profile.birthDate, events, nowYear),
+    [profile.birthDate, events, nowYear]
+  );
+
+  if (events.length < 3) return null;
+
+  const cur = cycle.slots.find((s) => s.number === cycle.currentNumber);
+  const curMeaning = getPersonalYearMeaning(cycle.currentNumber);
+
+  return (
+    <section className="space-y-3">
+      {/* 今年の位置＋あなたの型 */}
+      <div className="bg-gradient-to-br from-accent-orange/10 via-card-bg to-accent-gold/5 border border-accent-orange/25 rounded-2xl p-4 shadow-sm space-y-3">
+        <p className="text-sm font-bold text-foreground flex items-center gap-1.5">
+          <span className="text-accent-gold">🔄</span> あなたの9年サイクル
+        </p>
+
+        <div className="bg-white/60 rounded-xl px-3.5 py-3 space-y-1">
+          <p className="text-[11px] text-muted">{nowYear}年・あなたは今</p>
+          <p className="text-base font-bold text-accent-orange">
+            {cycle.currentNumber}「{cur?.label}」の年
+            {cycle.currentRaw !== cycle.currentNumber && (
+              <span className="text-xs text-muted font-normal ml-1">
+                （数秘{cycle.currentRaw}）
+              </span>
+            )}
+          </p>
+          <p className="text-xs text-foreground/80 leading-relaxed">
+            {curMeaning.advice}
+          </p>
+        </div>
+
+        {cur && cur.events.length > 0 && (
+          <div className="space-y-1.5">
+            <p className="text-[11px] text-accent-gold font-medium">
+              過去の「{cur.label}」の年に、あなたがしてきたこと
+            </p>
+            {cur.events.map((ev, i) => (
+              <div
+                key={i}
+                className="flex items-start gap-2 text-[12px] bg-white/60 rounded-lg px-3 py-1.5"
+              >
+                <span className="text-muted whitespace-nowrap font-medium">
+                  {ev.year}・{ev.age}歳
+                </span>
+                <span className="text-foreground/85">{ev.title}</span>
+              </div>
+            ))}
+            <p className="text-[11px] text-muted leading-relaxed pt-0.5">
+              これが「{cur.label}の年」のあなたの型です。今年も同じ流れを意識すると波に乗れます。
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* これからのリズム */}
+      <div className="bg-card-bg border border-card-border rounded-2xl p-4 shadow-sm space-y-2">
+        <p className="text-sm font-medium text-accent-gold flex items-center gap-1.5">
+          <span>›</span> これからのリズム
+        </p>
+        <div className="space-y-1.5">
+          {cycle.upcoming.map((u) => (
+            <div key={u.year} className="flex items-center gap-2 text-[12px]">
+              <span className="w-14 text-muted whitespace-nowrap">{u.year}年</span>
+              <span className="font-bold text-foreground whitespace-nowrap">
+                {u.number}「{CYCLE_LABELS[u.number].label}」
+              </span>
+              <span className="text-muted leading-tight">
+                {CYCLE_LABELS[u.number].hint}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 全9年サイクル地図（折りたたみ） */}
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full text-center text-sm text-accent-gold py-2 rounded-full border border-accent-gold/40 bg-accent-gold/5 hover:bg-accent-gold/10 transition-colors"
+      >
+        {open ? "▾ 9年サイクル全体を閉じる" : "▸ あなたの9年サイクル全体を見る"}
+      </button>
+      {open && (
+        <div className="space-y-2">
+          {cycle.slots.map((s) => (
+            <div
+              key={s.number}
+              className="bg-card-bg border border-card-border rounded-xl p-3 space-y-1"
+            >
+              <p className="text-sm font-bold text-accent-orange flex items-center flex-wrap gap-x-1.5">
+                {s.number}「{s.label}」
+                <span className="text-[11px] text-muted font-normal">{s.hint}</span>
+                {s.number === cycle.currentNumber && (
+                  <span className="text-[10px] bg-accent-orange text-white rounded-full px-1.5 py-0.5">
+                    今年
+                  </span>
+                )}
+              </p>
+              {s.events.length > 0 ? (
+                <ul className="space-y-0.5">
+                  {s.events.map((ev, i) => (
+                    <li key={i} className="text-[11px] text-foreground/80 leading-relaxed">
+                      ・{ev.year}（{ev.age}歳）{ev.title}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-[11px] text-muted/50">まだ記録なし</p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 

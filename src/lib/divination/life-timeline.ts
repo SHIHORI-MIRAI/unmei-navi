@@ -89,6 +89,107 @@ export function getLifePeriod(birthDate: string, year: number): LifePeriod {
   };
 }
 
+// ===== 9年サイクル分析（数秘パーソナルイヤー × 人生の出来事） =====
+
+/** マスターナンバーを1〜9のサイクルに落とす（11→2, 22→4, 33→6） */
+function reduceCycle(n: number): number {
+  if (n === 11) return 2;
+  if (n === 22) return 4;
+  if (n === 33) return 6;
+  return n;
+}
+
+/** 各サイクル年（1〜9）の短いラベルと使い方ヒント */
+export const CYCLE_LABELS: Record<number, { label: string; hint: string }> = {
+  1: { label: "始まり", hint: "新しい場所・世界へ飛び込む・大きなスタート" },
+  2: { label: "協力", hint: "人との縁を育てる・仲間づくり・じっくり" },
+  3: { label: "表現", hint: "発信・創造・楽しむ・生み出す" },
+  4: { label: "土台", hint: "基盤を固める・地道・学びに投資" },
+  5: { label: "変化", hint: "新しい体験・挑戦・動く・自由" },
+  6: { label: "愛", hint: "家族・大切な人・責任・つながり" },
+  7: { label: "学び", hint: "内省・専門を深める・一人の時間" },
+  8: { label: "実り", hint: "成果・達成・お金・勝負所" },
+  9: { label: "手放し", hint: "完成・手放す・次の種まき・振り返り" },
+};
+
+export interface YearCycleEvent {
+  year: number;
+  age: number;
+  title: string;
+  rawNumber: number; // 実際の数秘（11等のマスターも保持）
+}
+
+export interface YearCycleSlot {
+  number: number; // 1〜9
+  label: string;
+  hint: string;
+  events: YearCycleEvent[];
+}
+
+export interface YearCycleUpcoming {
+  year: number;
+  number: number; // 1〜9
+  rawNumber: number;
+}
+
+export interface YearCycle {
+  slots: YearCycleSlot[]; // 1〜9
+  currentYear: number;
+  currentNumber: number; // 1〜9
+  currentRaw: number;
+  upcoming: YearCycleUpcoming[]; // 今後3年
+}
+
+/**
+ * 出来事を数秘のパーソナルイヤー（1〜9）ごとに束ね、
+ * 「その数の年に、あなたが過去に何をしてきたか」を自動抽出する。
+ * さらに今年の位置と今後3年のリズムも返す。
+ */
+export function buildYearCycle(
+  birthDate: string,
+  events: { year: number; title: string }[],
+  currentYear: number
+): YearCycle {
+  const birthYear = Number(birthDate.split("-")[0]) || currentYear;
+
+  const slots: YearCycleSlot[] = [];
+  const byNum = new Map<number, YearCycleSlot>();
+  for (let n = 1; n <= 9; n++) {
+    const slot: YearCycleSlot = { number: n, ...CYCLE_LABELS[n], events: [] };
+    slots.push(slot);
+    byNum.set(n, slot);
+  }
+
+  for (const e of events) {
+    const raw = calcPersonalYear(birthDate, e.year);
+    const slot = byNum.get(reduceCycle(raw));
+    if (slot) {
+      slot.events.push({
+        year: e.year,
+        age: e.year - birthYear,
+        title: e.title,
+        rawNumber: raw,
+      });
+    }
+  }
+  slots.forEach((s) => s.events.sort((a, b) => a.year - b.year));
+
+  const currentRaw = calcPersonalYear(birthDate, currentYear);
+  const upcoming: YearCycleUpcoming[] = [1, 2, 3].map((d) => {
+    const y = currentYear + d;
+    const raw = calcPersonalYear(birthDate, y);
+    return { year: y, number: reduceCycle(raw), rawNumber: raw };
+  });
+
+  return {
+    slots,
+    currentYear,
+    currentNumber: reduceCycle(currentRaw),
+    currentRaw,
+    upcoming,
+  };
+}
+
 // ===== パターンの"芽"（Phase 1・ルールベース） =====
 
 interface LifeEventLike {
