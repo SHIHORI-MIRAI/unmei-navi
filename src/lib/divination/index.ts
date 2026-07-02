@@ -97,6 +97,7 @@ export {
   getAgeMilestones,
   analyzeLifePatterns,
   buildYearCycle,
+  buildLifeStory,
   CYCLE_LABELS,
 } from "./life-timeline";
 export type {
@@ -107,6 +108,7 @@ export type {
   YearCycleSlot,
   YearCycleEvent,
   YearCycleUpcoming,
+  LifeStory,
 } from "./life-timeline";
 
 export { buildSelfManual } from "./self-manual";

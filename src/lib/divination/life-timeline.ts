@@ -9,7 +9,13 @@
  *   AI 機能に委ねる前提の、あくまで"気づきの入口"。
  */
 
-import { calcPersonalYear, getPersonalYearMeaning, getYearWave, calcLifePathNumber, getLifePathMeaning } from "./numerology";
+import {
+  calcPersonalYear,
+  getPersonalYearMeaning,
+  getYearWave,
+  calcLifePathNumber,
+  getLifePathMeaning,
+} from "./numerology";
 import { calcNineStar } from "./nine-star";
 
 /** 年齢で（ほぼ誰にでも）訪れる占星術の節目 */
@@ -296,4 +302,144 @@ export function analyzeLifePatterns(
 
   base.tentative = t;
   return base;
+}
+
+// ===== 人生物語（出来事×星の巡りを流れる文章に紡ぐ・ルールベース） =====
+
+interface StoryEvent {
+  year: number;
+  title: string;
+  category: string;
+  magnitude: number;
+  emotion: number;
+  learning?: string;
+}
+
+export interface LifeStory {
+  intro: string;
+  chapters: { label: string; text: string }[];
+  patterns: string;
+  stars: string;
+  now: string;
+  fullText: string; // コピー用の全文
+}
+
+function decadeLabelOf(d: number): string {
+  return d === 0 ? "幼少期" : `${d}代`;
+}
+
+/** その年代の章の文章（重要な出来事を選び、星の節目を織り込む） */
+function chapterText(
+  evs: StoryEvent[],
+  birthYear: number,
+  birthDate: string
+): string {
+  const scored = evs.map((e) => {
+    const age = e.year - birthYear;
+    const hasMs = getAgeMilestones(age).length > 0;
+    const score =
+      e.magnitude * 2 + (hasMs ? 2 : 0) + (e.emotion <= 2 || e.emotion === 5 ? 1 : 0);
+    return { e, age, score };
+  });
+  const notable = [...scored]
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 6)
+    .sort((a, b) => a.e.year - b.e.year);
+
+  const parts = notable.map(({ e, age }) => {
+    const ms = getAgeMilestones(age);
+    let s = `${age}歳のとき、${e.title}。`;
+    if (ms.length > 0 && e.magnitude >= 2) {
+      s += `ちょうど${ms[0].label}——${ms[0].theme}の時期でした。`;
+    } else if (e.magnitude === 3) {
+      const py = reduceCycle(calcPersonalYear(birthDate, e.year));
+      s += `数秘${py}「${CYCLE_LABELS[py].label}」の年の、大きな節目です。`;
+    }
+    return s;
+  });
+
+  let text = parts.join("");
+  const more = evs.length - notable.length;
+  if (more > 0) text += `（このほかにも${more}件の歩みがありました。）`;
+  return text;
+}
+
+/**
+ * 年表から「人生物語」を紡ぐ。出来事を年代ごとの章にまとめ、
+ * 星の節目（土星回帰など）やパーソナルイヤーの巡りが人生と重なった部分を織り込む。
+ */
+export function buildLifeStory(
+  birthDate: string,
+  events: StoryEvent[],
+  currentYear: number
+): LifeStory {
+  const birthYear = Number(birthDate.split("-")[0]) || currentYear;
+  const lp = calcLifePathNumber(birthDate);
+  const lpM = getLifePathMeaning(lp);
+
+  const sorted = [...events].sort((a, b) => a.year - b.year);
+  const firstYear = sorted.length ? sorted[0].year : currentYear;
+  const lastYear = sorted.length ? sorted[sorted.length - 1].year : currentYear;
+
+  const intro = `これは、${firstYear}年から${lastYear}年までの、あなたの物語です。${events.length}の出来事が、今のあなたをかたち作ってきました。数秘${lp}「${lpM.title}」の魂を持つあなたの歩みを、そっとたどってみましょう。`;
+
+  // 年代ごとの章
+  const byDecade = new Map<number, StoryEvent[]>();
+  for (const e of sorted) {
+    const d = Math.floor(Math.max(0, e.year - birthYear) / 10) * 10;
+    const arr = byDecade.get(d) ?? [];
+    arr.push(e);
+    byDecade.set(d, arr);
+  }
+  const chapters = [...byDecade.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([d, evs]) => ({
+      label: decadeLabelOf(d),
+      text: chapterText(evs, birthYear, birthDate),
+    }));
+
+  // 繰り返すテーマ
+  const insight = analyzeLifePatterns(events, birthDate);
+  const patterns = insight.tentative.join(" ");
+
+  // 星との重なり
+  let milestoneBig = 0;
+  let py1Big = 0;
+  for (const e of events) {
+    const age = e.year - birthYear;
+    if (getAgeMilestones(age).length > 0 && e.magnitude >= 2) milestoneBig++;
+    if (reduceCycle(calcPersonalYear(birthDate, e.year)) === 1 && e.magnitude >= 2) py1Big++;
+  }
+  const starParts: string[] = [];
+  if (milestoneBig >= 2) {
+    starParts.push(
+      `大きな出来事の多くが、星の節目（土星回帰などの人生の転換期）と重なっています。あなたは"人生のリズム"に沿って歩んできた人です。`
+    );
+  }
+  if (py1Big >= 2) {
+    starParts.push(
+      `数秘「1（始まりの年）」に新しい一歩を踏み出す傾向がはっきり出ています——これがあなたの"始め方のクセ"です。`
+    );
+  }
+  if (starParts.length === 0) {
+    starParts.push(
+      `出来事を書き足していくほど、星の巡りとの重なりが見えてきます。`
+    );
+  }
+  const stars = starParts.join(" ");
+
+  // 今、そしてこれから
+  const nowN = reduceCycle(calcPersonalYear(birthDate, currentYear));
+  const nowM = getPersonalYearMeaning(nowN);
+  const now = `そして今、${currentYear}年。あなたは数秘${nowN}「${CYCLE_LABELS[nowN].label}」の年にいます。${nowM.theme}。${nowM.advice}。この物語は、まだ続いていきます。`;
+
+  const fullText = [
+    intro,
+    ...chapters.map((c) => `【${c.label}】\n${c.text}`),
+    `【繰り返すテーマ】\n${patterns}`,
+    `【星との重なり】\n${stars}`,
+    `【今、そしてこれから】\n${now}`,
+  ].join("\n\n");
+
+  return { intro, chapters, patterns, stars, now, fullText };
 }

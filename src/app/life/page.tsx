@@ -19,6 +19,7 @@ import {
   getLifePeriod,
   analyzeLifePatterns,
   buildYearCycle,
+  buildLifeStory,
   CYCLE_LABELS,
   getPersonalYearMeaning,
   type LifePeriod,
@@ -394,6 +395,9 @@ export default function LifePage() {
       {/* あなたの9年サイクル（数秘×出来事） */}
       <YearCycleSection profile={profile} events={events} />
 
+      {/* わたしの人生物語（出来事×星の巡り） */}
+      <LifeStorySection profile={profile} events={events} />
+
       {/* タイムライン（年代グループ） */}
       {sorted.length > 0 ? (
         <div className="space-y-5">
@@ -660,6 +664,79 @@ function BackupCard({ onImported }: { onImported: () => void }) {
         </p>
       )}
     </div>
+  );
+}
+
+/** わたしの人生物語（出来事×星の巡りを流れる文章に紡ぐ）— ルールベース・API不要 */
+function LifeStorySection({
+  profile,
+  events,
+}: {
+  profile: UserProfile;
+  events: LifeEvent[];
+}) {
+  const nowYear = new Date().getFullYear();
+  const [copied, setCopied] = useState(false);
+
+  const story = useMemo(
+    () => buildLifeStory(profile.birthDate, events, nowYear),
+    [profile.birthDate, events, nowYear]
+  );
+
+  if (events.length < 3) return null;
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(story.fullText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  return (
+    <section className="bg-gradient-to-br from-card-bg via-card-bg to-accent-gold/5 border border-accent-gold/30 rounded-2xl p-4 shadow-sm space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
+          <span className="text-accent-gold">📖</span> わたしの人生物語
+        </h3>
+        <button
+          onClick={copy}
+          className="flex-shrink-0 text-[11px] bg-white border border-card-border rounded-full px-3 py-1 text-muted hover:border-accent-gold transition-colors"
+        >
+          {copied ? "コピーしました" : "コピー"}
+        </button>
+      </div>
+
+      <p className="font-mincho text-sm text-foreground/90 leading-relaxed">
+        {story.intro}
+      </p>
+
+      {story.chapters.map((c, i) => (
+        <div key={i} className="space-y-1">
+          <p className="text-xs font-bold text-accent-orange">【{c.label}】</p>
+          <p className="text-sm text-foreground/85 leading-relaxed">{c.text}</p>
+        </div>
+      ))}
+
+      <div className="space-y-1 pt-2 border-t border-card-border">
+        <p className="text-xs font-bold text-accent-gold">繰り返すテーマ</p>
+        <p className="text-sm text-foreground/85 leading-relaxed">{story.patterns}</p>
+      </div>
+      <div className="space-y-1">
+        <p className="text-xs font-bold text-accent-gold">星との重なり</p>
+        <p className="text-sm text-foreground/85 leading-relaxed">{story.stars}</p>
+      </div>
+      <div className="space-y-1">
+        <p className="text-xs font-bold text-accent-gold">今、そしてこれから</p>
+        <p className="text-sm text-foreground/85 leading-relaxed">{story.now}</p>
+      </div>
+
+      <p className="text-[10px] text-muted/60 leading-relaxed">
+        ※ あなたの年表と星の巡りから自動で紡いだ物語です。出来事を追記すると更新されます。
+      </p>
+    </section>
   );
 }
 
