@@ -357,6 +357,31 @@ export default function Home() {
         </span>
       </Link>
 
+      {/* わたしの取扱説明書（注目の新機能） */}
+      <Link
+        href="/manual"
+        className="animate-fade-up group relative overflow-hidden flex items-center gap-3.5 rounded-2xl border border-accent-gold/30 p-3.5 shadow-sm transition-transform active:scale-[0.99]"
+        style={{
+          background:
+            "linear-gradient(135deg, rgba(232,130,12,0.12), rgba(196,148,42,0.12), rgba(255,255,255,0.6))",
+          animationDelay: "0.3s",
+        }}
+      >
+        <span className="flex-shrink-0 w-14 h-14 rounded-2xl bg-white/70 flex items-center justify-center text-3xl shadow-inner">
+          📖
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <p className="font-mincho text-base font-bold text-foreground">わたしの取扱説明書</p>
+            <span className="text-[9px] bg-accent-orange text-white px-1.5 py-0.5 rounded-full">NEW</span>
+          </div>
+          <p className="text-[11px] text-muted mt-0.5">全占術を1つに・強み/充電法/取扱注意/他己紹介</p>
+        </div>
+        <span className="text-accent-gold/60 text-2xl mr-1 transition-transform group-hover:translate-x-0.5">
+          ›
+        </span>
+      </Link>
+
       {/* 機能メニュー（水彩アイコン） */}
       <div className="space-y-2.5">
         {MENU_ITEMS.map((m, i) => (

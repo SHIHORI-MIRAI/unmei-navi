@@ -109,6 +109,15 @@ export type {
   YearCycleUpcoming,
 } from "./life-timeline";
 
+export { buildSelfManual } from "./self-manual";
+export type {
+  SelfManual,
+  ManualDetail,
+  SelfManualSpec,
+  SelfManualCharge,
+  SelfManualTiming,
+} from "./self-manual";
+
 export { WORLD_CITIES, REGION_LABEL, getCityById } from "./world-cities";
 export type { WorldCity, WorldRegion } from "./world-cities";
 
