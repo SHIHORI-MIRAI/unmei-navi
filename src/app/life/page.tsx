@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import {
   loadProfile,
@@ -9,6 +9,8 @@ import {
   deleteLifeEvent,
   loadLifeReading,
   saveLifeReading,
+  exportLifeEvents,
+  importLifeEvents,
   type LifeEvent,
   type LifeReading,
   type UserProfile,
@@ -381,6 +383,9 @@ export default function LifePage() {
         </div>
       )}
 
+      {/* 保存とバックアップ */}
+      <BackupCard onImported={() => setEvents(loadLifeEvents())} />
+
       {/* 気づきの芽（3件以上でパターン抽出） */}
       {insight && insight.eventCount > 0 && (
         <InsightCard insight={insight} />
@@ -576,6 +581,84 @@ function LifeEventCard({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/** 保存とバックアップ（自動保存の安心表示＋書き出し/復元） */
+function BackupCard({ onImported }: { onImported: () => void }) {
+  const [msg, setMsg] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  function download() {
+    try {
+      const blob = new Blob([exportLifeEvents()], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const today = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `jinsei-tanaoroshi-${today}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setMsg("バックアップを保存しました。大切に保管してください。");
+    } catch {
+      setMsg("保存に失敗しました。");
+    }
+  }
+
+  function onFile(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const res = importLifeEvents(String(reader.result));
+      if (res.ok) {
+        setMsg(`バックアップから ${res.added}件 を復元しました。`);
+        onImported();
+      } else {
+        setMsg("復元できませんでした。ファイルをご確認ください。");
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  return (
+    <div className="bg-card-bg border border-card-border rounded-2xl p-4 shadow-sm space-y-2.5">
+      <p className="text-sm font-bold text-foreground flex items-center gap-1.5">
+        <span className="text-accent-gold">💾</span> 保存とバックアップ
+      </p>
+      <p className="text-[11px] text-muted leading-relaxed">
+        入力した内容は<strong className="text-foreground/80">自動で保存</strong>され、
+        いつでも追記できます（次に開いたときも残っています）。
+        機種変更やブラウザの変更に備えて、ときどきバックアップを保存しておくと安心です。
+      </p>
+      <div className="flex gap-2">
+        <button
+          onClick={download}
+          className="flex-1 bg-accent-orange/10 text-accent-orange border border-accent-orange/30 rounded-xl py-2 text-xs font-medium hover:bg-accent-orange/15 transition-colors"
+        >
+          ⬇ バックアップを保存
+        </button>
+        <button
+          onClick={() => fileRef.current?.click()}
+          className="flex-1 bg-white border border-card-border rounded-xl py-2 text-xs font-medium text-muted hover:border-accent-gold transition-colors"
+        >
+          ⬆ 復元（付け足し）
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="application/json,.json"
+          onChange={onFile}
+          className="hidden"
+        />
+      </div>
+      {msg && (
+        <p className="text-[11px] text-accent-gold bg-accent-gold/5 rounded-lg px-3 py-2 leading-relaxed">
+          {msg}
+        </p>
+      )}
     </div>
   );
 }

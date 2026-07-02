@@ -390,6 +390,56 @@ export function deleteLifeEvent(id: string): void {
   saveData(data);
 }
 
+/** 人生の棚卸しの年表だけをJSON文字列で書き出す（バックアップ用） */
+export function exportLifeEvents(): string {
+  return JSON.stringify(
+    {
+      type: "unmei-life-events",
+      exportedAt: new Date().toISOString(),
+      events: loadLifeEvents(),
+    },
+    null,
+    2
+  );
+}
+
+/**
+ * バックアップJSONから年表を復元（マージ）。既存のidは重複させず、
+ * 新しい出来事だけを追加する。上書きではなく"付け足し"なので安全。
+ */
+export function importLifeEvents(json: string): { ok: boolean; added: number } {
+  try {
+    const parsed: unknown = JSON.parse(json);
+    const incoming: unknown = Array.isArray(parsed)
+      ? parsed
+      : (parsed as { events?: unknown })?.events;
+    if (!Array.isArray(incoming)) return { ok: false, added: 0 };
+
+    const valid = incoming.filter(
+      (e) =>
+        e &&
+        typeof e === "object" &&
+        typeof (e as LifeEvent).year === "number" &&
+        typeof (e as LifeEvent).title === "string"
+    ) as LifeEvent[];
+    if (valid.length === 0) return { ok: false, added: 0 };
+
+    const data = loadData();
+    const existingIds = new Set(data.lifeEvents.map((e) => e.id));
+    let added = 0;
+    for (const e of valid) {
+      const id = e.id && !existingIds.has(e.id) ? e.id : generateId();
+      if (existingIds.has(id)) continue;
+      data.lifeEvents.push({ ...e, id });
+      existingIds.add(id);
+      added++;
+    }
+    return saveData(data) ? { ok: true, added } : { ok: false, added: 0 };
+  } catch {
+    return { ok: false, added: 0 };
+  }
+}
+
 // --- Life Reading (AIによる人生の読み解き。別キー保存・バックアップ対象外＝再生成可能) ---
 
 export interface LifeReading {
