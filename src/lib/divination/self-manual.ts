@@ -65,6 +65,9 @@ export interface SelfManual {
   details: ManualDetail[];
   charge: SelfManualCharge;
   cautions: string[];
+  usage: string[]; // 正しい使い方（力を発揮する条件）
+  avoid: string[]; // してはいけないこと（消耗を避ける）
+  troubleshooting: { symptom: string; action: string }[]; // 不調→対処
   timing: SelfManualTiming;
   forOthers: string;
 }
@@ -80,6 +83,12 @@ function toBase(n: number): number {
 /** 強み文字列の先頭語を取り出す（「独立心・忍耐力・信念」→「独立心」） */
 function firstPhrase(s: string): string {
   return s.split(/[・、,／/]/)[0]?.trim() || s;
+}
+
+/** 最初の一文を取り出す */
+function firstSentence(s: string): string {
+  const i = s.indexOf("。");
+  return i >= 0 ? s.slice(0, i + 1) : s;
 }
 
 export function buildSelfManual(
@@ -169,5 +178,57 @@ export function buildSelfManual(
 
   const forOthers = `私は「${num.lifePathMeaning.title}」タイプ。${sanmei.mainStar.keyword}を大切にし、${fp.dayMaster.title}のような在り方で歩みます。強みは${firstPhrase(num.lifePathMeaning.strength)}。元気が回復するのは${lucky.color.name}・ラッキーナンバー${lucky.number}・${firstPhrase(charge.favorableElement)}の気に触れるとき。こう接してもらえると、いちばん力を発揮できます。`;
 
-  return { hasTime: !!birthTime, spec, strengths, details, charge, cautions, timing, forOthers };
+  // 正しい使い方（力を発揮する条件）
+  const usage: string[] = [
+    `強み「${num.lifePathMeaning.strength}」を発揮できる役割・環境を選ぶと、いちばん輝きます。`,
+    `補うと整う気は「${fp.favorableElement.element}」。${fp.favorableElement.reason}`,
+    `${lucky.color.name}・ラッキーナンバー${lucky.number}・方位「${lucky.direction}」を日常に取り入れると後押しになります。`,
+  ];
+  if (nine.luckyDirections.length > 0) {
+    usage.push(
+      `引越し・旅行は吉方位（${nine.luckyDirections.join("・")}）を選ぶと運が開けます。`
+    );
+  }
+
+  // してはいけないこと（消耗を避ける）
+  const avoid: string[] = [
+    sanmei.tenchu.meaning,
+    nine.yearPosition.caution,
+    `強みも行き過ぎると疲れのもと。頑張りすぎたら、意識して休む時間をつくって。`,
+  ];
+
+  // 不調のときの対処（トラブルシューティング）
+  const sanmeiRel = getSanmeigakuDetail(sanmei.mainStar.name).relationship;
+  const troubleshooting = [
+    {
+      symptom: "疲れた・消耗したと感じたら",
+      action: `${lucky.color.name}に触れ、方角「${lucky.direction}」へ少し歩いてみて。今は${lucky.moonEmoji}${lucky.moonPhase}。無理に頑張らず、しっかり充電を。`,
+    },
+    {
+      symptom: "焦り・空回りを感じたら",
+      action: `今は数秘${num.personalYear}「${cyc.label}」の年。${num.personalYearMeaning.caution}`,
+    },
+    {
+      symptom: "人間関係で疲れたら",
+      action: firstSentence(sanmeiRel),
+    },
+    {
+      symptom: "迷って決められないとき",
+      action: `あなたの軸は「${num.lifePathMeaning.theme}」。それに沿う方を選べば大丈夫。`,
+    },
+  ];
+
+  return {
+    hasTime: !!birthTime,
+    spec,
+    strengths,
+    details,
+    charge,
+    cautions,
+    usage,
+    avoid,
+    troubleshooting,
+    timing,
+    forOthers,
+  };
 }
