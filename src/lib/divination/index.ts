@@ -97,6 +97,7 @@ export {
   getAgeMilestones,
   analyzeLifePatterns,
   buildYearCycle,
+  buildCycleMatrix,
   buildLifeStory,
   CYCLE_LABELS,
 } from "./life-timeline";
@@ -108,6 +109,11 @@ export type {
   YearCycleSlot,
   YearCycleEvent,
   YearCycleUpcoming,
+  CycleMatrix,
+  MatrixRow,
+  MatrixCell,
+  MatrixColumn,
+  CycleConfidence,
   LifeStory,
 } from "./life-timeline";
 

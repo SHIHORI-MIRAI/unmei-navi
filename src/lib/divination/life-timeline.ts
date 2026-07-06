@@ -196,6 +196,138 @@ export function buildYearCycle(
   };
 }
 
+// ===== 9年サイクル・マトリクス（積み重ねて縦に相似性を見る） =====
+
+export type CycleConfidence = "clear" | "soft" | "thin";
+
+export interface MatrixCell {
+  year: number;
+  age: number;
+  position: number; // 1〜9
+  events: YearCycleEvent[];
+  isCurrent: boolean;
+  isFuture: boolean; // 今年より後
+}
+
+export interface MatrixRow {
+  startYear: number;
+  endYear: number;
+  ageStart: number;
+  ageEnd: number;
+  isFuture: boolean; // サイクル全体が未来
+  cells: MatrixCell[]; // 長さ9（position 1..9）
+}
+
+export interface MatrixColumn {
+  position: number; // 1〜9
+  label: string;
+  hint: string;
+  events: YearCycleEvent[]; // その位置に起きた過去の出来事（全サイクル）
+  cyclesWithEvents: number; // 出来事のあったサイクル数（＝繰り返しの強さ）
+  confidence: CycleConfidence;
+}
+
+export interface CycleMatrix {
+  rows: MatrixRow[];
+  columns: MatrixColumn[]; // 1..9（深掘り＋確信度）
+  currentYear: number;
+  currentPosition: number; // 1〜9
+  hasFuture: boolean;
+}
+
+/** ある年が属する9年サイクルの開始年（＝その年以前で直近のパーソナルイヤー1の年） */
+function cycleStartYear(birthDate: string, year: number): number {
+  let y = year;
+  for (let i = 0; i < 9; i++) {
+    if (reduceCycle(calcPersonalYear(birthDate, y)) === 1) return y;
+    y--;
+  }
+  return year;
+}
+
+/**
+ * 人生を「9年サイクル」ごとの行に積み重ねたマトリクスを作る。
+ * 縦（同じ位置＝同じ数の年）に読むと、繰り返し起きた出来事＝相似性が見える。
+ * 記録の少ない位置は confidence:"thin" として、無理に意味づけしない。
+ */
+export function buildCycleMatrix(
+  birthDate: string,
+  events: { year: number; title: string }[],
+  currentYear: number
+): CycleMatrix {
+  const birthYear = Number(birthDate.split("-")[0]) || currentYear;
+
+  const byYear = new Map<number, YearCycleEvent[]>();
+  for (const e of events) {
+    const raw = calcPersonalYear(birthDate, e.year);
+    const arr = byYear.get(e.year) ?? [];
+    arr.push({ year: e.year, age: e.year - birthYear, title: e.title, rawNumber: raw });
+    byYear.set(e.year, arr);
+  }
+
+  const years = events.map((e) => e.year);
+  const earliest = years.length ? Math.min(...years) : currentYear;
+  const firstStart = cycleStartYear(birthDate, earliest);
+  const currentStart = cycleStartYear(birthDate, currentYear);
+
+  const rows: MatrixRow[] = [];
+  for (let s = firstStart; s <= currentStart + 9; s += 9) {
+    const cells: MatrixCell[] = [];
+    for (let p = 1; p <= 9; p++) {
+      const y = s + (p - 1);
+      cells.push({
+        year: y,
+        age: y - birthYear,
+        position: p,
+        events: byYear.get(y) ?? [],
+        isCurrent: y === currentYear,
+        isFuture: y > currentYear,
+      });
+    }
+    rows.push({
+      startYear: s,
+      endYear: s + 8,
+      ageStart: s - birthYear,
+      ageEnd: s + 8 - birthYear,
+      isFuture: s > currentYear,
+      cells,
+    });
+  }
+
+  const columns: MatrixColumn[] = [];
+  for (let p = 1; p <= 9; p++) {
+    const evs: YearCycleEvent[] = [];
+    let cyclesWith = 0;
+    for (const row of rows) {
+      const cell = row.cells[p - 1];
+      if (cell.isFuture) continue; // 未来は判定に含めない
+      if (cell.events.length > 0) {
+        cyclesWith++;
+        evs.push(...cell.events);
+      }
+    }
+    evs.sort((a, b) => a.year - b.year);
+    const confidence: CycleConfidence =
+      cyclesWith >= 3 ? "clear" : cyclesWith === 2 ? "soft" : "thin";
+    columns.push({
+      position: p,
+      label: CYCLE_LABELS[p].label,
+      hint: CYCLE_LABELS[p].hint,
+      events: evs,
+      cyclesWithEvents: cyclesWith,
+      confidence,
+    });
+  }
+
+  return {
+    rows,
+    columns,
+    currentYear,
+    currentPosition: reduceCycle(calcPersonalYear(birthDate, currentYear)),
+    hasFuture: rows.some((r) => r.isFuture),
+  };
+}
+
 // ===== パターンの"芽"（Phase 1・ルールベース） =====
 
 interface LifeEventLike {

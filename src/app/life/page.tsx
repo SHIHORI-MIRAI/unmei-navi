@@ -19,6 +19,7 @@ import {
   getLifePeriod,
   analyzeLifePatterns,
   buildYearCycle,
+  buildCycleMatrix,
   buildLifeStory,
   CYCLE_LABELS,
   getPersonalYearMeaning,
@@ -395,6 +396,9 @@ export default function LifePage() {
       {/* あなたの9年サイクル（数秘×出来事） */}
       <YearCycleSection profile={profile} events={events} />
 
+      {/* 9年ごとの相似性マップ（積み重ねマトリクス・縦読み） */}
+      <CycleMatrixSection profile={profile} events={events} />
+
       {/* わたしの人生物語（出来事×星の巡り） */}
       <LifeStorySection profile={profile} events={events} />
 
@@ -748,7 +752,6 @@ function YearCycleSection({
   profile: UserProfile;
   events: LifeEvent[];
 }) {
-  const [open, setOpen] = useState(false);
   const nowYear = new Date().getFullYear();
 
   const cycle = useMemo(
@@ -827,44 +830,205 @@ function YearCycleSection({
         </div>
       </div>
 
-      {/* 全9年サイクル地図（折りたたみ） */}
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full text-center text-sm text-accent-gold py-2 rounded-full border border-accent-gold/40 bg-accent-gold/5 hover:bg-accent-gold/10 transition-colors"
-      >
-        {open ? "▾ 9年サイクル全体を閉じる" : "▸ あなたの9年サイクル全体を見る"}
-      </button>
-      {open && (
+    </section>
+  );
+}
+
+/** 9年ごとの相似性マップ（サイクルを積み重ね、縦に読むと繰り返しが見える） */
+function CycleMatrixSection({
+  profile,
+  events,
+}: {
+  profile: UserProfile;
+  events: LifeEvent[];
+}) {
+  const nowYear = new Date().getFullYear();
+
+  const matrix = useMemo(
+    () => buildCycleMatrix(profile.birthDate, events, nowYear),
+    [profile.birthDate, events, nowYear]
+  );
+
+  if (events.length < 3) return null;
+
+  const CONF: Record<string, { label: string; cls: string }> = {
+    clear: { label: "くっきり", cls: "bg-accent-orange text-white" },
+    soft: { label: "ゆるやか", cls: "bg-accent-gold/15 text-accent-gold" },
+    thin: { label: "手がかり少", cls: "border border-card-border text-muted" },
+  };
+  const gridCols = { gridTemplateColumns: "4.2rem repeat(9, minmax(64px, 1fr))" };
+  const futureRow = matrix.rows.find((r) => r.isFuture);
+  const withEvents = matrix.columns.filter((c) => c.events.length > 0);
+
+  return (
+    <section className="space-y-3">
+      <div className="bg-gradient-to-br from-accent-gold/10 via-card-bg to-accent-orange/5 border border-accent-gold/30 rounded-2xl p-4 shadow-sm space-y-2">
+        <p className="text-sm font-bold text-foreground flex items-center gap-1.5">
+          <span className="text-accent-gold">🧭</span> 9年ごとの相似性マップ
+        </p>
+        <p className="text-[11px] text-muted leading-relaxed">
+          人生を9年周期で“積み重ねて”並べました。
+          <strong className="text-foreground/80">縦（上から下）</strong>
+          に見ると、同じ数の年に似たことが起きていないか——あなただけのリズムが見えてきます。
+          記録の少ない年は、無理に意味づけしません。
+        </p>
+      </div>
+
+      {/* マトリクス本体（横スクロール） */}
+      <div className="overflow-x-auto rounded-2xl border border-card-border bg-card-bg shadow-sm">
+        <div className="min-w-[640px]">
+          {/* ヘッダー行 */}
+          <div className="grid" style={gridCols}>
+            <div className="sticky left-0 z-10 bg-card-bg border-b border-r border-card-border" />
+            {matrix.columns.map((c) => (
+              <div
+                key={c.position}
+                className="p-1.5 text-center border-b border-r border-card-border/50 bg-accent-gold/5"
+              >
+                <div className="text-base font-bold text-accent-orange font-mincho leading-none">
+                  {c.position}
+                </div>
+                <div className="text-[9px] text-muted mt-0.5">{c.label}</div>
+              </div>
+            ))}
+          </div>
+          {/* サイクル行 */}
+          {matrix.rows.map((row) => (
+            <div key={row.startYear} className="grid" style={gridCols}>
+              <div
+                className={`sticky left-0 z-10 p-1.5 border-b border-r border-card-border/50 flex flex-col justify-center ${
+                  row.isFuture ? "bg-accent-gold/[0.04]" : "bg-card-bg"
+                }`}
+              >
+                <div className="text-[11px] font-bold text-foreground font-mincho tabular-nums leading-tight">
+                  {String(row.startYear).slice(2)}→{String(row.endYear).slice(2)}
+                </div>
+                <div className="text-[8px] text-muted">
+                  {row.ageStart}〜{row.ageEnd}歳
+                </div>
+              </div>
+              {row.cells.map((cell) => (
+                <div
+                  key={cell.position}
+                  className={`p-1.5 border-b border-r border-card-border/40 text-[10px] leading-tight ${
+                    cell.isCurrent
+                      ? "bg-accent-orange/15"
+                      : cell.isFuture
+                      ? "bg-accent-gold/[0.03] italic"
+                      : ""
+                  }`}
+                >
+                  <div
+                    className={`font-mincho font-bold tabular-nums ${
+                      cell.isCurrent ? "text-accent-orange" : "text-accent-gold"
+                    }`}
+                  >
+                    {cell.year}
+                    {cell.isCurrent && (
+                      <span className="ml-1 text-[8px] bg-accent-orange text-white rounded-full px-1 py-0.5 not-italic align-middle">
+                        今
+                      </span>
+                    )}
+                  </div>
+                  {cell.events.length > 0 ? (
+                    <div className="text-foreground/80 mt-0.5">
+                      {cell.events[0].title.length > 9
+                        ? cell.events[0].title.slice(0, 9) + "…"
+                        : cell.events[0].title}
+                      {cell.events.length > 1 && (
+                        <span className="text-muted">＋{cell.events.length - 1}</span>
+                      )}
+                    </div>
+                  ) : cell.isFuture ? (
+                    <div className="text-muted/70 mt-0.5">{CYCLE_LABELS[cell.position].label}</div>
+                  ) : (
+                    <div className="text-muted/30 mt-0.5">—</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+      <p className="text-[10px] text-muted/70 text-center">← 横にスクロールできます →</p>
+
+      {/* 位置ごとの深掘り（出来事のある列のみ） */}
+      {withEvents.length > 0 && (
         <div className="space-y-2">
-          {cycle.slots.map((s) => (
-            <div
-              key={s.number}
-              className="bg-card-bg border border-card-border rounded-xl p-3 space-y-1"
-            >
-              <p className="text-sm font-bold text-accent-orange flex items-center flex-wrap gap-x-1.5">
-                {s.number}「{s.label}」
-                <span className="text-[11px] text-muted font-normal">{s.hint}</span>
-                {s.number === cycle.currentNumber && (
-                  <span className="text-[10px] bg-accent-orange text-white rounded-full px-1.5 py-0.5">
-                    今年
-                  </span>
-                )}
-              </p>
-              {s.events.length > 0 ? (
-                <ul className="space-y-0.5">
-                  {s.events.map((ev, i) => (
-                    <li key={i} className="text-[11px] text-foreground/80 leading-relaxed">
-                      ・{ev.year}（{ev.age}歳）{ev.title}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-[11px] text-muted/50">まだ記録なし</p>
+          <p className="text-[11px] text-accent-gold font-medium">
+            位置ごとに見つかった「繰り返し」
+          </p>
+          {withEvents.map((c) => (
+            <div key={c.position} className="bg-card-bg border border-card-border rounded-xl p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-lg font-bold text-accent-orange font-mincho leading-none">
+                  {c.position}
+                </span>
+                <span className="text-xs font-bold text-foreground">{c.label}</span>
+                <span
+                  className={`ml-auto text-[9px] px-2 py-0.5 rounded-full ${CONF[c.confidence].cls}`}
+                >
+                  {CONF[c.confidence].label}
+                </span>
+              </div>
+              <ul className="space-y-0.5">
+                {c.events.map((ev, i) => (
+                  <li key={i} className="text-[11px] text-foreground/80 leading-relaxed">
+                    <span className="text-accent-gold font-medium tabular-nums">{ev.year}</span>
+                    （{ev.age}歳）{ev.title}
+                  </li>
+                ))}
+              </ul>
+              {c.confidence !== "thin" && (
+                <p className="text-[10px] text-muted mt-1.5 leading-relaxed">
+                  この「{c.label}の年」に、あなたは繰り返し同じ質のことをしてきたようです。
+                </p>
               )}
             </div>
           ))}
         </div>
       )}
+
+      {/* 次の9年（未来サイクル・過去の同じ位置をヒントに） */}
+      {futureRow && (
+        <div className="bg-gradient-to-br from-accent-orange/10 via-card-bg to-accent-gold/5 border border-accent-orange/25 rounded-2xl p-4 shadow-sm space-y-2">
+          <p className="text-sm font-bold text-foreground flex items-center gap-1.5">
+            <span className="text-accent-gold">✨</span> 次の9年（{futureRow.startYear}〜
+            {futureRow.endYear}）
+          </p>
+          <p className="text-[11px] text-muted leading-relaxed">
+            次の同じ位置では、過去に何をしてきたか——それがヒントになります（断定ではなく傾向）。
+          </p>
+          <div className="space-y-1.5">
+            {futureRow.cells.map((cell) => {
+              const col = matrix.columns[cell.position - 1];
+              return (
+                <div key={cell.position} className="flex items-start gap-2 text-[11px]">
+                  <span className="w-10 flex-shrink-0 font-bold text-accent-orange font-mincho tabular-nums">
+                    {cell.year}
+                  </span>
+                  <div className="leading-tight">
+                    <span className="font-bold text-foreground">
+                      {cell.position}「{CYCLE_LABELS[cell.position].label}」
+                    </span>
+                    <span className="text-muted"> — {CYCLE_LABELS[cell.position].hint}</span>
+                    {col.events.length > 0 && (
+                      <div className="text-muted/80 mt-0.5">
+                        過去のこの位置：{col.events.map((e) => e.year).join("・")}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <p className="text-[10px] text-muted/60 text-center leading-relaxed">
+        ※ 数秘の9年周期に基づく“傾向”です。当てはまらない年を無理に意味づける必要はありません。
+        人生を選び、行動して形にするのは、いつでもあなた自身です。
+      </p>
     </section>
   );
 }
