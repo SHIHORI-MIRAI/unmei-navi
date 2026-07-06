@@ -42,6 +42,17 @@ function fmtOffset(h: number): string {
   return mm === 0 ? `${sign}${hh}` : `${sign}${hh}:${String(mm).padStart(2, "0")}`;
 }
 
+/** "HH:MM" → 0..1439 分 */
+function parseHM(s: string): number {
+  const [h, m] = s.split(":").map(Number);
+  return (h || 0) * 60 + (m || 0);
+}
+/** 0..1439 分 → "HH:MM" */
+function fmtHM(min: number): string {
+  const m = ((Math.round(min) % 1440) + 1440) % 1440;
+  return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+}
+
 /** 星表示 */
 function Stars({ n, className = "" }: { n: number; className?: string }) {
   return (
@@ -70,6 +81,8 @@ export default function AstroPage() {
   const [regionFilter, setRegionFilter] = useState<WorldRegion | "all">("all");
   const [showAll, setShowAll] = useState(false);
   const [cityQuery, setCityQuery] = useState("");
+  // 出生時刻の上書き（スライダー/入力で探索・修正）。null なら登録値を使用
+  const [timeOverride, setTimeOverride] = useState<string | null>(null);
 
   useEffect(() => {
     const p = loadProfile();
@@ -96,21 +109,30 @@ export default function AstroPage() {
 
   const loc = BIRTH_LOCATION_MAP[locId] ?? BIRTH_LOCATIONS[0];
 
+  // プロフィールに登録済みの出生時刻（妥当性チェック）
+  const profileTime = useMemo(() => {
+    const t = profile?.birthTime ?? "";
+    return /^\d{1,2}:\d{2}$/.test(t) ? t : null;
+  }, [profile]);
+
+  // 実際に計算へ使う時刻：スライダー等での上書きがあれば優先
+  const effectiveTime = timeOverride ?? profileTime;
+
   // 出生地ゾーンと生年月日から、その瞬間の実際の時差（サマータイム込み）
   const tz = useMemo(() => {
     if (!profile) return loc.fallback;
     return offsetHoursForBirth(
       loc.zone,
       profile.birthDate,
-      profile.birthTime || "",
+      effectiveTime || "",
       loc.fallback
     );
-  }, [profile, loc]);
+  }, [profile, loc, effectiveTime]);
 
   const chart: AstroChart | null = useMemo(() => {
     if (!profile) return null;
-    return calcAstroChart(profile.birthDate, profile.birthTime || "", tz);
-  }, [profile, tz]);
+    return calcAstroChart(profile.birthDate, effectiveTime || "", tz);
+  }, [profile, effectiveTime, tz]);
 
   const purpose = PURPOSE_MAP[purposeId] ?? PURPOSES[0];
 
@@ -173,7 +195,11 @@ export default function AstroPage() {
   }
 
   // 出生時刻が有効に入っているか（MC/AC/DC線は時刻がないと定まらない）
-  const hasTime = /^\d{1,2}:\d{2}$/.test(profile.birthTime ?? "");
+  const hasTime = !!effectiveTime;
+  // 登録された正確な時刻をそのまま使っているか（＝信頼度が高い状態）
+  const timeIsExact =
+    !!profileTime && (timeOverride === null || timeOverride === profileTime);
+  const sliderMinutes = effectiveTime ? parseHM(effectiveTime) : 12 * 60;
 
   // 目的別カードで強調する天体（重み上位3）
   const purposeTopPlanets = (Object.keys(purpose.planetWeights) as Body[])
@@ -250,6 +276,96 @@ export default function AstroPage() {
         </p>
       </section>
 
+      {/* 出生時刻コントロール（アストロマップの生命線） */}
+      <section className="bg-card-bg border border-card-border rounded-2xl p-4 shadow-sm space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium text-accent-gold flex items-center gap-1.5">
+            <span>◈</span> 出生時刻
+          </h3>
+          {/* 信頼度バッジ */}
+          {timeIsExact ? (
+            <span
+              className="text-[11px] font-bold px-2.5 py-0.5 rounded-full border"
+              style={{ backgroundColor: "#e7f6ee", color: "#1f7a4d", borderColor: "#bfe3cf" }}
+            >
+              信頼度 高 ✓
+            </span>
+          ) : hasTime ? (
+            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-accent-gold/15 text-accent-gold border border-accent-gold/40">
+              参考・仮の時刻
+            </span>
+          ) : (
+            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-danger/10 text-danger border border-danger/30">
+              時刻なし
+            </span>
+          )}
+        </div>
+
+        {/* 時刻入力 + 現在値 */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <input
+            type="time"
+            value={effectiveTime ?? ""}
+            onChange={(e) => setTimeOverride(e.target.value || null)}
+            className="border border-card-border rounded-lg px-2 py-1.5 text-sm bg-white text-foreground"
+          />
+          <span className="font-mono text-xl font-bold text-foreground">
+            {effectiveTime ?? "--:--"}
+          </span>
+          {profileTime && timeOverride !== null && timeOverride !== profileTime && (
+            <button
+              onClick={() => setTimeOverride(null)}
+              className="text-[11px] text-muted underline hover:text-accent-orange"
+            >
+              登録値に戻す（{profileTime}）
+            </button>
+          )}
+        </div>
+
+        {/* スライダー（0:00〜23:59） */}
+        <div className="space-y-1.5">
+          <input
+            type="range"
+            min={0}
+            max={1439}
+            step={1}
+            value={sliderMinutes}
+            onChange={(e) => setTimeOverride(fmtHM(Number(e.target.value)))}
+            className="w-full accent-accent-orange"
+            aria-label="出生時刻スライダー"
+          />
+          <div className="flex justify-between text-[9px] text-muted/70 font-mono px-0.5">
+            <span>0:00</span>
+            <span>6:00</span>
+            <span>12:00</span>
+            <span>18:00</span>
+            <span>24:00</span>
+          </div>
+          <p className="text-[11px] text-muted leading-relaxed">
+            スライダーを動かすと、時刻に合わせて地図の線が動きます
+            （<span className="font-bold text-foreground">1時間で経度約15°＝東西に約1,400km</span>）。
+            正確な時刻ほど土地の判定が信頼できます。
+          </p>
+        </div>
+
+        {/* 状態に応じた案内 */}
+        {timeIsExact ? (
+          <p className="text-[11px] leading-relaxed rounded-lg px-3 py-2 bg-[#e7f6ee]/70 text-[#1f7a4d]">
+            登録された出生時刻で計算中です。地図・ランキングはこの時刻に基づく結果です。
+          </p>
+        ) : profileTime ? (
+          <p className="text-[11px] leading-relaxed rounded-lg px-3 py-2 bg-accent-gold/10 text-accent-gold">
+            登録時刻（{profileTime}）から変更中の「仮の時刻」で表示しています。「登録値に戻す」で元に戻せます。
+          </p>
+        ) : (
+          <p className="text-[11px] leading-relaxed rounded-lg px-3 py-2 bg-danger/5 text-danger/90">
+            出生時刻が未登録です。上の欄かスライダーで時刻を指定すると地図が出せますが、
+            あくまで<span className="font-bold">仮の時刻</span>の参考表示です。分かる場合は{" "}
+            <Link href="/profile" className="underline">プロフィールに登録</Link>すると正確になります。
+          </p>
+        )}
+      </section>
+
       {hasTime ? (
         <>
       {/* 目的選択 */}
@@ -284,6 +400,12 @@ export default function AstroPage() {
       {/* 世界地図 */}
       {chart && (
         <section className="space-y-2.5">
+          {!timeIsExact && (
+            <p className="text-[11px] text-accent-gold bg-accent-gold/10 border border-accent-gold/30 rounded-lg px-3 py-1.5 flex items-center gap-1.5">
+              <span>⚠</span>
+              仮の時刻（{effectiveTime}）での表示です。土地の順位は目安としてご覧ください。
+            </p>
+          )}
           <AstroWorldMap
             chart={chart}
             visiblePlanets={visiblePlanets}
