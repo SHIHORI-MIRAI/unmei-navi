@@ -11,6 +11,7 @@ import type { AstroChart, AngleType } from "@/lib/divination/astrocartography";
 import { PLANET_META } from "@/lib/divination/astrocartography";
 import type { Body } from "@/lib/divination/astro-core";
 import { WORLD_CITIES, type WorldCity } from "@/lib/divination/world-cities";
+import { CONTINENTS } from "@/lib/divination/world-map-geo";
 
 // viewBox: 0..360 (経度) × 0..180 (緯度)
 const W = 360;
@@ -83,6 +84,20 @@ export default function AstroWorldMap({
 
       {/* 海 */}
       <rect x="0" y="0" width={W} height={H} fill="url(#ocean)" />
+
+      {/* 大陸シルエット（うっすら） */}
+      <g fill="#e4ddc8" stroke="#d3c9ad" strokeWidth="0.25" opacity={0.7}>
+        {CONTINENTS.map((ring, i) => {
+          const d =
+            ring
+              .map(
+                ([lon, lat], j) =>
+                  `${j === 0 ? "M" : "L"} ${projX(lon).toFixed(1)} ${projY(lat).toFixed(1)}`
+              )
+              .join(" ") + " Z";
+          return <path key={i} d={d} />;
+        })}
+      </g>
 
       {/* 経緯線 */}
       <g stroke="#c9d6e6" strokeWidth="0.3">
