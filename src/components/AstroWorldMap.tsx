@@ -103,6 +103,13 @@ export default function AstroWorldMap({
     return { v, h };
   }, []);
 
+  // 都市の重要度（データ登録順を主要度の目安として使う）
+  const cityIndex = useMemo(() => {
+    const m = new Map<string, number>();
+    WORLD_CITIES.forEach((c, i) => m.set(c.id, i));
+    return m;
+  }, []);
+
   function rectOf() {
     return svgRef.current?.getBoundingClientRect();
   }
@@ -233,6 +240,49 @@ export default function AstroWorldMap({
 
   const zoomed = scale > 1.01;
 
+  // 表示範囲内か（余白付き）。範囲外の都市は描画しない（軽量化）
+  const viewMargin = view.w * 0.06;
+  function inViewCity(c: WorldCity) {
+    const x = projX(c.lon);
+    const y = projY(c.lat);
+    return (
+      x >= view.x - viewMargin &&
+      x <= view.x + view.w + viewMargin &&
+      y >= view.y - viewMargin &&
+      y <= view.y + view.h + viewMargin
+    );
+  }
+  const visibleCities = WORLD_CITIES.filter(inViewCity);
+
+  // ラベル表示：拡大するほど多くの都市名を出す（密集は間引き）
+  // 優先度＝選択 > 上位おすすめ > 主要度（登録順）
+  const labelCities: { c: WorldCity; x: number; y: number; isSel: boolean; isTop: boolean }[] = [];
+  {
+    const showLabels = scale >= 1.3;
+    const dxMin = s(26); // ラベル同士の最小間隔（画面上ほぼ一定になるよう補正済み）
+    const dyMin = s(6.5);
+    const rankOf = (c: WorldCity) =>
+      c.id === selectedCityId
+        ? -2
+        : highlightCityIds?.has(c.id)
+        ? -1
+        : (cityIndex.get(c.id) ?? 9999) / 10000;
+    const cands = [...visibleCities].sort((a, b) => rankOf(a) - rankOf(b));
+    for (const c of cands) {
+      const isSel = c.id === selectedCityId;
+      if (!showLabels && !isSel) continue;
+      if (labelCities.length >= 46 && !isSel) continue;
+      const x = projX(c.lon);
+      const y = projY(c.lat);
+      if (
+        !isSel &&
+        labelCities.some((p) => Math.abs(p.x - x) < dxMin && Math.abs(p.y - y) < dyMin)
+      )
+        continue;
+      labelCities.push({ c, x, y, isSel, isTop: !!highlightCityIds?.has(c.id) });
+    }
+  }
+
   return (
     <div className="relative">
       <svg
@@ -322,8 +372,8 @@ export default function AstroWorldMap({
           );
         })}
 
-        {/* 都市 */}
-        {WORLD_CITIES.map((c) => {
+        {/* 都市（表示範囲内のみ描画） */}
+        {visibleCities.map((c) => {
           const x = projX(c.lon);
           const y = projY(c.lat);
           const isSelected = c.id === selectedCityId;
@@ -357,25 +407,19 @@ export default function AstroWorldMap({
           );
         })}
 
-        {/* 拡大時は上位都市に名前を表示、そうでなければ選択都市のみ */}
-        {WORLD_CITIES.map((c) => {
-          const isSelected = c.id === selectedCityId;
-          const isTop = highlightCityIds?.has(c.id);
-          const show = isSelected || (zoomed && isTop);
-          if (!show) return null;
-          const x = projX(c.lon);
-          const y = projY(c.lat);
+        {/* 都市名ラベル：拡大するほど多く表示（密集は間引き・優先度順） */}
+        {labelCities.map(({ c, x, y, isSel, isTop }) => {
           const anchorRight = x > view.x + view.w * 0.8;
           return (
             <text
               key={`label-${c.id}`}
-              x={anchorRight ? x - s(4) : x + s(4)}
-              y={y - s(3)}
-              fontSize={s(5)}
-              fontWeight="700"
-              fill={isSelected ? "#3a2a1a" : "#6b5a3a"}
+              x={anchorRight ? x - s(3.6) : x + s(3.6)}
+              y={y - s(2.6)}
+              fontSize={s(isSel ? 5 : 4.2)}
+              fontWeight={isSel || isTop ? 700 : 600}
+              fill={isSel ? "#e8820c" : isTop ? "#6b5a3a" : "#5a5245"}
               textAnchor={anchorRight ? "end" : "start"}
-              style={{ paintOrder: "stroke", stroke: "#fff", strokeWidth: s(1.2) }}
+              style={{ paintOrder: "stroke", stroke: "#fff", strokeWidth: s(1.1) }}
             >
               {c.name}
             </text>
