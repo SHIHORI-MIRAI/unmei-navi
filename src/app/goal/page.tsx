@@ -11,26 +11,24 @@ import {
   type UserProfile,
 } from "@/lib/storage";
 import {
-  calcNumerology,
-  calcNineStar,
-} from "@/lib/divination";
-import {
   getNineStarWave,
   getYearWave,
   calcPersonalYear,
 } from "@/lib/divination";
+import { useI18n } from "@/lib/i18n/provider";
+import type { DictKey, Lang } from "@/lib/i18n/dict";
 import UsageHelp from "@/components/UsageHelp";
 
-const CATEGORIES = [
-  { value: "business", label: "ビジネス・仕事", icon: "💼" },
-  { value: "money", label: "お金・収入", icon: "💰" },
-  { value: "health", label: "健康・美容", icon: "🌿" },
-  { value: "relationship", label: "人間関係", icon: "💫" },
-  { value: "learning", label: "学び・スキル", icon: "📚" },
-  { value: "lifestyle", label: "暮らし・環境", icon: "🏠" },
-  { value: "spiritual", label: "内面・精神", icon: "✦" },
-  { value: "other", label: "その他", icon: "☽" },
-] as const;
+const CATEGORIES: { value: string; labelKey: DictKey; icon: string }[] = [
+  { value: "business", labelKey: "goal.cat.business", icon: "💼" },
+  { value: "money", labelKey: "goal.cat.money", icon: "💰" },
+  { value: "health", labelKey: "goal.cat.health", icon: "🌿" },
+  { value: "relationship", labelKey: "goal.cat.relationship", icon: "💫" },
+  { value: "learning", labelKey: "goal.cat.learning", icon: "📚" },
+  { value: "lifestyle", labelKey: "goal.cat.lifestyle", icon: "🏠" },
+  { value: "spiritual", labelKey: "goal.cat.spiritual", icon: "✦" },
+  { value: "other", labelKey: "goal.cat.other", icon: "☽" },
+];
 
 function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -46,11 +44,19 @@ function getFortuneSeason(energy: number): FortuneSeason {
   return "winter";                     // 低迷期
 }
 
-const SEASON_LABELS: Record<FortuneSeason, string> = {
-  spring: "春（上昇期）",
-  summer: "夏（盛運期）",
-  autumn: "秋（収穫・整理期）",
-  winter: "冬（充電期）",
+const SEASON_LABELS: Record<Lang, Record<FortuneSeason, string>> = {
+  ja: {
+    spring: "春（上昇期）",
+    summer: "夏（盛運期）",
+    autumn: "秋（収穫・整理期）",
+    winter: "冬（充電期）",
+  },
+  ko: {
+    spring: "봄(상승기)",
+    summer: "여름(성운기)",
+    autumn: "가을(수확·정리기)",
+    winter: "겨울(충전기)",
+  },
 };
 
 const SEASON_COLORS: Record<FortuneSeason, string> = {
@@ -80,86 +86,9 @@ interface GoalDiagnosis {
   bestYearNote: string;    // 最適な年の説明
 }
 
-function diagnoseGoal(
-  profile: UserProfile,
-  category: string,
-  targetDate: string
-): GoalDiagnosis {
-  try {
-    return diagnoseGoalInner(profile, category, targetDate);
-  } catch {
-    return {
-      season: "spring",
-      seasonLabel: "判定中",
-      seasonColor: "#9a8a7a",
-      energy: 50,
-      verdict: "運気情報の取得に問題がありました",
-      todayAction: "目標に向かって一歩ずつ進みましょう",
-      bestYear: null,
-      bestYearNote: "",
-    };
-  }
-}
-
-function diagnoseGoalInner(
-  profile: UserProfile,
-  category: string,
-  targetDate: string
-): GoalDiagnosis {
-  const today = new Date();
-  const currentYear = today.getFullYear();
-  const bd = profile.birthDate;
-
-  // 今年のエネルギー
-  const thisEnergy = calcYearEnergy(bd, currentYear);
-  const season = getFortuneSeason(thisEnergy);
-
-  // 今年〜3年後で最もエネルギーが高い年を探す
-  let bestYear = currentYear;
-  let bestEnergy = thisEnergy;
-  const yearEnergies: { year: number; energy: number }[] = [];
-  for (let y = currentYear; y <= currentYear + 3; y++) {
-    const e = calcYearEnergy(bd, y);
-    yearEnergies.push({ year: y, energy: e });
-    if (e > bestEnergy) {
-      bestEnergy = e;
-      bestYear = y;
-    }
-  }
-
-  // 数秘術のパーソナルイヤー
-  const numerology = calcNumerology(bd, today);
-  const py = numerology.personalYear;
-
-  // 九星の位置
-  const nineStar = calcNineStar(bd, currentYear);
-
-  // --- メイン判定: 今動くべきか ---
-  const verdict = (() => {
-    if (season === "summer") {
-      return "今は運気の夏！大きなゴールに向かって全力で動くベストタイミングです";
-    }
-    if (season === "spring") {
-      if (bestYear === currentYear) {
-        return "運気は上昇中。種をまくには良い時期です。積極的に動き始めましょう";
-      }
-      return `今は助走期間。${bestYear}年がピークなので、今のうちに準備を進めておくと◎`;
-    }
-    if (season === "autumn") {
-      if (bestYear > currentYear) {
-        return `今は収穫と整理の時期。大きな勝負は${bestYear}年まで待つのが賢明です`;
-      }
-      return "今は得たものを整理する時期。新しい挑戦より、今あるものを磨きましょう";
-    }
-    // winter
-    if (bestYear > currentYear) {
-      return `今は運気の冬。大きな行動より学びと準備に集中を。${bestYear}年に一気に動けます`;
-    }
-    return "今は充電期間。焦らず力を蓄えることが、次の飛躍への最短ルートです";
-  })();
-
-  // --- 今の時期にやるべきこと（カテゴリ×季節） ---
-  const actionMap: Record<string, Record<FortuneSeason, string>> = {
+/** カテゴリ×季節の「今やること」（多言語） */
+const ACTION_MAP: Record<Lang, Record<string, Record<FortuneSeason, string>>> = {
+  ja: {
     business: {
       summer: "新サービスのリリース・大きな契約・パートナーシップの締結に動きましょう",
       spring: "ビジネスプランの具体化・テストマーケティング・人脈づくりを始めて",
@@ -208,22 +137,171 @@ function diagnoseGoalInner(
       autumn: "今あるものを大切に。整理と見直しの時期です",
       winter: "焦らず準備を。この充電期間が次のステージへの鍵です",
     },
-  };
-  const todayAction = (actionMap[category] || actionMap.other)[season];
+  },
+  ko: {
+    business: {
+      summer: "새 서비스 출시·큰 계약·파트너십 체결에 움직여요",
+      spring: "비즈니스 플랜 구체화·테스트 마케팅·인맥 만들기를 시작해요",
+      autumn: "기존 서비스 개선·고객 만족도 향상·경비 재검토에 집중",
+      winter: "시장 리서치·스킬업·비즈니스 서적을 읽으며 전략을 짜는 시기",
+    },
+    money: {
+      summer: "투자·사업 확대·가격 인상 등 공격적인 금전 행동을 취할 기회",
+      spring: "수입의 기둥을 늘리는 준비·부업 시작·투자 공부를",
+      autumn: "지출 재검토·불필요한 구독 해지·저축 습관 확립을",
+      winter: "돈 지식을 깊이는 시기. 가계부 재검토와 장기적 자산 계획을",
+    },
+    health: {
+      summer: "새로운 스포츠나 다이어트 프로그램에 도전. 몸이 응답해 줍니다",
+      spring: "운동 습관을 조금씩 시작. 걷기나 스트레칭부터",
+      autumn: "지금의 습관을 유지하면서 식사의 질을 재검토해 봐요",
+      winter: "무리한 운동은 금물. 수면·휴식의 질을 높이는 것이 최우선",
+    },
+    relationship: {
+      summer: "새로운 커뮤니티 참가·이벤트 주최 등 적극적으로 사람과 교류해요",
+      spring: "마음이 가는 사람에게 연락·기존 관계를 한 걸음 깊이는 행동을",
+      autumn: "지금의 인간관계에 감사를 전해요. 정리할 관계가 있으면 내려놓는 시기",
+      winter: "소수의 깊은 교류를 소중히. 나를 이해해 주는 사람과의 시간을 늘려요",
+    },
+    learning: {
+      summer: "자격시험·세미나 강연·아웃풋 중심의 배움을",
+      spring: "새로운 분야 입문·온라인 강좌 수강을 시작해요",
+      autumn: "배운 것을 실천에 옮기기·노트 정리·복습에 집중",
+      winter: "독서·영상 학습 등 인풋에 몰두. 조급해하지 말고 지식의 토대를 만드는 시기",
+    },
+    lifestyle: {
+      summer: "이사·리모델링·큰 환경 변화에 최적인 시기",
+      spring: "작은 인테리어 변경·미니멀 정리·새로운 루틴을 시도해 봐요",
+      autumn: "지금의 생활을 재검토하고 정말 필요한 것을 엄선하는 시기",
+      winter: "쾌적한 공간 만들기에 집중. 마음에 드는 장소를 정돈해요",
+    },
+    spiritual: {
+      summer: "워크숍 참가·새로운 명상법 실천·발신 활동을",
+      spring: "매일 5분의 명상이나 감사 일기를 시작하면 큰 변화로 이어집니다",
+      autumn: "과거를 돌아보고 배움을 언어화. 내려놓을 것을 가려내요",
+      winter: "깊은 성찰의 호기. 혼자만의 시간을 소중히 하고 자신의 본심과 마주해요",
+    },
+    other: {
+      summer: "적극적으로 행동하면 좋은 결과로 이어지는 시기입니다",
+      spring: "조금씩 움직이기 시작해요. 작은 한 걸음이 큰 변화를 만듭니다",
+      autumn: "지금 있는 것을 소중히. 정리와 재검토의 시기입니다",
+      winter: "조급해하지 말고 준비를. 이 충전 기간이 다음 단계로 가는 열쇠입니다",
+    },
+  },
+};
+
+function diagnoseGoal(
+  profile: UserProfile,
+  category: string,
+  targetDate: string,
+  lang: Lang
+): GoalDiagnosis {
+  try {
+    return diagnoseGoalInner(profile, category, targetDate, lang);
+  } catch {
+    return {
+      season: "spring",
+      seasonLabel: lang === "ko" ? "판정 중" : "判定中",
+      seasonColor: "#9a8a7a",
+      energy: 50,
+      verdict:
+        lang === "ko"
+          ? "운기 정보를 가져오는 데 문제가 있었습니다"
+          : "運気情報の取得に問題がありました",
+      todayAction:
+        lang === "ko" ? "목표를 향해 한 걸음씩 나아가요" : "目標に向かって一歩ずつ進みましょう",
+      bestYear: null,
+      bestYearNote: "",
+    };
+  }
+}
+
+function diagnoseGoalInner(
+  profile: UserProfile,
+  category: string,
+  targetDate: string,
+  lang: Lang
+): GoalDiagnosis {
+  const ko = lang === "ko";
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const bd = profile.birthDate;
+
+  // 今年のエネルギー
+  const thisEnergy = calcYearEnergy(bd, currentYear);
+  const season = getFortuneSeason(thisEnergy);
+
+  // 今年〜3年後で最もエネルギーが高い年を探す
+  let bestYear = currentYear;
+  let bestEnergy = thisEnergy;
+  for (let y = currentYear; y <= currentYear + 3; y++) {
+    const e = calcYearEnergy(bd, y);
+    if (e > bestEnergy) {
+      bestEnergy = e;
+      bestYear = y;
+    }
+  }
+
+  // --- メイン判定: 今動くべきか ---
+  const verdict = (() => {
+    if (season === "summer") {
+      return ko
+        ? "지금은 운기의 여름! 큰 목표를 향해 전력으로 움직이기에 가장 좋은 타이밍입니다"
+        : "今は運気の夏！大きなゴールに向かって全力で動くベストタイミングです";
+    }
+    if (season === "spring") {
+      if (bestYear === currentYear) {
+        return ko
+          ? "운기가 상승 중. 씨앗을 뿌리기 좋은 시기입니다. 적극적으로 움직이기 시작해요"
+          : "運気は上昇中。種をまくには良い時期です。積極的に動き始めましょう";
+      }
+      return ko
+        ? `지금은 도움닫기 기간. ${bestYear}년이 정점이니, 지금 준비를 진행해 두면 ◎`
+        : `今は助走期間。${bestYear}年がピークなので、今のうちに準備を進めておくと◎`;
+    }
+    if (season === "autumn") {
+      if (bestYear > currentYear) {
+        return ko
+          ? `지금은 수확과 정리의 시기. 큰 승부는 ${bestYear}년까지 기다리는 것이 현명합니다`
+          : `今は収穫と整理の時期。大きな勝負は${bestYear}年まで待つのが賢明です`;
+      }
+      return ko
+        ? "지금은 얻은 것을 정리하는 시기. 새로운 도전보다 지금 있는 것을 갈고닦아요"
+        : "今は得たものを整理する時期。新しい挑戦より、今あるものを磨きましょう";
+    }
+    // winter
+    if (bestYear > currentYear) {
+      return ko
+        ? `지금은 운기의 겨울. 큰 행동보다 배움과 준비에 집중을. ${bestYear}년에 단숨에 움직일 수 있어요`
+        : `今は運気の冬。大きな行動より学びと準備に集中を。${bestYear}年に一気に動けます`;
+    }
+    return ko
+      ? "지금은 충전 기간. 조급해하지 말고 힘을 비축하는 것이 다음 도약으로 가는 최단 경로입니다"
+      : "今は充電期間。焦らず力を蓄えることが、次の飛躍への最短ルートです";
+  })();
+
+  // --- 今の時期にやるべきこと（カテゴリ×季節） ---
+  const actionTable = ACTION_MAP[lang];
+  const todayAction = (actionTable[category] || actionTable.other)[season];
 
   // --- 最適年の補足 ---
   const bestYearNote = (() => {
     if (bestYear === currentYear) {
-      return "今年が近年で最も運気が高い年。チャンスを逃さないで！";
+      return ko
+        ? "올해가 근래 가장 운기가 높은 해. 기회를 놓치지 마세요!"
+        : "今年が近年で最も運気が高い年。チャンスを逃さないで！";
     }
     const diff = bestYear - currentYear;
     const bestSeason = getFortuneSeason(bestEnergy);
-    return `${diff}年後の${bestYear}年が${SEASON_LABELS[bestSeason]}のピーク（エネルギー${bestEnergy}）。それまでに土台を固めておくと一気に花開きます`;
+    const bestSeasonLabel = SEASON_LABELS[lang][bestSeason];
+    return ko
+      ? `${diff}년 뒤 ${bestYear}년이 ${bestSeasonLabel}의 정점(에너지 ${bestEnergy}). 그때까지 토대를 다져두면 단숨에 꽃핍니다`
+      : `${diff}年後の${bestYear}年が${bestSeasonLabel}のピーク（エネルギー${bestEnergy}）。それまでに土台を固めておくと一気に花開きます`;
   })();
 
   return {
     season,
-    seasonLabel: SEASON_LABELS[season],
+    seasonLabel: SEASON_LABELS[lang][season],
     seasonColor: SEASON_COLORS[season],
     energy: thisEnergy,
     verdict,
@@ -235,6 +313,7 @@ function diagnoseGoalInner(
 
 export default function GoalPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [goals, setGoals] = useState<GoalData[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -311,7 +390,7 @@ export default function GoalPage() {
   }, []);
 
   if (!profile) {
-    return <p className="text-muted text-center py-10">読み込み中...</p>;
+    return <p className="text-muted text-center py-10">{t("astro.loading")}</p>;
   }
 
   const filteredGoals = goals.filter((g) => {
@@ -327,17 +406,17 @@ export default function GoalPage() {
     <div className="space-y-4">
       <h2 className="text-xl font-bold text-accent-orange flex items-center gap-2">
         <span className="text-accent-gold">☽</span>
-        ゴール＋ロードマップ
+        {t("goal.title")}
       </h2>
 
       <UsageHelp
         storageKey="usage-help-goal"
-        title="目標（ゴール）の使い方"
+        title={t("goal.help.title")}
         steps={[
-          <>「<strong>＋新しいゴールを設定する</strong>」を押し、叶えたいことをカテゴリ（仕事・お金・健康・人間関係など）から選んで登録します。</>,
-          <>登録すると、<strong>今のあなたの運気と掛け合わせて</strong>「今やるべきこと」や「動き出すのにベストな時期」が自動で表示されます。</>,
-          <>運気は<strong>春＝上昇／夏＝盛運／秋＝整理／冬＝充電</strong>の4つの季節で表示。低い時期も“悪い”ではなく、準備や見直しに向く時期として活かせます。</>,
-          <>叶ったら丸をタップしてチェック。あとから達成を振り返れます。</>,
+          t("goal.help.step1"),
+          t("goal.help.step2"),
+          t("goal.help.step3"),
+          t("goal.help.step4"),
         ]}
       />
 
@@ -347,7 +426,7 @@ export default function GoalPage() {
           onClick={() => setShowForm(true)}
           className="w-full bg-accent-orange text-white rounded-xl py-3 text-sm font-medium hover:bg-accent-orange/90 transition-colors"
         >
-          + 新しいゴールを設定する
+          {t("goal.newButton")}
         </button>
       )}
 
@@ -356,19 +435,19 @@ export default function GoalPage() {
         <div className="bg-card-bg border border-card-border rounded-2xl p-4 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-medium text-foreground">
-              {editingId ? "ゴールを編集" : "新しいゴール"}
+              {editingId ? t("goal.form.edit") : t("goal.form.new")}
             </h3>
             <button
               onClick={resetForm}
               className="text-xs text-muted hover:text-foreground"
             >
-              キャンセル
+              {t("common.cancel")}
             </button>
           </div>
 
           {/* カテゴリ選択 */}
           <div>
-            <label className="text-xs text-muted block mb-1.5">カテゴリ</label>
+            <label className="text-xs text-muted block mb-1.5">{t("goal.form.categoryLabel")}</label>
             <div className="grid grid-cols-2 gap-1.5">
               {CATEGORIES.map((c) => (
                 <button
@@ -380,7 +459,7 @@ export default function GoalPage() {
                       : "border-card-border text-foreground/70 hover:border-accent-orange/50"
                   }`}
                 >
-                  {c.icon} {c.label}
+                  {c.icon} {t(c.labelKey)}
                 </button>
               ))}
             </div>
@@ -388,19 +467,19 @@ export default function GoalPage() {
 
           {/* ゴール内容 */}
           <div>
-            <label className="text-xs text-muted block mb-1.5">ゴール</label>
+            <label className="text-xs text-muted block mb-1.5">{t("goal.form.goalLabel")}</label>
             <input
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="達成したいこと"
+              placeholder={t("goal.form.goalPlaceholder")}
               className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted/50 focus:outline-none focus:border-accent-orange"
             />
           </div>
 
           {/* 目標日 */}
           <div>
-            <label className="text-xs text-muted block mb-1.5">目標日（任意）</label>
+            <label className="text-xs text-muted block mb-1.5">{t("goal.form.targetDateLabel")}</label>
             <input
               type="date"
               value={targetDate}
@@ -411,11 +490,11 @@ export default function GoalPage() {
 
           {/* メモ */}
           <div>
-            <label className="text-xs text-muted block mb-1.5">メモ（任意）</label>
+            <label className="text-xs text-muted block mb-1.5">{t("goal.form.memoLabel")}</label>
             <textarea
               value={memo}
               onChange={(e) => setMemo(e.target.value)}
-              placeholder="具体的なステップや動機など"
+              placeholder={t("goal.form.memoPlaceholder")}
               rows={2}
               className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted/50 focus:outline-none focus:border-accent-orange resize-none"
             />
@@ -436,7 +515,7 @@ export default function GoalPage() {
             disabled={!description.trim()}
             className="w-full bg-accent-orange text-white rounded-xl py-2.5 text-sm font-medium hover:bg-accent-orange/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {editingId ? "更新する" : "ゴールを保存"}
+            {editingId ? t("goal.form.update") : t("goal.form.save")}
           </button>
         </div>
       )}
@@ -445,17 +524,17 @@ export default function GoalPage() {
       {goals.length > 0 && (
         <div className="flex gap-2">
           <FilterTab
-            label={`進行中 (${activeCount})`}
+            label={`${t("goal.filter.active")} (${activeCount})`}
             active={filter === "active"}
             onClick={() => setFilter("active")}
           />
           <FilterTab
-            label={`達成 (${completedCount})`}
+            label={`${t("goal.filter.completed")} (${completedCount})`}
             active={filter === "completed"}
             onClick={() => setFilter("completed")}
           />
           <FilterTab
-            label="全て"
+            label={t("goal.filter.all")}
             active={filter === "all"}
             onClick={() => setFilter("all")}
           />
@@ -478,20 +557,17 @@ export default function GoalPage() {
         </div>
       ) : goals.length > 0 ? (
         <p className="text-sm text-muted text-center py-6">
-          {filter === "active" ? "進行中のゴールはありません" : "達成したゴールはありません"}
+          {filter === "active" ? t("goal.empty.noActive") : t("goal.empty.noCompleted")}
         </p>
       ) : (
         <div className="bg-card-bg border border-card-border rounded-2xl p-6 shadow-sm text-center">
-          <p className="text-sm text-muted mb-2">まだゴールがありません</p>
-          <p className="text-xs text-muted/70">
-            運気の流れに合わせた目標設定で、<br />
-            最適なタイミングで行動しましょう
-          </p>
+          <p className="text-sm text-muted mb-2">{t("goal.empty.title")}</p>
+          <p className="text-xs text-muted/70">{t("goal.empty.body")}</p>
         </div>
       )}
 
       <p className="text-center text-xs text-muted/60 px-4">
-        ※ 占いは参考情報です。人生の重要な判断はご自身の責任で行ってください。
+        {t("common.disclaimer")}
       </p>
 
     </div>
@@ -532,13 +608,14 @@ function GoalAdvicePreview({
   category: string;
   targetDate: string;
 }) {
-  const d = diagnoseGoal(profile, category, targetDate);
+  const { t, lang } = useI18n();
+  const d = diagnoseGoal(profile, category, targetDate, lang);
 
   return (
     <div className="bg-accent-orange/5 border border-accent-orange/20 rounded-xl p-3 space-y-2">
       <div className="flex items-center justify-between">
         <p className="text-xs font-medium text-accent-gold flex items-center gap-1">
-          <span>✦</span> 運気診断
+          <span>✦</span> {t("goal.diag.title")}
         </p>
         <span
           className="text-[10px] font-medium px-2 py-0.5 rounded-full text-white"
@@ -548,7 +625,7 @@ function GoalAdvicePreview({
         </span>
       </div>
       <p className="text-sm text-foreground/90 font-medium">{d.verdict}</p>
-      <p className="text-xs text-accent-gold">▸ 今やること：{d.todayAction}</p>
+      <p className="text-xs text-accent-gold">{t("goal.diag.todayInline", { action: d.todayAction })}</p>
       {d.bestYear && (
         <p className="text-xs text-accent-orange">▸ {d.bestYearNote}</p>
       )}
@@ -569,7 +646,7 @@ function GoalCard({
   onToggle: (goal: GoalData) => void;
   onDelete: (id: string) => void;
 }) {
-  const [showAdvice, setShowAdvice] = useState(false);
+  const { t, lang } = useI18n();
   const [showMenu, setShowMenu] = useState(false);
 
   const cat = CATEGORIES.find((c) => c.value === goal.category);
@@ -612,7 +689,7 @@ function GoalCard({
           </p>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             <span className="text-[10px] bg-accent-orange/10 text-accent-orange px-1.5 py-0.5 rounded-full">
-              {cat?.icon || "☽"} {cat?.label || goal.category}
+              {cat?.icon || "☽"} {cat ? t(cat.labelKey) : goal.category}
             </span>
             {goal.targetDate && (
               <span
@@ -628,17 +705,19 @@ function GoalCard({
                 {daysLeft !== null && !isCompleted && (
                   <span className="ml-1">
                     {daysLeft < 0
-                      ? `(${Math.abs(daysLeft)}日超過)`
+                      ? t("goal.card.overdue", { n: Math.abs(daysLeft) })
                       : daysLeft === 0
-                      ? "(今日!)"
-                      : `(残${daysLeft}日)`}
+                      ? t("goal.card.today")
+                      : t("goal.card.remain", { n: daysLeft })}
                   </span>
                 )}
               </span>
             )}
             {isCompleted && goal.completedAt && (
               <span className="text-[10px] text-accent-gold">
-                達成: {new Date(goal.completedAt).toLocaleDateString("ja-JP")}
+                {t("goal.card.completedOn", {
+                  date: new Date(goal.completedAt).toLocaleDateString(lang === "ko" ? "ko-KR" : "ja-JP"),
+                })}
               </span>
             )}
           </div>
@@ -658,13 +737,13 @@ function GoalCard({
                 onClick={() => { onEdit(goal); setShowMenu(false); }}
                 className="block w-full text-left text-xs px-3 py-2 hover:bg-accent-orange/5 text-foreground/80"
               >
-                編集
+                {t("common.edit")}
               </button>
               <button
                 onClick={() => { onDelete(goal.id); setShowMenu(false); }}
                 className="block w-full text-left text-xs px-3 py-2 hover:bg-danger/5 text-danger"
               >
-                削除
+                {t("common.delete")}
               </button>
             </div>
           )}
@@ -693,7 +772,8 @@ function GoalDiagnosisPanel({
   category: string;
   targetDate: string;
 }) {
-  const d = diagnoseGoal(profile, category, targetDate);
+  const { t, lang } = useI18n();
+  const d = diagnoseGoal(profile, category, targetDate, lang);
 
   return (
     <div className="bg-accent-orange/5 border border-accent-orange/15 rounded-xl p-3 space-y-2">
@@ -704,9 +784,9 @@ function GoalDiagnosisPanel({
             className="text-[10px] font-medium px-2 py-0.5 rounded-full text-white"
             style={{ backgroundColor: d.seasonColor }}
           >
-            運気の{d.seasonLabel}
+            {t("goal.diag.seasonBadge", { season: d.seasonLabel })}
           </span>
-          <span className="text-xs text-muted">エネルギー {d.energy}/100</span>
+          <span className="text-xs text-muted">{t("goal.diag.energy", { n: d.energy })}</span>
         </div>
       </div>
 
@@ -717,7 +797,7 @@ function GoalDiagnosisPanel({
 
       {/* 今やるべきこと */}
       <div className="bg-white/50 rounded-lg p-2.5">
-        <p className="text-[10px] text-accent-gold font-medium mb-1">今の時期にやるべきこと</p>
+        <p className="text-[10px] text-accent-gold font-medium mb-1">{t("goal.diag.todoTitle")}</p>
         <p className="text-xs text-foreground/80 leading-relaxed">{d.todayAction}</p>
       </div>
 

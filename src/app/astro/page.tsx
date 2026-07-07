@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { loadProfile, type UserProfile } from "@/lib/storage";
+import { useI18n } from "@/lib/i18n/provider";
 import {
   calcAstroChart,
   rankCities,
@@ -11,22 +12,33 @@ import {
   lineMessage,
   lineDistanceLabel,
   signOf,
+  planetName,
+  toneLabel,
+  angleLabel,
+  purposeText,
   PLANETS,
   PLANET_META,
   TONE_META,
   PURPOSES,
   PURPOSE_MAP,
-  ANGLE_LABEL,
   type AstroChart,
   type CityScore,
 } from "@/lib/divination";
-import { REGION_LABEL, type WorldCity, type WorldRegion } from "@/lib/divination";
+import {
+  regionLabel,
+  countryLabel,
+  cityName,
+  type WorldCity,
+  type WorldRegion,
+} from "@/lib/divination";
 import {
   BIRTH_LOCATIONS,
   BIRTH_LOCATION_MAP,
   LOCATION_GROUPS,
   offsetHoursForBirth,
   guessLocationId,
+  birthLocationLabel,
+  locationGroupLabel,
 } from "@/lib/divination";
 import type { Body } from "@/lib/divination";
 import AstroWorldMap, { type AngleVisibility } from "@/components/AstroWorldMap";
@@ -65,6 +77,7 @@ function Stars({ n, className = "" }: { n: number; className?: string }) {
 
 export default function AstroPage() {
   const router = useRouter();
+  const { t, lang } = useI18n();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [locId, setLocId] = useState<string>("jp");
   const [purposeId, setPurposeId] = useState<string>("overall");
@@ -135,6 +148,7 @@ export default function AstroPage() {
   }, [profile, effectiveTime, tz]);
 
   const purpose = PURPOSE_MAP[purposeId] ?? PURPOSES[0];
+  const purposeTx = purposeText(purposeId, lang);
 
   // 目的が変わったら、その目的の主要天体を地図に表示
   useEffect(() => {
@@ -191,7 +205,7 @@ export default function AstroPage() {
   }
 
   if (!profile) {
-    return <p className="text-muted text-center py-10">読み込み中...</p>;
+    return <p className="text-muted text-center py-10">{t("astro.loading")}</p>;
   }
 
   // 出生時刻が有効に入っているか（MC/AC/DC線は時刻がないと定まらない）
@@ -227,14 +241,13 @@ export default function AstroPage() {
         <div className="relative z-10 space-y-2">
           <div className="flex items-center gap-2 text-accent-gold text-sm">
             <span className="sparkle">✦</span>
-            <span>アストロマップ</span>
+            <span>{t("astro.brand")}</span>
           </div>
           <h2 className="font-mincho text-xl font-bold text-foreground leading-relaxed">
-            あなたの星が輝く場所を、世界地図で。
+            {t("astro.tagline")}
           </h2>
           <p className="text-xs text-muted leading-relaxed">
-            出生データから10天体のライン（MC・IC・AC・DC）を世界地図に描き、
-            「どの土地でどんな運が後押しされやすいか」を目的別に整理します。
+            {t("astro.intro")}
           </p>
         </div>
       </section>
@@ -242,28 +255,28 @@ export default function AstroPage() {
       {/* 出生情報 + タイムゾーン */}
       <section className="bg-card-bg border border-card-border rounded-2xl p-4 shadow-sm space-y-3">
         <div className="flex items-center justify-between text-sm">
-          <span className="text-muted">対象</span>
-          <span className="font-bold text-foreground">{profile.name || "（名称未設定）"}</span>
+          <span className="text-muted">{t("astro.target")}</span>
+          <span className="font-bold text-foreground">{profile.name || t("astro.nameUnset")}</span>
         </div>
         <div className="flex items-center justify-between text-sm">
-          <span className="text-muted">生年月日</span>
+          <span className="text-muted">{t("astro.birthDate")}</span>
           <span className="text-foreground">
             {profile.birthDate}
-            {profile.birthTime ? ` ${profile.birthTime}` : "（時刻未設定）"}
+            {profile.birthTime ? ` ${profile.birthTime}` : t("astro.timeUnset")}
           </span>
         </div>
         <div className="flex items-center justify-between text-sm gap-2">
-          <span className="text-muted whitespace-nowrap">生まれた国・地域</span>
+          <span className="text-muted whitespace-nowrap">{t("astro.birthCountry")}</span>
           <select
             value={locId}
             onChange={(e) => changeLoc(e.target.value)}
             className="border border-card-border rounded-lg px-2 py-1.5 text-sm bg-white text-foreground max-w-[60%]"
           >
             {LOCATION_GROUPS.map((g) => (
-              <optgroup key={g} label={g}>
+              <optgroup key={g} label={locationGroupLabel(g, lang)}>
                 {BIRTH_LOCATIONS.filter((l) => l.group === g).map((l) => (
                   <option key={l.id} value={l.id}>
-                    {l.label}
+                    {birthLocationLabel(l, lang)}
                   </option>
                 ))}
               </optgroup>
@@ -271,7 +284,7 @@ export default function AstroPage() {
           </select>
         </div>
         <p className="text-[11px] text-muted flex items-center justify-between gap-2">
-          <span>適用される時差（出生日基準）</span>
+          <span>{t("astro.appliedOffset")}</span>
           <span className="font-mono font-bold text-foreground">UTC {fmtOffset(tz)}</span>
         </p>
       </section>
@@ -280,7 +293,7 @@ export default function AstroPage() {
       <section className="bg-card-bg border border-card-border rounded-2xl p-4 shadow-sm space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-medium text-accent-gold flex items-center gap-1.5">
-            <span>◈</span> 出生時刻
+            <span>◈</span> {t("astro.birthTime")}
           </h3>
           {/* 信頼度バッジ */}
           {timeIsExact ? (
@@ -288,15 +301,15 @@ export default function AstroPage() {
               className="text-[11px] font-bold px-2.5 py-0.5 rounded-full border"
               style={{ backgroundColor: "#e7f6ee", color: "#1f7a4d", borderColor: "#bfe3cf" }}
             >
-              信頼度 高 ✓
+              {t("astro.confHigh")}
             </span>
           ) : hasTime ? (
             <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-accent-gold/15 text-accent-gold border border-accent-gold/40">
-              参考・仮の時刻
+              {t("astro.confTentative")}
             </span>
           ) : (
             <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-danger/10 text-danger border border-danger/30">
-              時刻なし
+              {t("astro.confNone")}
             </span>
           )}
         </div>
@@ -317,7 +330,7 @@ export default function AstroPage() {
               onClick={() => setTimeOverride(null)}
               className="text-[11px] text-muted underline hover:text-accent-orange"
             >
-              登録値に戻す（{profileTime}）
+              {t("astro.resetToRegistered", { time: profileTime })}
             </button>
           )}
         </div>
@@ -332,7 +345,7 @@ export default function AstroPage() {
             value={sliderMinutes}
             onChange={(e) => setTimeOverride(fmtHM(Number(e.target.value)))}
             className="w-full accent-accent-orange"
-            aria-label="出生時刻スライダー"
+            aria-label={t("astro.sliderAria")}
           />
           <div className="flex justify-between text-[9px] text-muted/70 font-mono px-0.5">
             <span>0:00</span>
@@ -342,26 +355,24 @@ export default function AstroPage() {
             <span>24:00</span>
           </div>
           <p className="text-[11px] text-muted leading-relaxed">
-            スライダーを動かすと、時刻に合わせて地図の線が動きます
-            （<span className="font-bold text-foreground">1時間で経度約15°＝東西に約1,400km</span>）。
-            正確な時刻ほど土地の判定が信頼できます。
+            {t("astro.sliderNote")}
           </p>
         </div>
 
         {/* 状態に応じた案内 */}
         {timeIsExact ? (
           <p className="text-[11px] leading-relaxed rounded-lg px-3 py-2 bg-[#e7f6ee]/70 text-[#1f7a4d]">
-            登録された出生時刻で計算中です。地図・ランキングはこの時刻に基づく結果です。
+            {t("astro.stateExact")}
           </p>
         ) : profileTime ? (
           <p className="text-[11px] leading-relaxed rounded-lg px-3 py-2 bg-accent-gold/10 text-accent-gold">
-            登録時刻（{profileTime}）から変更中の「仮の時刻」で表示しています。「登録値に戻す」で元に戻せます。
+            {t("astro.stateTentative", { time: profileTime })}
           </p>
         ) : (
           <p className="text-[11px] leading-relaxed rounded-lg px-3 py-2 bg-danger/5 text-danger/90">
-            出生時刻が未登録です。上の欄かスライダーで時刻を指定すると地図が出せますが、
-            あくまで<span className="font-bold">仮の時刻</span>の参考表示です。分かる場合は{" "}
-            <Link href="/profile" className="underline">プロフィールに登録</Link>すると正確になります。
+            {t("astro.stateNoneA")}
+            <Link href="/profile" className="underline">{t("astro.stateNoneLink")}</Link>
+            {t("astro.stateNoneB")}
           </p>
         )}
       </section>
@@ -371,7 +382,7 @@ export default function AstroPage() {
       {/* 目的選択 */}
       <section className="space-y-2">
         <h3 className="text-sm font-medium text-accent-gold flex items-center gap-1.5">
-          <span>◈</span> 目的を選ぶ
+          <span>◈</span> {t("astro.chooseGoal")}
         </h3>
         <div className="flex flex-wrap gap-2">
           {PURPOSES.map((p) => {
@@ -389,12 +400,12 @@ export default function AstroPage() {
                     : "bg-white text-muted border-card-border hover:border-accent-gold"
                 }`}
               >
-                {p.emoji} {p.label}
+                {p.emoji} {purposeText(p.id, lang).label}
               </button>
             );
           })}
         </div>
-        <p className="text-[11px] text-muted px-1">{purpose.description}</p>
+        <p className="text-[11px] text-muted px-1">{purposeTx.description}</p>
       </section>
 
       {/* 世界地図 */}
@@ -403,7 +414,7 @@ export default function AstroPage() {
           {!timeIsExact && (
             <p className="text-[11px] text-accent-gold bg-accent-gold/10 border border-accent-gold/30 rounded-lg px-3 py-1.5 flex items-center gap-1.5">
               <span>⚠</span>
-              仮の時刻（{effectiveTime}）での表示です。土地の順位は目安としてご覧ください。
+              {t("astro.tentativeMapNote", { time: effectiveTime ?? "" })}
             </p>
           )}
           <AstroWorldMap
@@ -431,7 +442,7 @@ export default function AstroPage() {
                   <span style={{ color: p.color }} className="text-sm leading-none">
                     {p.symbol}
                   </span>
-                  <span className="text-foreground">{p.name}</span>
+                  <span className="text-foreground">{planetName(p.body, lang)}</span>
                 </button>
               );
             })}
@@ -439,7 +450,7 @@ export default function AstroPage() {
 
           {/* アングルトグル */}
           <div className="flex flex-wrap gap-1.5 items-center">
-            <span className="text-[11px] text-muted mr-1">ライン種別:</span>
+            <span className="text-[11px] text-muted mr-1">{t("astro.lineType")}</span>
             {(Object.keys(angleVis) as (keyof AngleVisibility)[]).map((a) => (
               <button
                 key={a}
@@ -450,33 +461,32 @@ export default function AstroPage() {
                     : "bg-white border-card-border text-muted"
                 }`}
               >
-                {ANGLE_LABEL[a]}
+                {angleLabel(a, lang)}
               </button>
             ))}
           </div>
           <p className="text-[10px] text-muted/70 px-1 leading-relaxed">
-            実線=MC/AC、点線=IC、破線=DC。金色の輪はこの目的のおすすめ上位都市、
-            オレンジの輪は選択中の都市です。地図上の都市をタップすると詳細が見られます。
+            {t("astro.mapLegend")}
           </p>
         </section>
       )}
 
       {/* 選択都市の詳細 */}
       {selectedScore && (
-        <CityDetailCard score={selectedScore} purposeLabel={purpose.label} />
+        <CityDetailCard score={selectedScore} purposeLabel={purposeTx.label} />
       )}
 
       {/* 地域フィルター */}
       <section className="space-y-2">
         <h3 className="text-sm font-medium text-accent-gold flex items-center gap-1.5">
-          <span>◈</span> {purpose.emoji} {purpose.label}におすすめの土地
+          <span>◈</span> {purposeTx.emoji} {purposeTx.label}{t("astro.rankingHeading")}
         </h3>
         <div className="relative">
           <input
             type="search"
             value={cityQuery}
             onChange={(e) => setCityQuery(e.target.value)}
-            placeholder="都市名・国名で検索（例: 名古屋 / Lyon）"
+            placeholder={t("astro.searchPlaceholder")}
             className="w-full border border-card-border rounded-full pl-9 pr-3 py-2 text-sm bg-white text-foreground placeholder:text-muted/60 focus:outline-none focus:border-accent-gold"
           />
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted/60 text-sm pointer-events-none">
@@ -499,7 +509,7 @@ export default function AstroPage() {
                     : "bg-white text-muted border-card-border"
                 }`}
               >
-                {r === "all" ? "全て" : REGION_LABEL[r]}
+                {r === "all" ? t("astro.all") : regionLabel(r, lang)}
               </button>
             );
           })}
@@ -532,9 +542,9 @@ export default function AstroPage() {
                 <span className="text-2xl flex-shrink-0">{cs.city.flag}</span>
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-foreground leading-tight">
-                    {cs.city.name}
+                    {cityName(cs.city, lang)}
                     <span className="text-[11px] text-muted font-normal ml-1.5">
-                      {cs.city.country}
+                      {countryLabel(cs.city.country, lang)}
                     </span>
                   </p>
                   <div className="flex items-center gap-2 mt-0.5 flex-wrap">
@@ -547,7 +557,7 @@ export default function AstroPage() {
                           backgroundColor: `${TONE_META[PLANET_META[cs.activeLines[0].body].tone].color}14`,
                         }}
                       >
-                        {TONE_META[PLANET_META[cs.activeLines[0].body].tone].label}
+                        {toneLabel(PLANET_META[cs.activeLines[0].body].tone, lang)}
                       </span>
                     )}
                   </div>
@@ -555,7 +565,7 @@ export default function AstroPage() {
                 <div className="flex-shrink-0 text-right">
                   <p className="font-bold text-lg text-accent-orange leading-none">
                     {cs.purposeScore}
-                    <span className="text-[10px] text-muted font-normal">点</span>
+                    <span className="text-[10px] text-muted font-normal">{t("astro.points")}</span>
                   </p>
                 </div>
               </div>
@@ -581,8 +591,8 @@ export default function AstroPage() {
         {filtered.length === 0 && (
           <p className="text-center text-muted text-sm py-6">
             {searching
-              ? `「${cityQuery.trim()}」に一致する都市が見つかりません。`
-              : "この地域の都市はデータにありません。"}
+              ? t("astro.noMatch", { q: cityQuery.trim() })
+              : t("astro.noCityInRegion")}
           </p>
         )}
 
@@ -591,7 +601,7 @@ export default function AstroPage() {
             onClick={() => setShowAll(true)}
             className="w-full text-center text-sm text-accent-gold py-2.5 rounded-full border border-accent-gold/40 bg-accent-gold/5 hover:bg-accent-gold/10 transition-colors"
           >
-            さらに表示（残り{filtered.length - 12}都市）
+            {t("astro.showMore", { n: filtered.length - 12 })}
           </button>
         )}
       </section>
@@ -602,10 +612,7 @@ export default function AstroPage() {
 
       {/* 免責 */}
       <p className="text-center text-xs text-muted/60 px-4 leading-relaxed">
-        ※ 西洋占星術（トロピカル）をベースにした簡易計算による参考値です。
-        天体の性質分類（追い風／成長／刺激）は分かりやすさ優先の簡易的なもので、
-        外惑星（天王星・海王星・冥王星）のラインは特に誤差が大きめです。
-        占いは参考情報として、人生の重要な判断はご自身の責任で行ってください。
+        {t("astro.disclaimer")}
       </p>
     </div>
   );
@@ -619,6 +626,7 @@ function CityDetailCard({
   score: CityScore;
   purposeLabel: string;
 }) {
+  const { t, lang } = useI18n();
   const top = score.activeLines.slice(0, 4);
   return (
     <section className="animate-fade-up bg-gradient-to-br from-accent-gold/10 via-card-bg to-accent-orange/5 border border-accent-gold/30 rounded-2xl p-4 shadow-sm space-y-3">
@@ -626,30 +634,30 @@ function CityDetailCard({
         <span className="text-3xl">{score.city.flag}</span>
         <div className="flex-1 min-w-0">
           <p className="font-bold text-lg text-foreground leading-tight">
-            {score.city.name}
+            {cityName(score.city, lang)}
           </p>
           <p className="text-[11px] text-muted">
-            {score.city.country}・{score.city.enName}
+            {countryLabel(score.city.country, lang)}・{score.city.enName}
           </p>
         </div>
         <div className="text-right">
           <p className="text-[10px] text-muted">{purposeLabel}</p>
           <p className="font-bold text-2xl text-accent-orange leading-none">
             {score.purposeScore}
-            <span className="text-xs">点</span>
+            <span className="text-xs">{t("astro.points")}</span>
           </p>
           <Stars n={score.purposeStars} className="text-xs" />
         </div>
       </div>
 
       <p className="text-sm text-foreground/85 leading-relaxed bg-white/60 rounded-xl px-3 py-2">
-        {citySummary(score)}
+        {citySummary(score, lang)}
       </p>
 
       {/* 効いているライン */}
       {top.length > 0 && (
         <div className="space-y-1.5">
-          <p className="text-[11px] text-accent-gold font-medium">この土地で効いている天体ライン</p>
+          <p className="text-[11px] text-accent-gold font-medium">{t("astro.activeLinesTitle")}</p>
           {top.map((al, i) => {
             const meta = PLANET_META[al.body];
             return (
@@ -663,7 +671,7 @@ function CityDetailCard({
                 <div className="flex-1 min-w-0">
                   <p className="flex items-center gap-1.5 mb-0.5 flex-wrap">
                     <span className="font-bold text-foreground">
-                      {meta.name}・{al.angle}線
+                      {t("astro.lineName", { planet: planetName(al.body, lang), angle: al.angle })}
                     </span>
                     <span
                       className="text-[10px] rounded-full px-1.5 py-0.5 whitespace-nowrap"
@@ -672,14 +680,14 @@ function CityDetailCard({
                         backgroundColor: `${TONE_META[meta.tone].color}1a`,
                       }}
                     >
-                      {TONE_META[meta.tone].label}
+                      {toneLabel(meta.tone, lang)}
                     </span>
                     <span className="text-[10px] text-muted bg-muted/10 rounded-full px-1.5 py-0.5 whitespace-nowrap">
-                      {lineDistanceLabel(al)}
+                      {lineDistanceLabel(al, lang)}
                     </span>
                   </p>
                   <p className="text-foreground/85 leading-relaxed">
-                    {lineMessage(al.body, al.angle)}
+                    {lineMessage(al.body, al.angle, lang)}
                   </p>
                 </div>
               </div>
@@ -696,7 +704,7 @@ function CityDetailCard({
               <span style={{ color: p.color }} className="text-sm leading-none">
                 {p.symbol}
               </span>
-              {p.name}
+              {planetName(p.body, lang)}
             </span>
             <Stars n={score.planetStars[p.body] ?? 0} className="text-[10px]" />
           </div>
@@ -708,32 +716,29 @@ function CityDetailCard({
 
 /** 出生時刻が未設定のときの案内＋時刻に依存しにくい星座配置 */
 function TimeGate({ chart }: { chart: AstroChart | null }) {
+  const { t, lang } = useI18n();
   return (
     <div className="space-y-4">
       <section className="animate-fade-up bg-gradient-to-br from-danger/5 via-card-bg to-accent-gold/5 border border-danger/25 rounded-2xl p-5 shadow-sm space-y-3">
         <div className="flex items-center gap-2 text-danger">
           <span className="text-lg">◷</span>
-          <h3 className="font-bold text-foreground">出生時刻を登録すると地図が使えます</h3>
+          <h3 className="font-bold text-foreground">{t("astro.gate.title")}</h3>
         </div>
         <p className="text-sm text-foreground/80 leading-relaxed">
-          アストロマップの線（MC・IC・AC・DC）は、出生時刻が
-          <span className="font-bold">1時間ずれると地図上で約15度（赤道で約1,500km）</span>
-          も動きます。時刻が未設定のままだと土地の順位はほぼ意味をなさないため、
-          正確さを守るために地図とランキングは非表示にしています。
+          {t("astro.gate.body")}
         </p>
 
         <div className="bg-white/60 rounded-xl px-3.5 py-3 space-y-2 text-[12px] leading-relaxed">
           <p className="font-bold text-foreground flex items-center gap-1.5">
-            <span className="text-accent-gold">🔎</span> 出生時刻の調べ方
+            <span className="text-accent-gold">🔎</span> {t("astro.gate.howTitle")}
           </p>
           <ul className="list-disc pl-4 space-y-1 text-foreground/75">
-            <li><span className="font-medium">母子手帳</span>・出生届の控えに記載されていることが多いです</li>
-            <li>ご家族に「何時ごろ生まれたか」を聞いてみる</li>
-            <li>だいたいの時間帯（朝・昼・夜など）でも、まずは目安として登録できます</li>
+            <li>{t("astro.gate.how1")}</li>
+            <li>{t("astro.gate.how2")}</li>
+            <li>{t("astro.gate.how3")}</li>
           </ul>
           <p className="text-[11px] text-muted pt-0.5">
-            ※ どうしても分からない場合は、下の「星の配置」（時刻に左右されない情報）だけご覧いただけます。
-            おおよその時刻で登録した場合、地図は<span className="font-medium">目安</span>としてお使いください。
+            {t("astro.gate.howNote")}
           </p>
         </div>
 
@@ -741,18 +746,17 @@ function TimeGate({ chart }: { chart: AstroChart | null }) {
           href="/profile"
           className="inline-block bg-accent-orange text-white text-sm font-medium rounded-full px-4 py-2 shadow-sm hover:bg-accent-orange/90 transition-colors"
         >
-          プロフィールで出生時刻を登録する →
+          {t("astro.gate.cta")}
         </Link>
       </section>
 
       {chart && (
         <section className="bg-card-bg border border-card-border rounded-2xl p-4 shadow-sm space-y-3">
           <h3 className="text-sm font-medium text-accent-gold flex items-center gap-1.5">
-            <span>◈</span> 時刻に依存しにくい「星の配置」
+            <span>◈</span> {t("astro.gate.skyTitle")}
           </h3>
           <p className="text-[11px] text-muted leading-relaxed">
-            地図は出せませんが、生年月日だけでも分かる10天体の星座配置です
-            （土地とは無関係の、あなたの基本的な星の傾向）。
+            {t("astro.gate.skyNote")}
           </p>
           <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
             {PLANETS.map((p) => (
@@ -761,16 +765,16 @@ function TimeGate({ chart }: { chart: AstroChart | null }) {
                   <span style={{ color: p.color }} className="text-sm leading-none">
                     {p.symbol}
                   </span>
-                  {p.name}
+                  {planetName(p.body, lang)}
                 </span>
                 <span className="text-foreground font-medium">
-                  {signOf(chart.sky.positions[p.body].eclLon)}
+                  {signOf(chart.sky.positions[p.body].eclLon, lang)}
                 </span>
               </div>
             ))}
           </div>
           <p className="text-[10px] text-muted/70 leading-relaxed">
-            ※ 月は1日に約13度動くため、時刻未設定では星座がずれる場合があります。
+            {t("astro.gate.skyFootnote")}
           </p>
         </section>
       )}

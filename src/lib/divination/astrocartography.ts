@@ -81,6 +81,86 @@ export const ANGLE_THEME: Record<AngleType, string> = {
   DC: "出会い・パートナーシップ・人間関係",
 };
 
+// ===== 多言語対応（韓国語） =====
+
+import type { Lang } from "@/lib/i18n/dict";
+
+const PLANET_KO: Record<Body, { name: string; keyword: string; theme: string }> = {
+  sun: { name: "태양", keyword: "자기실현", theme: "활력·주역·사회적 빛남" },
+  moon: { name: "달", keyword: "안식처·가족", theme: "안심·가정·마음의 안식처" },
+  mercury: { name: "수성", keyword: "배움·발신", theme: "지성·커뮤니케이션·정보" },
+  venus: { name: "금성", keyword: "사랑·미·인간관계", theme: "애정·풍요·즐거움" },
+  mars: { name: "화성", keyword: "행동·도전", theme: "열정·용기·스피드" },
+  jupiter: { name: "목성", keyword: "발전·행운", theme: "확대·기회·해외·교육" },
+  saturn: { name: "토성", keyword: "기반·책임", theme: "노력·지속·장기적 성공" },
+  uranus: { name: "천왕성", keyword: "혁신·자유", theme: "변화·독립·영감" },
+  neptune: { name: "해왕성", keyword: "예술·치유", theme: "감성·스피리추얼·꿈" },
+  pluto: { name: "명왕성", keyword: "변용·재생", theme: "깊은 변화·파워·전환점" },
+};
+
+const TONE_LABEL_KO: Record<PlanetTone, string> = {
+  flow: "순풍의 땅",
+  growth: "성장·단련의 땅",
+  awaken: "자극·변화의 땅",
+};
+
+const ANGLE_LABEL_KO: Record<AngleType, string> = {
+  MC: "MC(천정)",
+  IC: "IC(천저)",
+  AC: "AC(상승)",
+  DC: "DC(하강)",
+};
+
+const ANGLE_THEME_KO: Record<AngleType, string> = {
+  MC: "일·사회적 성공·사람들 앞에서의 활약",
+  IC: "가정·마음의 안정·삶의 토대",
+  AC: "나다움·첫인상·새로운 도전",
+  DC: "만남·파트너십·인간관계",
+};
+
+const ZODIAC_SIGNS_KO = [
+  "양자리", "황소자리", "쌍둥이자리", "게자리", "사자자리", "처녀자리",
+  "천칭자리", "전갈자리", "사수자리", "염소자리", "물병자리", "물고기자리",
+];
+
+const PURPOSE_KO: Record<string, { label: string; description: string }> = {
+  overall: { label: "종합", description: "행운·사랑·활력을 균형 있게 밀어주는 땅" },
+  work: { label: "일·커리어", description: "사회적 활약·성공·실력 발휘" },
+  money: { label: "돈·풍요", description: "금전운·확대·경제적 기회" },
+  family: { label: "가족·안식처", description: "안심할 수 있는 삶·가정·마음의 안식처" },
+  love: { label: "연애·인간관계", description: "만남·애정·파트너십" },
+  express: { label: "발신·표현", description: "정보 발신·커뮤니케이션·인지도" },
+  learn: { label: "배움·성장", description: "공부·스킬업·시야 확대" },
+  challenge: { label: "도전·모험", description: "새로운 한 걸음·행동력·자기변혁" },
+};
+
+/** 天体名（言語対応） */
+export function planetName(body: Body, lang: Lang = "ja"): string {
+  return lang === "ko" ? PLANET_KO[body].name : PLANET_META[body].name;
+}
+
+/** トーンのラベル（言語対応） */
+export function toneLabel(tone: PlanetTone, lang: Lang = "ja"): string {
+  return lang === "ko" ? TONE_LABEL_KO[tone] : TONE_META[tone].label;
+}
+
+/** アングルのラベル（言語対応） */
+export function angleLabel(angle: AngleType, lang: Lang = "ja"): string {
+  return lang === "ko" ? ANGLE_LABEL_KO[angle] : ANGLE_LABEL[angle];
+}
+
+/** 目的のラベル・説明・絵文字（言語対応） */
+export function purposeText(
+  id: string,
+  lang: Lang = "ja"
+): { label: string; description: string; emoji: string } {
+  const p = PURPOSE_MAP[id] ?? PURPOSES[0];
+  if (lang === "ko" && PURPOSE_KO[id]) {
+    return { label: PURPOSE_KO[id].label, description: PURPOSE_KO[id].description, emoji: p.emoji };
+  }
+  return { label: p.label, description: p.description, emoji: p.emoji };
+}
+
 // ===== ライン生成 =====
 
 export interface PlanetLines {
@@ -548,15 +628,22 @@ export function rankCities(
 }
 
 /** 線までの距離・方向を短い日本語ラベルにする（例: 「西へ約210km」） */
-export function lineDistanceLabel(al: { distKm: number; side: LineSide }): string {
+export function lineDistanceLabel(
+  al: { distKm: number; side: LineSide },
+  lang: Lang = "ja"
+): string {
   if (al.side === "on" || !isFinite(al.distKm) || al.distKm < 20) {
-    return "ほぼ真上";
+    return lang === "ko" ? "거의 바로 위" : "ほぼ真上";
   }
-  const dir = al.side === "E" ? "東" : "西";
   const km =
     al.distKm >= 500
       ? Math.round(al.distKm / 50) * 50
       : Math.round(al.distKm / 10) * 10;
+  if (lang === "ko") {
+    const dirKo = al.side === "E" ? "동" : "서";
+    return `${dirKo}쪽으로 약 ${km.toLocaleString()}km`;
+  }
+  const dir = al.side === "E" ? "東" : "西";
   return `${dir}へ約${km.toLocaleString()}km`;
 }
 
@@ -567,16 +654,29 @@ export const ZODIAC_SIGNS = [
 ];
 
 /** 黄経（度）→ 星座名 */
-export function signOf(eclLon: number): string {
-  return ZODIAC_SIGNS[Math.floor(rev(eclLon) / 30) % 12];
+export function signOf(eclLon: number, lang: Lang = "ja"): string {
+  const idx = Math.floor(rev(eclLon) / 30) % 12;
+  return lang === "ko" ? ZODIAC_SIGNS_KO[idx] : ZODIAC_SIGNS[idx];
 }
 
 /**
  * アクティブな線について、天体のトーン（追い風/成長/刺激）に応じた
  * 正直かつ前向きな一言メッセージを生成する。
  */
-export function lineMessage(body: Body, angle: AngleType): string {
+export function lineMessage(body: Body, angle: AngleType, lang: Lang = "ja"): string {
   const p = PLANET_META[body];
+  if (lang === "ko") {
+    const ko = PLANET_KO[body];
+    const head = `${p.symbol} ${ko.name}의 ${angle} 라인: `;
+    switch (p.tone) {
+      case "growth":
+        return `${head}${ANGLE_THEME_KO[angle]}에서 시험받고 단련되는 땅. 마주할수록 ${ko.theme}가 진짜 힘이 됩니다.`;
+      case "awaken":
+        return `${head}${ANGLE_THEME_KO[angle]}에 비일상의 자극이 들어오는 땅. ${ko.theme}가 깨어나 예상 밖의 변화도 즐길 수 있습니다.`;
+      default:
+        return `${head}${ANGLE_THEME_KO[angle]}에 순풍이 닿기 쉬운 땅. ${ko.theme}가 자연스럽게 이끌려 나옵니다.`;
+    }
+  }
   const head = `${p.symbol} ${p.name}の${angle}線：`;
   switch (p.tone) {
     case "growth":
@@ -589,18 +689,37 @@ export function lineMessage(body: Body, angle: AngleType): string {
 }
 
 /** 都市の総評コメント（最強の線＋トーン。線が無ければ最寄り線を案内） */
-export function citySummary(score: CityScore): string {
+export function citySummary(score: CityScore, lang: Lang = "ja"): string {
+  const isKo = lang === "ko";
   if (score.activeLines.length === 0) {
     if (score.nearestLine) {
       const n = score.nearestLine;
       const p = PLANET_META[n.body];
+      if (isKo) {
+        const ko = PLANET_KO[n.body];
+        return `강하게 작용하는 라인은 가까이 없지만, 가장 가까운 것은 ${ko.name}의 ${ANGLE_LABEL_KO[n.angle]}(${lineDistanceLabel(n, lang)}). 그 방향으로 「${TONE_LABEL_KO[p.tone]}」의 기운이 남아 있습니다.`;
+      }
       const tone = TONE_META[p.tone];
       return `強く効く線は近くにありませんが、最寄りは${p.name}の${ANGLE_LABEL[n.angle]}（${lineDistanceLabel(n)}）。その方向に「${tone.label}」の気配が残ります。`;
     }
-    return "強いラインは近くになく、穏やかでクセの少ない土地です。";
+    return isKo
+      ? "강한 라인은 가까이 없고, 잔잔하고 개성이 강하지 않은 땅입니다."
+      : "強いラインは近くになく、穏やかでクセの少ない土地です。";
   }
   const top = score.activeLines[0];
   const p = PLANET_META[top.body];
+  if (isKo) {
+    const ko = PLANET_KO[top.body];
+    const angle = ANGLE_LABEL_KO[top.angle];
+    switch (p.tone) {
+      case "growth":
+        return `${ko.name}(${ko.keyword})가 ${angle}에서 강하게 작용하는 땅. ${ko.theme}에 진지하게 마주함으로써 크게 성장할 수 있습니다.`;
+      case "awaken":
+        return `${ko.name}(${ko.keyword})가 ${angle}에서 자극적으로 작용하는 땅. ${ko.theme}가 뜻밖에 열려갑니다.`;
+      default:
+        return `${ko.name}(${ko.keyword})가 ${angle}에서 빛나는 땅. ${ko.theme}를 밀어줍니다.`;
+    }
+  }
   switch (p.tone) {
     case "growth":
       return `${p.name}（${p.keyword}）が${ANGLE_LABEL[top.angle]}で強く働く土地。${p.theme}に真剣に向き合うことで、大きく成長できます。`;

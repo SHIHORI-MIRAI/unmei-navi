@@ -5,6 +5,9 @@
  * ツォルキン暦は260日周期（13の音 × 20の紋章）。
  */
 
+import type { Lang } from "@/lib/i18n/dict";
+import { mayanSealName } from "@/lib/i18n/fortune-terms";
+
 /**
  * 銀河のマヤ（Dreamspell / ホゼ・アグエイアス方式）のKIN番号計算
  *
@@ -163,7 +166,14 @@ export function getMayanYearWave(birthDate: string, year: number): number {
 }
 
 /** グラフ用: 指定年の誕生日KINの紋章名と音を返す */
-export function getMayanYearLabel(birthDate: string, year: number): string {
+export function getMayanYearLabel(
+  birthDate: string,
+  year: number,
+  lang: Lang = "ja"
+): string {
   const result = calcYearlyMayan(birthDate, year);
-  return `KIN${result.kinNumber} ${result.solarSeal.name}・音${result.galacticTone.tone}`;
+  const seal = mayanSealName(result.solarSeal.name, lang);
+  return lang === "ko"
+    ? `KIN${result.kinNumber} ${seal} · 음 ${result.galacticTone.tone}`
+    : `KIN${result.kinNumber} ${seal}・音${result.galacticTone.tone}`;
 }

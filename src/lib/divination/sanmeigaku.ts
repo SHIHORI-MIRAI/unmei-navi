@@ -13,6 +13,7 @@ import {
   EARTHLY_BRANCHES,
   type StemBranch,
 } from "./stems-branches";
+import type { Lang } from "@/lib/i18n/dict";
 
 // --- 十大主星 ---
 
@@ -150,7 +151,8 @@ const TENCHU_GROUPS = [
  */
 export function checkTenchusatsuYear(
   birthDate: string,
-  year: number
+  year: number,
+  lang: Lang = "ja"
 ): { isTenchusatsu: boolean; group: string; yearBranch: string } {
   const [y, m, d] = birthDate.split("-").map(Number);
   const dayPillar = calcDayPillar(y, m, d);
@@ -160,9 +162,13 @@ export function checkTenchusatsuYear(
   const yearPillar = calcYearPillar(year, 6, 15);
   const yearBranch = yearPillar.branch.name;
 
+  // 判定は日本語の branches / yearBranch で行い、表示名のみ言語対応する
+  const groupName =
+    lang === "ko" ? TENCHU_GROUPS_KO[group.name]?.name ?? group.name : group.name;
+
   return {
     isTenchusatsu: (group.branches as readonly string[]).includes(yearBranch),
-    group: group.name,
+    group: groupName,
     yearBranch,
   };
 }
@@ -228,6 +234,80 @@ const ZOUKAN_MAIN: Record<string, number> = {
   亥: 8, // 壬
 };
 
+// --- 韓国語辞書（多言語対応） ---
+// 表示文字列のみ韓国語化する。星名は韓国漢字語読み。
+// name は getSanmeigakuDetail など日本語をキーに使う処理があるため、
+// 計算・キー参照は日本語版で行い、最終的な返却時にのみ韓国語へ差し替える。
+// 数値(energy)・分岐用のデータ(branches)は日本語版のまま維持する。
+
+// MAIN_STAR_LIST と同じ番号順（index0=null）
+const MAIN_STAR_LIST_KO: ({ name: string; keyword: string; personality: string; strength: string } | null)[] = [
+  null,
+  { name: "관삭성", keyword: "자립·지킴", personality: "자신의 세계를 소중히 하며 마이페이스로 살아가는 타입. 신념을 관철하는 힘이 강해요", strength: "독립심·인내력·신념" },
+  { name: "석문성", keyword: "사교·동료", personality: "사람과 이어지는 힘이 강하고 팀을 이끄는 데 능숙해요. 사교적이고 잘 챙겨줘요", strength: "협조성·사교성·중개력" },
+  { name: "용고성", keyword: "지혜·방랑", personality: "지적 호기심이 왕성하고 자유를 사랑해요. 여행과 모험을 좋아하며 틀에 얽매이지 않아요", strength: "지식욕·모험심·개혁력" },
+  { name: "옥당성", keyword: "학문·모성", personality: "배우는 것을 좋아하고 지식을 사람에게 전하는 힘이 있어요. 모성적인 따뜻함을 지녔어요", strength: "학문·교육력·모성" },
+  { name: "차기성", keyword: "행동·투쟁", personality: "행동력과 투쟁심이 넘쳐요. 목표를 향해 돌진하는 힘이 강하고 스포츠맨 타입이에요", strength: "행동력·투쟁심·스피드" },
+  { name: "견우성", keyword: "명예·책임", personality: "명예를 중시하고 책임감이 강해요. 품격이 있고 엘리트 타입이에요", strength: "책임감·품격·조직력" },
+  { name: "녹존성", keyword: "매력·재물", personality: "사람을 끌어당기는 매력이 있고 경제적 재능을 타고났어요. 잘 챙겨주고 정이 깊어요", strength: "인간적 매력·경제력·봉사정신" },
+  { name: "사록성", keyword: "축적·견실", personality: "차근차근 쌓아가는 힘이 강해요. 견실하고 가정이나 조직을 안정시키는 힘이 있어요", strength: "견실함·축재력·안정감" },
+  { name: "봉각성", keyword: "낙관·표현", personality: "낙관적이고 표현력이 풍부해요. 먹는 것·즐기는 것을 좋아하며 사람을 편안하게 하는 천재예요", strength: "낙관성·표현력·너그러움" },
+  { name: "조서성", keyword: "감성·예술", personality: "감수성이 매우 섬세하고 예술적 재능이 있어요. 고독을 사랑하며 깊은 정신세계를 지녔어요", strength: "감성·예술성·직관력" },
+];
+
+// SUB_STAR_LIST と同じ番号順（index0=null）。energy は日本語版から引き継ぐ
+const SUB_STAR_LIST_KO: ({ name: string; stage: string; meaning: string } | null)[] = [
+  null,
+  { name: "천보성", stage: "태아", meaning: "다재다능하고 변화를 좋아해요. 몇 번이고 다시 태어나듯 새로운 인생을 걸어가요" },
+  { name: "천인성", stage: "아기", meaning: "주위에 사랑받는 타고난 매력. 천진난만함과 애교가 있어요" },
+  { name: "천귀성", stage: "유아", meaning: "품격이 있고 자존심이 높아요. 미의식과 향상심을 지녔어요" },
+  { name: "천황성", stage: "소년소녀", meaning: "꿈이 많은 로맨티스트. 이상을 좇는 모험심이 있어요" },
+  { name: "천남성", stage: "청년", meaning: "에너지 넘치고 투쟁심이 강해요. 개혁가 타입이에요" },
+  { name: "천록성", stage: "장년", meaning: "안정된 실력자. 견실하고 신뢰받는 사회인 타입이에요" },
+  { name: "천장성", stage: "정상", meaning: "최대의 에너지. 정상에 서는 그릇으로 카리스마가 있어요" },
+  { name: "천당성", stage: "노인", meaning: "원숙한 지혜를 지녔어요. 겸손하지만 존재감이 있어요" },
+  { name: "천호성", stage: "입구", meaning: "영감·직감이 예리해요. 예술적 센스가 뛰어나요" },
+  { name: "천극성", stage: "저세상", meaning: "순수하고 무욕. 정신성이 높고 보이지 않는 세계와 이어지는 힘이 있어요" },
+  { name: "천고성", stage: "묘지기", meaning: "조상의 보살핌이 강해요. 쌓는 힘과 묘를 지키는 사명이 있어요" },
+  { name: "천치성", stage: "출발", meaning: "최소의 에너지지만 순발력과 스피드가 뛰어나요. 바쁜 별이에요" },
+];
+
+// TENCHU_GROUPS の日本語 name をキーに、表示文字列のみ韓国語化（branches は日本語版のまま）
+const TENCHU_GROUPS_KO: Record<string, { name: string; meaning: string; theme: string }> = {
+  "戌亥天中殺": { name: "술해천중살", meaning: "초대운. 부모의 힘에 기대지 않고 스스로 인생을 개척해요. 북서쪽 기운이 결여돼요", theme: "자립해 새로운 길을 개척하는 힘을 지녔어요. 가문을 넘어선 삶의 방식이 길해요" },
+  "申酉天中殺": { name: "신유천중살", meaning: "서쪽 기운이 결여돼요. 결과나 돈에 지나치게 집착하면 운이 떨어져요", theme: "과정을 즐기는 삶이 길해요. 남을 위해 움직이면 운이 열려요" },
+  "午未天中殺": { name: "오미천중살", meaning: "말대운. 가문이나 혈연의 얽매임에서 자유로워질 수 있는 별이에요", theme: "자신의 힘으로 길을 개척해요. 만년을 향해 운기가 상승해요" },
+  "辰巳天中殺": { name: "진사천중살", meaning: "가정운에 변화가 생기기 쉬워요. 정신세계에 강한 관심을 갖는 경향이 있어요", theme: "정신적 성장을 중시하는 삶이 길해요. 물질보다 마음의 풍요를 추구해요" },
+  "寅卯天中殺": { name: "인묘천중살", meaning: "동쪽 기운이 결여돼요. 사회의 틀 안에서 사는 것에 위화감을 느끼기 쉬워요", theme: "조직보다 개인으로 힘을 발휘해요. 창의성과 자유로운 발상이 무기가 돼요" },
+  "子丑天中殺": { name: "자축천중살", meaning: "북쪽 기운이 결여돼요. 초대운이며 부모 곁을 떠나 자립하면 운이 열려요", theme: "자립심을 살려 새로운 분야를 개척하는 힘이 있어요" },
+};
+
+/** 十大主星を言語に応じてローカライズ（ja はそのまま） */
+function localizeMainStar(star: MainStar, lang: Lang): MainStar {
+  if (lang !== "ko") return star;
+  const idx = MAIN_STAR_LIST.findIndex((s) => s?.name === star.name);
+  const ko = idx >= 0 ? MAIN_STAR_LIST_KO[idx] : null;
+  return ko ? ({ ...star, ...ko } as MainStar) : star;
+}
+
+/** 十二大従星を言語に応じてローカライズ（energy は共通） */
+function localizeSubStar(star: SubStar, lang: Lang): SubStar {
+  if (lang !== "ko") return star;
+  const idx = SUB_STAR_LIST.findIndex((s) => s?.name === star.name);
+  const ko = idx >= 0 ? SUB_STAR_LIST_KO[idx] : null;
+  return ko ? ({ ...star, ...ko } as SubStar) : star;
+}
+
+/** 天中殺グループを言語に応じてローカライズ（branches は共通） */
+function localizeTenchu(
+  g: (typeof TENCHU_GROUPS)[number],
+  lang: Lang
+): (typeof TENCHU_GROUPS)[number] {
+  if (lang !== "ko") return g;
+  const ko = TENCHU_GROUPS_KO[g.name];
+  return ko ? ({ ...g, ...ko } as (typeof TENCHU_GROUPS)[number]) : g;
+}
+
 // --- メインの計算関数 ---
 
 export interface SanmeigakuResult {
@@ -249,7 +329,10 @@ export interface SanmeigakuResult {
   dayPillar: StemBranch;
 }
 
-export function calcSanmeigaku(birthDate: string): SanmeigakuResult {
+export function calcSanmeigaku(
+  birthDate: string,
+  lang: Lang = "ja"
+): SanmeigakuResult {
   const [y, m, d] = birthDate.split("-").map(Number);
 
   const dayPillar = calcDayPillar(y, m, d);
@@ -297,12 +380,23 @@ export function calcSanmeigaku(birthDate: string): SanmeigakuResult {
   // --- 天中殺 ---
   const tenchu = calcTenchu(dayPillar);
 
+  // 計算・キー参照は日本語版で完了済み。返却時に表示文字列のみ言語対応する
   return {
-    mainStar,
-    bodyChart: { center, north, south, east, west },
-    subStars: { head, chest, belly },
+    mainStar: localizeMainStar(mainStar, lang),
+    bodyChart: {
+      center: localizeMainStar(center, lang),
+      north: localizeMainStar(north, lang),
+      south: localizeMainStar(south, lang),
+      east: localizeMainStar(east, lang),
+      west: localizeMainStar(west, lang),
+    },
+    subStars: {
+      head: localizeSubStar(head, lang),
+      chest: localizeSubStar(chest, lang),
+      belly: localizeSubStar(belly, lang),
+    },
     totalEnergy,
-    tenchu,
+    tenchu: localizeTenchu(tenchu, lang),
     dayPillar,
   };
 }

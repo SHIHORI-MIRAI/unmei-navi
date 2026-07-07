@@ -1,6 +1,11 @@
 /**
  * ラッキー情報・月齢の計算
+ *
+ * 多言語対応: calcLuckyInfo に lang を渡すと色名・方位・月相名を各言語で返す。
+ * 未指定なら日本語（既存挙動を維持）。値の判定は日本語表記を正とする。
  */
+
+import type { Lang } from "@/lib/i18n/dict";
 
 const COLORS = [
   { name: "赤", hex: "#e74c3c" },
@@ -77,6 +82,28 @@ export function getMoonPhaseEmoji(moonAge: number): string {
   return "🌘";
 }
 
+// --- 韓国語表記（日本語をキーに変換） ---
+const colorNameKo: Record<string, string> = {
+  赤: "빨강", 青: "파랑", 緑: "초록", 黄: "노랑", 紫: "보라",
+  オレンジ: "주황", ピンク: "분홍", 白: "하양", 金: "금색",
+};
+
+const directionKo: Record<string, string> = {
+  北: "북", 北東: "북동", 東: "동", 南東: "남동",
+  南: "남", 南西: "남서", 西: "서", 北西: "북서",
+};
+
+const moonPhaseKo: Record<string, string> = {
+  "新月": "신월(삭)",
+  "三日月（上弦へ向かう）": "초승달(상현으로)",
+  "上弦の月": "상현달",
+  "十三夜（満月へ向かう）": "십삼야(보름으로)",
+  "満月": "보름달",
+  "寝待月（下弦へ向かう）": "하현으로 가는 달",
+  "下弦の月": "하현달",
+  "晦日月（新月へ向かう）": "그믐달(삭으로)",
+};
+
 export interface LuckyInfo {
   color: { name: string; hex: string };
   number: number;
@@ -86,14 +113,24 @@ export interface LuckyInfo {
   moonEmoji: string;
 }
 
-export function calcLuckyInfo(date: Date, lifePathNumber: number): LuckyInfo {
+export function calcLuckyInfo(
+  date: Date,
+  lifePathNumber: number,
+  lang: Lang = "ja"
+): LuckyInfo {
   const moonAge = calcMoonAge(date);
+  const color = getLuckyColor(date, lifePathNumber);
+  const direction = getLuckyDirection(date, lifePathNumber);
+  const moonPhase = getMoonPhaseName(moonAge);
+  const isKo = lang === "ko";
   return {
-    color: getLuckyColor(date, lifePathNumber),
+    color: isKo
+      ? { name: colorNameKo[color.name] ?? color.name, hex: color.hex }
+      : color,
     number: getLuckyNumber(date, lifePathNumber),
-    direction: getLuckyDirection(date, lifePathNumber),
+    direction: isKo ? directionKo[direction] ?? direction : direction,
     moonAge,
-    moonPhase: getMoonPhaseName(moonAge),
+    moonPhase: isKo ? moonPhaseKo[moonPhase] ?? moonPhase : moonPhase,
     moonEmoji: getMoonPhaseEmoji(moonAge),
   };
 }

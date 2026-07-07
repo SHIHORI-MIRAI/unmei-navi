@@ -79,6 +79,39 @@ export const LOCATION_GROUPS = [
   "オセアニア・その他",
 ] as const;
 
+// --- 多言語対応（韓国語）。日本語ラベルを正とし、表示のみ変換する ---
+import type { Lang } from "@/lib/i18n/dict";
+
+const LOCATION_LABEL_KO: Record<string, string> = {
+  jp: "일본", kr: "한국", cn: "중국(베이징·상하이)", tw: "대만", hk: "홍콩",
+  sg: "싱가포르", th: "태국", vn: "베트남", ph: "필리핀", id: "인도네시아(자카르타)",
+  in: "인도", np: "네팔", ae: "두바이·UAE",
+  gb: "영국", pt: "포르투갈", eu: "중부유럽(독·프·이·스페인)", gr: "그리스·동유럽",
+  tr: "튀르키예", ru: "러시아(모스크바)",
+  us_e: "미국 동부(뉴욕)", us_c: "미국 중부(시카고)", us_m: "미국 산악부(덴버)",
+  us_w: "미국 서부(로스앤젤레스)", us_hi: "하와이", ca: "캐나다(토론토)",
+  mx: "멕시코시티", br: "브라질(상파울루)", ar: "아르헨티나",
+  au_e: "호주 동부(시드니)", au_w: "호주 서부(퍼스)", nz: "뉴질랜드",
+  eg: "이집트", za: "남아프리카공화국",
+};
+
+const LOCATION_GROUP_KO: Record<string, string> = {
+  アジア: "아시아",
+  ヨーロッパ: "유럽",
+  アメリカ: "아메리카",
+  "オセアニア・その他": "오세아니아·기타",
+};
+
+/** 出生地の表示名（言語対応） */
+export function birthLocationLabel(loc: BirthLocation, lang: Lang = "ja"): string {
+  return lang === "ko" ? LOCATION_LABEL_KO[loc.id] ?? loc.label : loc.label;
+}
+
+/** 地域グループの表示名（言語対応） */
+export function locationGroupLabel(group: string, lang: Lang = "ja"): string {
+  return lang === "ko" ? LOCATION_GROUP_KO[group] ?? group : group;
+}
+
 /**
  * 指定タイムゾーンの、ある瞬間（date=UTC）におけるUTCオフセット（分）を返す。
  * Intl の formatToParts でゾーンの現地時刻を読み、UTCとの差を取る。

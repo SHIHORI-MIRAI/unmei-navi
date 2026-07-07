@@ -15,6 +15,62 @@ import {
   type UserProfile,
   type OracleDraw,
 } from "@/lib/storage";
+import { useI18n } from "@/lib/i18n/provider";
+import type { Lang } from "@/lib/i18n/dict";
+
+/** この画面固有の二言語文言（dict.ts は編集禁止のためローカルに持つ） */
+const L: Record<Lang, Record<string, string>> = {
+  ja: {
+    title: "オラクルカード",
+    subtitle: "シャッフルして、今のあなたに必要な1枚を選びましょう",
+    shuffling: "シャッフル中...",
+    pickPrompt: "まずは、好きなカードを1枚選んでください",
+    trustIntuition: "{name} さんの直感を信じて ✦",
+    pickAria: "{n}枚目のカードを選ぶ",
+    pickHint: "ピンと来た1枚をタップ",
+    yourCard: "あなたが選んだカード",
+    reshuffle: "もう一度シャッフルして選ぶ",
+    howTitle: "オラクルカードの使い方",
+    historyTitle: "これまでに引いたカード",
+    todayBadge: "今日の1枚 ",
+    disclaimer:
+      "このカードは未来を決めつけるものではなく、あなたの可能性を広げるためのメッセージです。自分の直感を信じて、自由に受け取ってください。",
+    backHome: "← ホームに戻る",
+  },
+  ko: {
+    title: "오라클 카드",
+    subtitle: "셔플해서 지금의 당신에게 필요한 한 장을 골라보세요",
+    shuffling: "셔플 중...",
+    pickPrompt: "먼저 마음에 드는 카드를 한 장 골라주세요",
+    trustIntuition: "{name} 님의 직감을 믿고 ✦",
+    pickAria: "{n}번째 카드 선택",
+    pickHint: "느낌이 오는 한 장을 탭",
+    yourCard: "당신이 고른 카드",
+    reshuffle: "다시 셔플해서 고르기",
+    howTitle: "오라클 카드 사용법",
+    historyTitle: "지금까지 뽑은 카드",
+    todayBadge: "오늘의 한 장 ",
+    disclaimer:
+      "이 카드는 미래를 단정하는 것이 아니라, 당신의 가능성을 넓히기 위한 메시지입니다. 자신의 직감을 믿고 자유롭게 받아들여 주세요.",
+    backHome: "← 홈으로 돌아가기",
+  },
+};
+
+/** 使い方ステップ（タイトル・説明）の二言語版 */
+const HOW_STEPS: Record<Lang, [string, string][]> = {
+  ja: [
+    ["心を落ち着ける", "深呼吸をして、今の自分に意識を向けます。"],
+    ["カードを引く", "直感で1枚を選びます。"],
+    ["メッセージを読む", "カードのメッセージを心で受け取ります。"],
+    ["行動のヒントにする", "今日の行動のヒントとして活かしましょう。"],
+  ],
+  ko: [
+    ["마음을 가라앉히기", "심호흡을 하고 지금의 자신에게 의식을 향합니다."],
+    ["카드를 뽑기", "직감으로 한 장을 고릅니다."],
+    ["메시지를 읽기", "카드의 메시지를 마음으로 받아들입니다."],
+    ["행동의 힌트로 삼기", "오늘의 행동 힌트로 활용해요."],
+  ],
+};
 
 function getTodayString(): string {
   const d = new Date();
@@ -32,7 +88,7 @@ function makeId(): string {
  * カード表示。public/cards/NN.jpg があれば完成カード画像をそのまま表示し、
  * 無ければアプリが枠・番号・名前・メッセージを描く FallbackCard を表示する。
  */
-function CardFace({ card }: { card: OracleCard }) {
+function CardFace({ card, lang }: { card: OracleCard; lang: Lang }) {
   const [imgFailed, setImgFailed] = useState(false);
   const src = `/cards/${String(card.id).padStart(2, "0")}.jpg`;
 
@@ -48,15 +104,15 @@ function CardFace({ card }: { card: OracleCard }) {
     );
   }
 
-  return <FallbackCard card={card} />;
+  return <FallbackCard card={card} lang={lang} />;
 }
 
 /**
  * 画像がまだ無いカード用。アプリ側でカード枠（番号・カード名・メッセージ・
  * モチーフ絵文字）を明朝体で描画する。
  */
-function FallbackCard({ card }: { card: OracleCard }) {
-  const cat = getCategoryInfo(card.category);
+function FallbackCard({ card, lang }: { card: OracleCard; lang: Lang }) {
+  const cat = getCategoryInfo(card.category, lang);
   const isRainbow = card.category === "common";
   const frameBg = isRainbow
     ? "linear-gradient(160deg, #fffaf3, #fdf4ea)"
@@ -154,7 +210,7 @@ function CardBack({ className = "" }: { className?: string }) {
 }
 
 /** シャッフル中の演出：3枚の山札が左右に抜き差しされる */
-function ShufflingDeck() {
+function ShufflingDeck({ label }: { label: string }) {
   return (
     <div className="rounded-3xl py-12 border border-card-border bg-card-bg shadow-sm text-center">
       <div className="relative h-32 flex items-center justify-center">
@@ -162,7 +218,7 @@ function ShufflingDeck() {
         <CardBack className="absolute w-20 h-28" />
         <CardBack className="absolute w-20 h-28 shuffle-right" />
       </div>
-      <p className="text-sm text-muted mt-2 sparkle">シャッフル中...</p>
+      <p className="text-sm text-muted mt-2 sparkle">{label}</p>
     </div>
   );
 }
@@ -180,6 +236,8 @@ function shuffleDeck(): OracleCard[] {
 }
 
 export default function OraclePage() {
+  const { lang } = useI18n();
+  const tt = L[lang];
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [draws, setDraws] = useState<OracleDraw[]>([]);
   const [drawn, setDrawn] = useState<OracleCard | null>(null);
@@ -231,26 +289,24 @@ export default function OraclePage() {
     <div className="space-y-6 pb-4">
       <header className="animate-fade-up text-center space-y-1 pt-2">
         <h1 className="font-mincho text-xl font-bold text-foreground">
-          🃏 オラクルカード
+          🃏 {tt.title}
         </h1>
-        <p className="text-xs text-muted">
-          シャッフルして、今のあなたに必要な1枚を選びましょう
-        </p>
+        <p className="text-xs text-muted">{tt.subtitle}</p>
       </header>
 
       {/* シャッフル → 好きな1枚を選ぶ */}
       <section className="animate-fade-up space-y-3" style={{ animationDelay: "0.05s" }}>
         {/* シャッフル中 */}
-        {phase === "shuffling" && <ShufflingDeck />}
+        {phase === "shuffling" && <ShufflingDeck label={tt.shuffling} />}
 
         {/* 選んでもらう（扇形に裏向きで並ぶ） */}
         {phase === "choosing" && (
           <div className="space-y-4">
             <p className="text-center font-mincho text-foreground">
-              まずは、好きなカードを1枚選んでください
+              {tt.pickPrompt}
               {profile?.name && (
                 <span className="block text-xs text-muted mt-1">
-                  {profile.name} さんの直感を信じて ✦
+                  {tt.trustIntuition.replace("{name}", profile.name)}
                 </span>
               )}
             </p>
@@ -263,7 +319,7 @@ export default function OraclePage() {
                   <button
                     key={i}
                     onClick={() => handlePick(i)}
-                    aria-label={`${i + 1}枚目のカードを選ぶ`}
+                    aria-label={tt.pickAria.replace("{n}", String(i + 1))}
                     className="origin-bottom transition-transform duration-200 hover:-translate-y-3 focus:-translate-y-3 focus:outline-none animate-fan-in"
                     style={{
                       transform: `rotate(${angle}deg)`,
@@ -276,9 +332,7 @@ export default function OraclePage() {
               })}
             </div>
 
-            <p className="text-center text-xs text-muted/70">
-              ピンと来た1枚をタップ
-            </p>
+            <p className="text-center text-xs text-muted/70">{tt.pickHint}</p>
           </div>
         )}
 
@@ -287,16 +341,16 @@ export default function OraclePage() {
           <div className="space-y-4">
             <div className="flex items-center justify-center gap-2 text-accent-gold text-sm">
               <span className="sparkle">✦</span>
-              <span>あなたが選んだカード</span>
+              <span>{tt.yourCard}</span>
             </div>
             <div className="animate-flip-in">
-              <CardFace card={drawn} />
+              <CardFace card={getCardById(drawn.id, lang) ?? drawn} lang={lang} />
             </div>
             <button
               onClick={startShuffle}
               className="w-full bg-accent-orange text-white rounded-full px-5 py-3 font-medium shadow-sm hover:bg-accent-light transition-colors"
             >
-              もう一度シャッフルして選ぶ
+              {tt.reshuffle}
             </button>
           </div>
         )}
@@ -305,15 +359,10 @@ export default function OraclePage() {
       {/* 使い方 */}
       <section className="bg-card-bg border border-card-border rounded-2xl p-4 shadow-sm">
         <p className="font-mincho text-accent-gold text-sm text-center mb-3">
-          オラクルカードの使い方
+          {tt.howTitle}
         </p>
         <ol className="space-y-2 text-xs text-foreground/80">
-          {[
-            ["心を落ち着ける", "深呼吸をして、今の自分に意識を向けます。"],
-            ["カードを引く", "直感で1枚を選びます。"],
-            ["メッセージを読む", "カードのメッセージを心で受け取ります。"],
-            ["行動のヒントにする", "今日の行動のヒントとして活かしましょう。"],
-          ].map(([title, desc], i) => (
+          {HOW_STEPS[lang].map(([title, desc], i) => (
             <li key={i} className="flex gap-2.5">
               <span className="flex-shrink-0 w-5 h-5 rounded-full bg-accent-orange/15 text-accent-orange text-[11px] flex items-center justify-center font-bold">
                 {i + 1}
@@ -332,13 +381,13 @@ export default function OraclePage() {
         <section className="space-y-2">
           <div className="flex items-center gap-2 text-accent-gold text-sm px-1">
             <span>📖</span>
-            <span>これまでに引いたカード</span>
+            <span>{tt.historyTitle}</span>
           </div>
           <div className="bg-card-bg border border-card-border rounded-2xl shadow-sm divide-y divide-card-border">
             {history.map((d) => {
-              const card = getCardById(d.cardId);
+              const card = getCardById(d.cardId, lang);
               if (!card) return null;
-              const cat = getCategoryInfo(card.category);
+              const cat = getCategoryInfo(card.category, lang);
               return (
                 <div
                   key={d.id}
@@ -357,7 +406,7 @@ export default function OraclePage() {
                     </span>
                   </div>
                   <span className="text-muted/70 text-xs whitespace-nowrap">
-                    {d.mode === "today" ? "今日の1枚 " : ""}
+                    {d.mode === "today" ? tt.todayBadge : ""}
                     {d.date.slice(5)}
                   </span>
                 </div>
@@ -369,13 +418,12 @@ export default function OraclePage() {
 
       {/* 免責 */}
       <p className="text-center text-xs text-muted/70 px-4 leading-relaxed">
-        このカードは未来を決めつけるものではなく、あなたの可能性を広げるための
-        メッセージです。自分の直感を信じて、自由に受け取ってください。
+        {tt.disclaimer}
       </p>
 
       <div className="text-center">
         <Link href="/" className="text-sm text-accent-orange hover:underline">
-          ← ホームに戻る
+          {tt.backHome}
         </Link>
       </div>
     </div>

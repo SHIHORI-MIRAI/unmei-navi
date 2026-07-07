@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useI18n } from "@/lib/i18n/provider";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import {
   loadProfile,
   loadProfiles,
@@ -24,6 +26,7 @@ function generateId(): string {
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [form, setForm] = useState<UserProfile>({
     id: "",
@@ -93,9 +96,7 @@ export default function ProfilePage() {
 
     const ok = saveProfile(toSave);
     if (!ok) {
-      setSaveError(
-        "保存に失敗しました。ブラウザの容量上限に達した可能性があります。下の「エクスポート」で現在のデータをバックアップしたあと、不要な鑑定結果（特に画像つき）を /readings から削除してから再度お試しください。"
-      );
+      setSaveError(t("profile.saveError.quota"));
       return;
     }
 
@@ -106,9 +107,7 @@ export default function ProfilePage() {
       readings: beforeSummary.readingCount,
     });
     if (!verified) {
-      setSaveError(
-        "保存処理は完了しましたが、再読込したらデータが反映されていませんでした。プライベートブラウズ／シークレットモードを使っていないかご確認ください。今すぐ「エクスポート」でバックアップを取ることをおすすめします。"
-      );
+      setSaveError(t("profile.saveError.notVerified"));
       return;
     }
 
@@ -129,10 +128,8 @@ export default function ProfilePage() {
 
   function handleDelete(profileId: string) {
     const target = profiles.find((p) => p.id === profileId);
-    const name = target?.name || "このプロフィール";
-    const ok = window.confirm(
-      `「${name}」を削除しますか？\n\n※ 削除したデータは元に戻せません。念のため「エクスポート」でバックアップしてからの削除をおすすめします。`
-    );
+    const name = target?.name || t("profile.delete.fallbackName");
+    const ok = window.confirm(t("profile.delete.confirm", { name }));
     if (!ok) return;
     deleteProfile(profileId);
     refreshProfiles();
@@ -210,8 +207,14 @@ export default function ProfilePage() {
     <div className="space-y-6">
       <h2 className="text-xl font-bold text-accent-orange flex items-center gap-2">
         <span className="text-accent-gold">✦</span>
-        プロフィール設定
+        {t("profile.title")}
       </h2>
+
+      {/* 言語選択（はじめの設定） */}
+      <section className="bg-card-bg border border-card-border rounded-2xl p-4 shadow-sm space-y-2.5">
+        <label className="block text-sm text-accent-gold">{t("lang.label")}</label>
+        <LanguageSwitcher variant="full" />
+      </section>
 
       {/* 保存状況バナー */}
       {profiles.length > 0 && (
@@ -230,17 +233,20 @@ export default function ProfilePage() {
               <p className={`font-medium ${needsBackup ? "text-amber-700" : "text-emerald-700"}`}>
                 {needsBackup
                   ? lastExport
-                    ? `バックアップ推奨：最後のエクスポートから${daysSinceExport}日経過`
-                    : "まだバックアップしていません"
-                  : `バックアップ済み（${daysSinceExport}日前）`}
+                    ? t("profile.backup.recommendedWithDate", { days: daysSinceExport ?? 0 })
+                    : t("profile.backup.notYet")
+                  : t("profile.backup.doneDaysAgo", { days: daysSinceExport ?? 0 })}
               </p>
               <p className="text-[11px] text-muted mt-1">
-                データは<strong>この端末のブラウザ内</strong>に保存されます。
-                別の端末では見えません。ブラウザのデータが消えると失われます。
-                定期的に下の「エクスポート」でバックアップしてください。
+                {t("profile.backup.storageNote")}
               </p>
               <p className="text-[11px] text-muted mt-1">
-                現在の保存数：プロフィール{summary.profileCount}件・日記{summary.diaryCount}件・ゴール{summary.goalCount}件・鑑定{summary.readingCount}件
+                {t("profile.backup.counts", {
+                  profiles: summary.profileCount,
+                  diary: summary.diaryCount,
+                  goals: summary.goalCount,
+                  readings: summary.readingCount,
+                })}
               </p>
               {(() => {
                 const pct = Math.round(usage.ratio * 100);
@@ -256,7 +262,7 @@ export default function ProfilePage() {
                 return (
                   <div className="mt-2">
                     <div className="flex items-center justify-between text-[11px] text-muted">
-                      <span>使用容量</span>
+                      <span>{t("profile.usage.label")}</span>
                       <span className={isWarn ? "text-amber-700 font-medium" : ""}>
                         {usedMB} MB / {limitMB} MB（{pct}%）
                       </span>
@@ -269,12 +275,12 @@ export default function ProfilePage() {
                     </div>
                     {isAlert && (
                       <p className="text-[11px] text-red-600 mt-1 leading-relaxed">
-                        ⚠ 容量がほぼ満杯です。新しい保存に失敗する可能性があります。エクスポート後に古い鑑定結果（画像つき）を削除してください。
+                        {t("profile.usage.alert")}
                       </p>
                     )}
                     {!isAlert && isWarn && (
                       <p className="text-[11px] text-amber-700 mt-1 leading-relaxed">
-                        容量が80%を超えました。早めにエクスポートして、不要なデータの整理をおすすめします。
+                        {t("profile.usage.warn")}
                       </p>
                     )}
                   </div>
@@ -291,22 +297,22 @@ export default function ProfilePage() {
           <div className="flex items-start gap-2">
             <span className="text-sky-500">ℹ</span>
             <div className="flex-1 text-xs leading-relaxed">
-              <p className="font-medium text-sky-700">別の画面でデータが更新されました</p>
+              <p className="font-medium text-sky-700">{t("profile.external.title")}</p>
               <p className="text-[11px] text-foreground/80 mt-1">
-                別のタブやスマホでこのアプリを開いて編集した可能性があります。このまま保存すると、そちらの変更を上書きしてしまいます。一度ページを再読込して最新の状態を確認してください。
+                {t("profile.external.body")}
               </p>
               <div className="flex gap-3 mt-2">
                 <button
                   onClick={() => location.reload()}
                   className="text-[11px] bg-sky-600 text-white px-3 py-1 rounded-full hover:bg-sky-700 transition-colors"
                 >
-                  再読込する
+                  {t("profile.external.reload")}
                 </button>
                 <button
                   onClick={() => setExternalChange(false)}
                   className="text-[11px] text-sky-700 underline"
                 >
-                  あとで
+                  {t("profile.external.later")}
                 </button>
               </div>
             </div>
@@ -320,13 +326,13 @@ export default function ProfilePage() {
           <div className="flex items-start gap-2">
             <span className="text-red-500">⚠</span>
             <div className="flex-1 text-xs leading-relaxed">
-              <p className="font-medium text-red-700">保存できませんでした</p>
+              <p className="font-medium text-red-700">{t("profile.saveError.title")}</p>
               <p className="text-[11px] text-foreground/80 mt-1">{saveError}</p>
               <button
                 onClick={() => setSaveError("")}
                 className="mt-2 text-[11px] text-red-700 underline"
               >
-                閉じる
+                {t("common.close")}
               </button>
             </div>
           </div>
@@ -338,13 +344,13 @@ export default function ProfilePage() {
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-medium text-accent-gold flex items-center gap-1.5">
-              <span>◈</span> 登録済みの人
+              <span>◈</span> {t("profile.list.registered")}
             </h3>
             <button
               onClick={handleAddNew}
               className="text-xs bg-accent-orange text-white px-3 py-1.5 rounded-full hover:bg-accent-orange/90 transition-colors"
             >
-              + 追加
+              {t("profile.list.add")}
             </button>
           </div>
 
@@ -363,18 +369,18 @@ export default function ProfilePage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-medium text-foreground truncate">
-                        {p.name || "名前未設定"}
+                        {p.name || t("profile.name.unset")}
                       </p>
                       {(() => {
                         const cat = p.category ?? "self";
                         const badge =
                           cat === "self"
-                            ? { label: "自分", cls: "bg-accent-gold/15 text-accent-gold" }
+                            ? { label: t("profile.badge.self"), cls: "bg-accent-gold/15 text-accent-gold" }
                             : cat === "family"
-                            ? { label: "家族", cls: "bg-emerald-100 text-emerald-700" }
+                            ? { label: t("profile.badge.family"), cls: "bg-emerald-100 text-emerald-700" }
                             : cat === "client"
-                            ? { label: "顧客", cls: "bg-rose-100 text-rose-700" }
-                            : { label: "受講生", cls: "bg-sky-100 text-sky-700" };
+                            ? { label: t("profile.badge.client"), cls: "bg-rose-100 text-rose-700" }
+                            : { label: t("profile.badge.student"), cls: "bg-sky-100 text-sky-700" };
                         return (
                           <span
                             className={`text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0 ${badge.cls}`}
@@ -385,7 +391,7 @@ export default function ProfilePage() {
                       })()}
                       {isActive && (
                         <span className="text-[10px] bg-accent-orange/20 text-accent-orange px-1.5 py-0.5 rounded-full flex-shrink-0">
-                          表示中
+                          {t("profile.badge.showing")}
                         </span>
                       )}
                     </div>
@@ -401,22 +407,22 @@ export default function ProfilePage() {
                         onClick={() => handleSwitch(p.id)}
                         className="text-xs bg-accent-orange/10 text-accent-orange px-3 py-2 rounded-lg hover:bg-accent-orange/20 transition-colors"
                       >
-                        切替
+                        {t("profile.btn.switch")}
                       </button>
                     )}
                     <button
                       onClick={() => handleEditProfile(p)}
                       className="text-xs bg-background border border-card-border text-foreground px-3 py-2 rounded-lg hover:border-accent-orange/50 transition-colors"
                     >
-                      編集
+                      {t("common.edit")}
                     </button>
                     {profiles.length > 1 && (
                       <button
                         onClick={() => handleDelete(p.id)}
-                        aria-label={`${p.name || "このプロフィール"}を削除`}
+                        aria-label={`${p.name || t("profile.delete.fallbackName")} ${t("common.delete")}`}
                         className="text-[11px] text-muted/70 border border-transparent hover:text-red-600 hover:border-red-200 hover:bg-red-50 px-2.5 py-2 rounded-lg transition-colors ml-1"
                       >
-                        削除
+                        {t("common.delete")}
                       </button>
                     )}
                   </div>
@@ -431,13 +437,13 @@ export default function ProfilePage() {
       {profiles.length === 0 && !isEditing && (
         <div className="bg-card-bg border border-card-border rounded-2xl p-6 shadow-sm text-center space-y-3">
           <p className="text-sm text-muted">
-            まずはプロフィールを設定して、占い結果を受け取りましょう
+            {t("profile.empty.prompt")}
           </p>
           <button
             onClick={handleAddNew}
             className="bg-accent-orange text-white px-6 py-2.5 rounded-full text-sm font-medium hover:bg-accent-orange/90 transition-colors"
           >
-            プロフィールを設定する
+            {t("profile.empty.cta")}
           </button>
         </div>
       )}
@@ -448,7 +454,7 @@ export default function ProfilePage() {
           {profiles.length > 0 && (
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted">
-                {form.id ? "プロフィールを編集" : "新しい人を追加"}
+                {form.id ? t("profile.form.editing") : t("profile.form.addNew")}
               </p>
               <button
                 onClick={() => {
@@ -463,7 +469,7 @@ export default function ProfilePage() {
                 }}
                 className="text-xs text-muted hover:text-foreground"
               >
-                キャンセル
+                {t("common.cancel")}
               </button>
             </div>
           )}
@@ -472,15 +478,15 @@ export default function ProfilePage() {
             {/* 種別 */}
             <div className="space-y-2">
               <label className="block text-sm text-accent-gold">
-                種別
+                {t("profile.form.categoryLabel")}
               </label>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {(
                   [
-                    { value: "self", label: "自分" },
-                    { value: "family", label: "家族" },
-                    { value: "student", label: "受講生" },
-                    { value: "client", label: "顧客" },
+                    { value: "self", labelKey: "profile.badge.self" },
+                    { value: "family", labelKey: "profile.badge.family" },
+                    { value: "student", labelKey: "profile.badge.student" },
+                    { value: "client", labelKey: "profile.badge.client" },
                   ] as const
                 ).map((opt) => {
                   const active = (form.category ?? "self") === opt.value;
@@ -501,27 +507,27 @@ export default function ProfilePage() {
                         onChange={handleChange}
                         className="hidden"
                       />
-                      {opt.label}
+                      {t(opt.labelKey)}
                     </label>
                   );
                 })}
               </div>
               <p className="text-xs text-muted">
-                「受講生」「顧客」のいずれかを選ぶと <a href="/students" className="text-accent-orange underline">対象者一覧</a> に表示され、伴走アドバイスが見られます
+                {t("profile.form.categoryNote")}
               </p>
             </div>
 
             {/* 性別（任意） */}
             <div className="space-y-2">
               <label className="block text-sm text-accent-gold">
-                性別（相性マトリックスで使用、任意）
+                {t("profile.form.genderLabel")}
               </label>
               <div className="grid grid-cols-3 gap-2">
                 {(
                   [
-                    { value: "female", label: "女性" },
-                    { value: "male", label: "男性" },
-                    { value: "other", label: "未設定" },
+                    { value: "female", labelKey: "profile.gender.female" },
+                    { value: "male", labelKey: "profile.gender.male" },
+                    { value: "other", labelKey: "profile.gender.other" },
                   ] as const
                 ).map((opt) => {
                   const current = form.gender ?? "other";
@@ -543,7 +549,7 @@ export default function ProfilePage() {
                         onChange={handleChange}
                         className="hidden"
                       />
-                      {opt.label}
+                      {t(opt.labelKey)}
                     </label>
                   );
                 })}
@@ -553,14 +559,14 @@ export default function ProfilePage() {
             {/* 名前 */}
             <div className="space-y-2">
               <label className="block text-sm text-accent-gold">
-                お名前（ニックネームでもOK）
+                {t("profile.form.nameLabel")}
               </label>
               <input
                 type="text"
                 name="name"
                 value={form.name}
                 onChange={handleChange}
-                placeholder="例：はなこ"
+                placeholder={t("profile.form.namePlaceholder")}
                 className="w-full bg-card-bg border border-card-border rounded-xl px-4 py-3 text-foreground placeholder:text-muted/50 focus:outline-none focus:border-accent-orange transition-colors"
               />
             </div>
@@ -568,7 +574,7 @@ export default function ProfilePage() {
             {/* 生年月日 */}
             <div className="space-y-2">
               <label className="block text-sm text-accent-gold">
-                生年月日 <span className="text-danger">*必須</span>
+                {t("profile.form.birthDateLabel")} <span className="text-danger">{t("profile.form.required")}</span>
               </label>
               <input
                 type="date"
@@ -583,7 +589,7 @@ export default function ProfilePage() {
             {/* 出生時間 */}
             <div className="space-y-2">
               <label className="block text-sm text-accent-gold">
-                出生時間（わかれば）
+                {t("profile.form.birthTimeLabel")}
               </label>
               <input
                 type="time"
@@ -593,23 +599,21 @@ export default function ProfilePage() {
                 className="w-full bg-card-bg border border-card-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-accent-orange transition-colors"
               />
               <p className="text-xs text-muted leading-relaxed">
-                四柱推命の時柱と、アストロマップ（星が輝く土地）の精度に影響します。
-                母子手帳・出生届の控えに記載があることが多いです。
-                わからない場合は空欄でOK（アストロマップの地図は非表示になります）。
+                {t("profile.form.birthTimeNote")}
               </p>
             </div>
 
             {/* 出生地 */}
             <div className="space-y-2">
               <label className="block text-sm text-accent-gold">
-                出生地（わかれば）
+                {t("profile.form.birthPlaceLabel")}
               </label>
               <input
                 type="text"
                 name="birthPlace"
                 value={form.birthPlace}
                 onChange={handleChange}
-                placeholder="例：東京都"
+                placeholder={t("profile.form.birthPlacePlaceholder")}
                 className="w-full bg-card-bg border border-card-border rounded-xl px-4 py-3 text-foreground placeholder:text-muted/50 focus:outline-none focus:border-accent-orange transition-colors"
               />
             </div>
@@ -618,18 +622,18 @@ export default function ProfilePage() {
             {(form.category ?? "self") === "student" && (
               <div className="space-y-2">
                 <label className="block text-sm text-accent-gold">
-                  受講生メモ
+                  {t("profile.form.studentMemoLabel")}
                 </label>
                 <textarea
                   name="note"
                   value={form.note ?? ""}
                   onChange={handleChange}
                   rows={4}
-                  placeholder="例：1月入講、月3回個別セッション、ゴールは独立開業"
+                  placeholder={t("profile.form.studentMemoPlaceholder")}
                   className="w-full bg-card-bg border border-card-border rounded-xl px-4 py-3 text-foreground placeholder:text-muted/50 focus:outline-none focus:border-accent-orange transition-colors resize-y"
                 />
                 <p className="text-xs text-muted">
-                  進捗・面談メモなど、伴走に必要な情報を残せます
+                  {t("profile.form.studentMemoNote")}
                 </p>
               </div>
             )}
@@ -640,7 +644,7 @@ export default function ProfilePage() {
               className="w-full py-3 bg-accent-orange text-white rounded-full font-medium hover:bg-accent-light transition-colors disabled:opacity-50"
               disabled={!form.birthDate}
             >
-              {saved ? "✓ 保存しました！" : form.id ? "更新してホームへ" : "保存してホームへ"}
+              {saved ? t("profile.form.saved") : form.id ? t("profile.form.update") : t("profile.form.save")}
             </button>
           </form>
         </>
@@ -649,10 +653,10 @@ export default function ProfilePage() {
       {/* データ管理 */}
       <section className="border-t border-card-border pt-6 space-y-4">
         <h3 className="text-sm font-medium text-accent-gold flex items-center gap-1.5">
-          <span>◈</span> データ管理
+          <span>◈</span> {t("profile.data.title")}
         </h3>
         <p className="text-xs text-muted">
-          全てのプロフィール・日記・ゴール・鑑定結果をJSONファイルでバックアップ・復元できます。
+          {t("profile.data.desc")}
         </p>
 
         <div className="flex gap-3">
@@ -660,24 +664,24 @@ export default function ProfilePage() {
             onClick={handleExport}
             className="flex-1 py-2.5 bg-card-bg border border-card-border rounded-xl text-sm font-medium text-foreground hover:border-accent-orange/50 transition-colors"
           >
-            エクスポート
+            {t("profile.data.export")}
           </button>
           <button
             onClick={() => fileInputRef.current?.click()}
             className="flex-1 py-2.5 bg-card-bg border border-card-border rounded-xl text-sm font-medium text-foreground hover:border-accent-orange/50 transition-colors"
           >
-            インポート
+            {t("profile.data.import")}
           </button>
         </div>
 
         {importStatus === "success" && (
           <p className="text-xs text-accent-gold text-center">
-            データを復元しました
+            {t("profile.data.importSuccess")}
           </p>
         )}
         {importStatus === "error" && (
           <p className="text-xs text-danger text-center">
-            ファイルの読み込みに失敗しました
+            {t("profile.data.importError")}
           </p>
         )}
 
@@ -690,7 +694,7 @@ export default function ProfilePage() {
         />
 
         <p className="text-[10px] text-muted/60">
-          インポートすると現在のデータは上書きされます。事前にエクスポートしておくことをおすすめします。
+          {t("profile.data.importNote")}
         </p>
       </section>
 
@@ -700,14 +704,14 @@ export default function ProfilePage() {
           href="/terms"
           className="text-muted underline hover:text-accent-orange"
         >
-          利用規約
+          {t("profile.terms")}
         </a>
         <span className="text-muted/40">/</span>
         <a
           href="/privacy"
           className="text-muted underline hover:text-accent-orange"
         >
-          プライバシーポリシー
+          {t("profile.privacy")}
         </a>
       </section>
     </div>

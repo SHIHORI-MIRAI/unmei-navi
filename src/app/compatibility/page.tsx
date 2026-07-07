@@ -13,10 +13,71 @@ import {
 import {
   calcCompatibility,
   MODE_LABELS,
+  modeLabel,
   type RelationMode,
 } from "@/lib/divination/compatibility";
+import { useI18n } from "@/lib/i18n/provider";
+import type { Lang } from "@/lib/i18n/dict";
 
 type PartnerSource = "profile" | "manual";
+
+/** この画面固有の文言（二言語）。dict.ts は編集禁止のためローカルで保持する。 */
+const L: Record<Lang, Record<string, string>> = {
+  ja: {
+    title: "相性診断",
+    self: "自分",
+    partner: "相手",
+    choosePartner: "相手を選ぶ",
+    fromRegistered: "📋 登録済みから選ぶ",
+    inputNew: "✎ 新しい人を入力",
+    selectPlaceholder: "-- 選択してください --",
+    registerProfileLink: "+ 新しい人をプロフィール登録する",
+    namePlaceholder: "お名前（必須なら保存可能）",
+    saveToRegistered: "★ この人を「登録済み」に保存する（次回も使える）",
+    notSavedNote: "※ 保存しない場合、この入力内容は画面を閉じると消えます",
+    emptyPrompt: "相手の情報を選択・入力してください",
+    partnerDefaultName: "お相手",
+    overallLabel: "総合相性",
+    strengthTitle: "◈ この関係の強み",
+    cautionTitle: "◈ 意識したいポイント",
+    byDivination: "占術別の相性",
+    disclaimer: "※ 占いは参考情報です。人間関係の判断はご自身の実感を大切にしてください。",
+    numerology: "数秘術",
+    mayan: "マヤ暦",
+    nineStar: "九星気学",
+    fourPillars: "四柱推命",
+    msgNeedInput: "名前と生年月日を入力してください",
+    msgAlready: "さんは既に登録済みです",
+    msgSaved: "さんを登録しました",
+  },
+  ko: {
+    title: "궁합 진단",
+    self: "나",
+    partner: "상대",
+    choosePartner: "상대를 선택",
+    fromRegistered: "📋 등록된 사람에서 선택",
+    inputNew: "✎ 새로운 사람 입력",
+    selectPlaceholder: "-- 선택해 주세요 --",
+    registerProfileLink: "+ 새로운 사람을 프로필로 등록하기",
+    namePlaceholder: "이름 (입력하면 저장 가능)",
+    saveToRegistered: "★ 이 사람을 「등록됨」으로 저장하기 (다음에도 사용 가능)",
+    notSavedNote: "※ 저장하지 않으면 입력한 내용은 화면을 닫으면 사라집니다",
+    emptyPrompt: "상대의 정보를 선택하거나 입력해 주세요",
+    partnerDefaultName: "상대방",
+    overallLabel: "종합 궁합",
+    strengthTitle: "◈ 이 관계의 강점",
+    cautionTitle: "◈ 의식하면 좋은 포인트",
+    byDivination: "점술별 궁합",
+    disclaimer: "※ 점술은 참고 정보입니다. 인간관계의 판단은 자신의 실감을 소중히 여겨 주세요.",
+    numerology: "수비학",
+    mayan: "마야력",
+    nineStar: "구성기학",
+    fourPillars: "사주",
+    msgNeedInput: "이름과 생년월일을 입력해 주세요",
+    msgAlready: "님은 이미 등록되어 있습니다",
+    msgSaved: "님을 등록했습니다",
+  },
+};
 
 function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -24,6 +85,8 @@ function generateId(): string {
 
 export default function CompatibilityPage() {
   const router = useRouter();
+  const { t, lang } = useI18n();
+  const tx = L[lang];
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [profileAId, setProfileAId] = useState<string>("");
   const [profileBId, setProfileBId] = useState<string>("");
@@ -53,7 +116,7 @@ export default function CompatibilityPage() {
 
   function handleSaveManualToProfiles() {
     if (!manualBirthDate || !manualName.trim()) {
-      setSavedMessage("名前と生年月日を入力してください");
+      setSavedMessage(tx.msgNeedInput);
       return;
     }
     // 重複チェック（名前+生年月日）
@@ -61,7 +124,7 @@ export default function CompatibilityPage() {
       (p) => p.name === manualName.trim() && p.birthDate === manualBirthDate
     );
     if (exists) {
-      setSavedMessage(`${manualName} さんは既に登録済みです`);
+      setSavedMessage(`${manualName} ${tx.msgAlready}`);
       setPartnerSource("profile");
       setProfileBId(exists.id);
       return;
@@ -79,7 +142,7 @@ export default function CompatibilityPage() {
       switchProfile(profileAId);
     }
     setProfiles(loadProfiles());
-    setSavedMessage(`${newProfile.name} さんを登録しました`);
+    setSavedMessage(`${newProfile.name} ${tx.msgSaved}`);
     setPartnerSource("profile");
     setProfileBId(newProfile.id);
     setManualName("");
@@ -97,30 +160,30 @@ export default function CompatibilityPage() {
     if (manualBirthDate) {
       return {
         id: "manual",
-        name: manualName || "お相手",
+        name: manualName || tx.partnerDefaultName,
         birthDate: manualBirthDate,
         birthTime: "",
         birthPlace: "",
       } as UserProfile;
     }
     return null;
-  }, [partnerSource, profiles, profileBId, manualName, manualBirthDate]);
+  }, [partnerSource, profiles, profileBId, manualName, manualBirthDate, tx]);
 
   const result = useMemo(() => {
     if (!profileA || !profileB) return null;
     if (profileA.id === profileB.id && partnerSource === "profile") return null;
-    return calcCompatibility(profileA.birthDate, profileB.birthDate, mode);
-  }, [profileA, profileB, mode, partnerSource]);
+    return calcCompatibility(profileA.birthDate, profileB.birthDate, mode, lang);
+  }, [profileA, profileB, mode, partnerSource, lang]);
 
   if (profiles.length === 0) {
-    return <p className="text-muted text-center py-10">読み込み中...</p>;
+    return <p className="text-muted text-center py-10">{t("astro.loading")}</p>;
   }
 
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-bold text-accent-orange flex items-center gap-2">
         <span className="text-accent-gold">♡</span>
-        相性診断
+        {tx.title}
       </h2>
 
       {/* モード選択 */}
@@ -135,14 +198,14 @@ export default function CompatibilityPage() {
                 : "bg-card-bg border-card-border text-muted hover:text-accent-orange"
             }`}
           >
-            {MODE_LABELS[m]}
+            {modeLabel(m, lang)}
           </button>
         ))}
       </div>
 
       {/* 自分（A）の選択 */}
       <div className="bg-card-bg border border-card-border rounded-2xl p-4 shadow-sm space-y-2">
-        <label className="text-xs font-medium text-muted">自分</label>
+        <label className="text-xs font-medium text-muted">{tx.self}</label>
         <select
           value={profileAId}
           onChange={(e) => setProfileAId(e.target.value)}
@@ -158,7 +221,7 @@ export default function CompatibilityPage() {
 
       {/* 相手（B）の選択 */}
       <div className="bg-card-bg border border-card-border rounded-2xl p-4 shadow-sm space-y-3">
-        <label className="text-xs font-medium text-muted">相手を選ぶ</label>
+        <label className="text-xs font-medium text-muted">{tx.choosePartner}</label>
 
         {/* 大きなタブ */}
         <div className="grid grid-cols-2 gap-1.5 bg-background rounded-xl p-1">
@@ -170,7 +233,7 @@ export default function CompatibilityPage() {
                 : "text-muted hover:text-accent-orange"
             }`}
           >
-            📋 登録済みから選ぶ
+            {tx.fromRegistered}
           </button>
           <button
             onClick={() => setPartnerSource("manual")}
@@ -180,7 +243,7 @@ export default function CompatibilityPage() {
                 : "text-muted hover:text-accent-orange"
             }`}
           >
-            ✎ 新しい人を入力
+            {tx.inputNew}
           </button>
         </div>
 
@@ -191,7 +254,7 @@ export default function CompatibilityPage() {
               onChange={(e) => setProfileBId(e.target.value)}
               className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-sm text-foreground"
             >
-              <option value="">-- 選択してください --</option>
+              <option value="">{tx.selectPlaceholder}</option>
               {profiles
                 .filter((p) => p.id !== profileAId)
                 .map((p) => (
@@ -204,7 +267,7 @@ export default function CompatibilityPage() {
               href="/profile"
               className="inline-block text-[11px] text-accent-gold hover:text-accent-orange"
             >
-              + 新しい人をプロフィール登録する
+              {tx.registerProfileLink}
             </Link>
           </div>
         ) : (
@@ -213,7 +276,7 @@ export default function CompatibilityPage() {
               type="text"
               value={manualName}
               onChange={(e) => setManualName(e.target.value)}
-              placeholder="お名前（必須なら保存可能）"
+              placeholder={tx.namePlaceholder}
               className="w-full bg-background border border-card-border rounded-lg px-3 py-2 text-sm"
             />
             <input
@@ -227,13 +290,13 @@ export default function CompatibilityPage() {
               disabled={!manualName.trim() || !manualBirthDate}
               className="w-full py-2 bg-accent-gold/20 border border-accent-gold/40 text-accent-gold hover:bg-accent-gold/30 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-medium rounded-lg transition-colors"
             >
-              ★ この人を「登録済み」に保存する（次回も使える）
+              {tx.saveToRegistered}
             </button>
             {savedMessage && (
               <p className="text-[11px] text-accent-orange">{savedMessage}</p>
             )}
             <p className="text-[10px] text-muted/80 leading-relaxed">
-              ※ 保存しない場合、この入力内容は画面を閉じると消えます
+              {tx.notSavedNote}
             </p>
           </div>
         )}
@@ -241,7 +304,7 @@ export default function CompatibilityPage() {
 
       {!result && (
         <div className="bg-card-bg border border-dashed border-card-border rounded-2xl p-6 text-center">
-          <p className="text-sm text-muted">相手の情報を選択・入力してください</p>
+          <p className="text-sm text-muted">{tx.emptyPrompt}</p>
         </div>
       )}
 
@@ -250,12 +313,12 @@ export default function CompatibilityPage() {
           {/* 2人のサマリー */}
           <div className="flex items-center justify-center gap-2 bg-card-bg border border-card-border rounded-2xl p-3 shadow-sm">
             <div className="text-center flex-1">
-              <div className="text-xs text-muted">自分</div>
+              <div className="text-xs text-muted">{tx.self}</div>
               <div className="text-sm font-medium text-foreground truncate">{profileA.name}</div>
             </div>
             <div className="text-accent-orange text-xl">♡</div>
             <div className="text-center flex-1">
-              <div className="text-xs text-muted">相手</div>
+              <div className="text-xs text-muted">{tx.partner}</div>
               <div className="text-sm font-medium text-foreground truncate">{profileB.name}</div>
             </div>
           </div>
@@ -264,7 +327,7 @@ export default function CompatibilityPage() {
           <div className="bg-card-bg border border-card-border rounded-2xl p-4 shadow-sm">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-foreground">
-                総合相性（{MODE_LABELS[mode]}）
+                {tx.overallLabel}（{modeLabel(mode, lang)}）
               </span>
               <span className="text-3xl font-bold text-accent-orange">
                 {result.overall}
@@ -291,11 +354,11 @@ export default function CompatibilityPage() {
           {/* 強みと注意 */}
           <div className="grid grid-cols-1 gap-2">
             <div className="bg-accent-orange/10 border border-accent-orange/30 rounded-2xl p-3">
-              <p className="text-[10px] text-accent-orange font-bold">◈ この関係の強み</p>
+              <p className="text-[10px] text-accent-orange font-bold">{tx.strengthTitle}</p>
               <p className="text-xs text-foreground/80 mt-1">{result.strength}</p>
             </div>
             <div className="bg-muted/10 border border-card-border rounded-2xl p-3">
-              <p className="text-[10px] text-muted font-bold">◈ 意識したいポイント</p>
+              <p className="text-[10px] text-muted font-bold">{tx.cautionTitle}</p>
               <p className="text-xs text-foreground/80 mt-1">{result.caution}</p>
             </div>
           </div>
@@ -303,18 +366,18 @@ export default function CompatibilityPage() {
           {/* 占術別 */}
           <div className="space-y-2">
             <h3 className="text-sm font-medium text-accent-gold flex items-center gap-1.5">
-              <span>◈</span> 占術別の相性
+              <span>◈</span> {tx.byDivination}
             </h3>
-            <DimensionCard title="数秘術" color="#8b5cf6" data={result.numerology} />
-            <DimensionCard title="マヤ暦" color="#e11d48" data={result.mayan} />
-            <DimensionCard title="九星気学" color="#10b981" data={result.nineStar} />
-            <DimensionCard title="四柱推命" color="#06b6d4" data={result.fourPillars} />
+            <DimensionCard title={tx.numerology} color="#8b5cf6" data={result.numerology} />
+            <DimensionCard title={tx.mayan} color="#e11d48" data={result.mayan} />
+            <DimensionCard title={tx.nineStar} color="#10b981" data={result.nineStar} />
+            <DimensionCard title={tx.fourPillars} color="#06b6d4" data={result.fourPillars} />
           </div>
         </div>
       )}
 
       <p className="text-center text-xs text-muted/60 px-4">
-        ※ 占いは参考情報です。人間関係の判断はご自身の実感を大切にしてください。
+        {tx.disclaimer}
       </p>
     </div>
   );

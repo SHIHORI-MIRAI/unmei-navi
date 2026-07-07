@@ -4,9 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { loadProfile } from "@/lib/storage";
+import { useI18n } from "@/lib/i18n/provider";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 export default function Header() {
   const pathname = usePathname();
+  const { t } = useI18n();
   const [name, setName] = useState("");
 
   useEffect(() => {
@@ -46,12 +49,13 @@ export default function Header() {
             </span>
           </span>
         </Link>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          <LanguageSwitcher />
           <Link
             href="/students"
             className="text-muted hover:text-accent-gold transition-colors text-xs"
           >
-            対象者
+            {t("header.targets")}
           </Link>
           <Link
             href="/profile"
@@ -62,7 +66,7 @@ export default function Header() {
                 {name}
               </span>
             )}
-            設定
+            {t("header.settings")}
           </Link>
         </div>
       </div>

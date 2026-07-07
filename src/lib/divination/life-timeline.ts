@@ -17,6 +17,8 @@ import {
   getLifePathMeaning,
 } from "./numerology";
 import { calcNineStar } from "./nine-star";
+import type { Lang } from "@/lib/i18n/dict";
+import { directionName } from "@/lib/i18n/fortune-terms";
 
 /** 年齢で（ほぼ誰にでも）訪れる占星術の節目 */
 export interface AgeMilestone {
@@ -57,26 +59,51 @@ const AGE_MILESTONES: { range: [number, number]; m: AgeMilestone }[] = [
   { range: [58, 60], m: { key: "sat2", label: "土星回帰②", emoji: "🪐", theme: "集大成・第二の人生を設計する節目" } },
 ];
 
+/** 年齢マイルストーンの韓国語版（key で対応） */
+const AGE_MILESTONES_KO: Record<string, { label: string; theme: string }> = {
+  jup1: { label: "목성 회귀①", theme: "세계가 넓어지기 시작하고 흥미가 싹트는 시기" },
+  "sat-opp1": { label: "토성 오포지션", theme: "자신의 의지가 싹트고 자립으로 흔들리는 시기" },
+  jup2: { label: "목성 회귀②", theme: "세계가 한 단계 더 넓어지는·기회가 다시 찾아오는 시기" },
+  sat1: { label: "토성 회귀①", theme: "인생의 재구축·「진짜 나의 선택」을 하는 전환점" },
+  jup3: { label: "목성 회귀③", theme: "확대와 비약·실력이 형태를 갖추기 시작하는 시기" },
+  "ura-opp": { label: "천왕성 오포지션", theme: "미드라이프의 변혁·진짜 자신으로 돌아가는 시기" },
+  "sat-opp2": { label: "인생의 중간점", theme: "지금까지를 재검토하고 궤도를 조정하는 재평가의 시기" },
+  jup4: { label: "목성 회귀④", theme: "결실과 새로운 전개·시야가 성숙해지는 시기" },
+  chiron: { label: "카이런 회귀", theme: "깊은 치유와, 경험을 남에게 돌려주는 사명이 보이기 시작하는 시기" },
+  sat2: { label: "토성 회귀②", theme: "집대성·제2의 인생을 설계하는 전환점" },
+};
+
 /** 年齢からマイルストーン（複数可）を返す */
-export function getAgeMilestones(age: number): AgeMilestone[] {
+export function getAgeMilestones(age: number, lang: Lang = "ja"): AgeMilestone[] {
   return AGE_MILESTONES.filter(
     ({ range }) => age >= range[0] && age <= range[1]
-  ).map(({ m }) => m);
+  ).map(({ m }) => {
+    if (lang === "ko") {
+      const ko = AGE_MILESTONES_KO[m.key];
+      if (ko) return { ...m, label: ko.label, theme: ko.theme };
+    }
+    return m;
+  });
 }
 
 /** 出来事の年に、その時期の運気＋星の節目を重ねる */
-export function getLifePeriod(birthDate: string, year: number): LifePeriod {
+export function getLifePeriod(
+  birthDate: string,
+  year: number,
+  lang: Lang = "ja"
+): LifePeriod {
   const birthYear = Number(birthDate.split("-")[0]) || year;
   const age = year - birthYear;
 
   const py = calcPersonalYear(birthDate, year);
-  const pyMeaning = getPersonalYearMeaning(py);
+  const pyMeaning = getPersonalYearMeaning(py, lang);
 
   let nineStarDirection = "";
   let nineStarEnergy = 50;
   try {
-    const nine = calcNineStar(birthDate, year);
-    nineStarDirection = nine.yearPosition?.direction || "";
+    const nine = calcNineStar(birthDate, year, lang);
+    const dir = nine.yearPosition?.direction || "";
+    nineStarDirection = dir && lang === "ko" ? directionName(dir, lang) : dir;
     nineStarEnergy = nine.yearPosition?.energy ?? 50;
   } catch {
     // 九星が計算できない年（範囲外など）は無視
@@ -91,7 +118,7 @@ export function getLifePeriod(birthDate: string, year: number): LifePeriod {
     energy: getYearWave(py),
     nineStarDirection,
     nineStarEnergy,
-    milestones: getAgeMilestones(age),
+    milestones: getAgeMilestones(age, lang),
   };
 }
 
@@ -117,6 +144,24 @@ export const CYCLE_LABELS: Record<number, { label: string; hint: string }> = {
   8: { label: "実り", hint: "成果・達成・お金・勝負所" },
   9: { label: "手放し", hint: "完成・手放す・次の種まき・振り返り" },
 };
+
+/** 各サイクル年（1〜9）の韓国語版ラベルとヒント */
+export const CYCLE_LABELS_KO: Record<number, { label: string; hint: string }> = {
+  1: { label: "시작", hint: "새로운 장소·세계로 뛰어들기·큰 출발" },
+  2: { label: "협력", hint: "사람과의 인연을 키우기·동료 만들기·차분히" },
+  3: { label: "표현", hint: "발신·창조·즐기기·만들어내기" },
+  4: { label: "토대", hint: "기반을 다지기·꾸준히·배움에 투자" },
+  5: { label: "변화", hint: "새로운 경험·도전·움직이기·자유" },
+  6: { label: "사랑", hint: "가족·소중한 사람·책임·연결" },
+  7: { label: "배움", hint: "성찰·전문을 깊이기·혼자만의 시간" },
+  8: { label: "결실", hint: "성과·달성·돈·승부처" },
+  9: { label: "내려놓음", hint: "완성·내려놓기·다음 씨앗 뿌리기·되돌아보기" },
+};
+
+/** サイクルラベルを言語に応じて返す */
+function cycleLabelOf(n: number, lang: Lang): { label: string; hint: string } {
+  return (lang === "ko" ? CYCLE_LABELS_KO : CYCLE_LABELS)[n];
+}
 
 export interface YearCycleEvent {
   year: number;
@@ -154,14 +199,15 @@ export interface YearCycle {
 export function buildYearCycle(
   birthDate: string,
   events: { year: number; title: string }[],
-  currentYear: number
+  currentYear: number,
+  lang: Lang = "ja"
 ): YearCycle {
   const birthYear = Number(birthDate.split("-")[0]) || currentYear;
 
   const slots: YearCycleSlot[] = [];
   const byNum = new Map<number, YearCycleSlot>();
   for (let n = 1; n <= 9; n++) {
-    const slot: YearCycleSlot = { number: n, ...CYCLE_LABELS[n], events: [] };
+    const slot: YearCycleSlot = { number: n, ...cycleLabelOf(n, lang), events: [] };
     slots.push(slot);
     byNum.set(n, slot);
   }
@@ -253,7 +299,8 @@ function cycleStartYear(birthDate: string, year: number): number {
 export function buildCycleMatrix(
   birthDate: string,
   events: { year: number; title: string }[],
-  currentYear: number
+  currentYear: number,
+  lang: Lang = "ja"
 ): CycleMatrix {
   const birthYear = Number(birthDate.split("-")[0]) || currentYear;
 
@@ -309,10 +356,11 @@ export function buildCycleMatrix(
     evs.sort((a, b) => a.year - b.year);
     const confidence: CycleConfidence =
       cyclesWith >= 3 ? "clear" : cyclesWith === 2 ? "soft" : "thin";
+    const cl = cycleLabelOf(p, lang);
     columns.push({
       position: p,
-      label: CYCLE_LABELS[p].label,
-      hint: CYCLE_LABELS[p].hint,
+      label: cl.label,
+      hint: cl.hint,
       events: evs,
       cyclesWithEvents: cyclesWith,
       confidence,
@@ -359,11 +407,12 @@ export interface LifePatternInsight {
  */
 export function analyzeLifePatterns(
   events: LifeEventLike[],
-  birthDate: string
+  birthDate: string,
+  lang: Lang = "ja"
 ): LifePatternInsight {
   const birthYear = Number(birthDate.split("-")[0]) || 0;
   const lp = calcLifePathNumber(birthDate);
-  const lpMeaning = getLifePathMeaning(lp);
+  const lpMeaning = getLifePathMeaning(lp, lang);
 
   const base: LifePatternInsight = {
     enough: events.length >= 3,
@@ -414,22 +463,32 @@ export function analyzeLifePatterns(
   // 前向きな芽（tease）
   const t: string[] = [];
   if (base.recurringCategory) {
+    const c = base.recurringCategory.category;
     t.push(
-      `あなたの人生は「${base.recurringCategory.category}」を軸に動いてきたようです。ここにあなたの大切なテーマが宿っています。`
+      lang === "ko"
+        ? `당신의 인생은 「${c}」을(를) 축으로 움직여 온 것 같습니다. 여기에 당신의 소중한 테마가 깃들어 있습니다.`
+        : `あなたの人生は「${c}」を軸に動いてきたようです。ここにあなたの大切なテーマが宿っています。`
     );
   }
   if (base.challengeCategory) {
+    const c = base.challengeCategory.category;
     t.push(
-      `「${base.challengeCategory.category}」では苦しい局面もあったようですが、そこを通るたびにあなたは強くなっています。課題は、あなたの使命の裏返しかもしれません。`
+      lang === "ko"
+        ? `「${c}」에서는 힘든 국면도 있었던 것 같지만, 그곳을 지날 때마다 당신은 강해지고 있습니다. 과제는 당신의 사명의 이면일지도 모릅니다.`
+        : `「${c}」では苦しい局面もあったようですが、そこを通るたびにあなたは強くなっています。課題は、あなたの使命の裏返しかもしれません。`
     );
   }
   if (milestoneCount >= 2) {
     t.push(
-      `大きな出来事の多くが、星の節目（土星回帰などの人生の転換期）と重なっています。あなたは"人生のリズム"に沿って歩んできた人です。`
+      lang === "ko"
+        ? `큰 사건의 대부분이 별의 전환점(토성 회귀 등 인생의 전환기)과 겹칩니다. 당신은 "인생의 리듬"에 따라 걸어온 사람입니다.`
+        : `大きな出来事の多くが、星の節目（土星回帰などの人生の転換期）と重なっています。あなたは"人生のリズム"に沿って歩んできた人です。`
     );
   }
   t.push(
-    `核となる強みは「${lpMeaning.title}」＝${lpMeaning.strength}。この力が、これまでの出来事の底を流れています。`
+    lang === "ko"
+      ? `핵심이 되는 강점은 「${lpMeaning.title}」＝${lpMeaning.strength}. 이 힘이 지금까지의 사건들의 밑바닥에 흐르고 있습니다.`
+      : `核となる強みは「${lpMeaning.title}」＝${lpMeaning.strength}。この力が、これまでの出来事の底を流れています。`
   );
 
   base.tentative = t;
@@ -456,7 +515,8 @@ export interface LifeStory {
   fullText: string; // コピー用の全文
 }
 
-function decadeLabelOf(d: number): string {
+function decadeLabelOf(d: number, lang: Lang = "ja"): string {
+  if (lang === "ko") return d === 0 ? "유년기" : `${d}대`;
   return d === 0 ? "幼少期" : `${d}代`;
 }
 
@@ -464,7 +524,8 @@ function decadeLabelOf(d: number): string {
 function chapterText(
   evs: StoryEvent[],
   birthYear: number,
-  birthDate: string
+  birthDate: string,
+  lang: Lang = "ja"
 ): string {
   const scored = evs.map((e) => {
     const age = e.year - birthYear;
@@ -479,20 +540,32 @@ function chapterText(
     .sort((a, b) => a.e.year - b.e.year);
 
   const parts = notable.map(({ e, age }) => {
-    const ms = getAgeMilestones(age);
-    let s = `${age}歳のとき、${e.title}。`;
+    const ms = getAgeMilestones(age, lang);
+    let s =
+      lang === "ko" ? `${age}세 때, ${e.title}. ` : `${age}歳のとき、${e.title}。`;
     if (ms.length > 0 && e.magnitude >= 2) {
-      s += `ちょうど${ms[0].label}——${ms[0].theme}の時期でした。`;
+      s +=
+        lang === "ko"
+          ? `마침 ${ms[0].label}——${ms[0].theme}의 시기였습니다. `
+          : `ちょうど${ms[0].label}——${ms[0].theme}の時期でした。`;
     } else if (e.magnitude === 3) {
       const py = reduceCycle(calcPersonalYear(birthDate, e.year));
-      s += `数秘${py}「${CYCLE_LABELS[py].label}」の年の、大きな節目です。`;
+      const label = cycleLabelOf(py, lang).label;
+      s +=
+        lang === "ko"
+          ? `수비 ${py} 「${label}」의 해의, 큰 전환점입니다. `
+          : `数秘${py}「${label}」の年の、大きな節目です。`;
     }
     return s;
   });
 
   let text = parts.join("");
   const more = evs.length - notable.length;
-  if (more > 0) text += `（このほかにも${more}件の歩みがありました。）`;
+  if (more > 0)
+    text +=
+      lang === "ko"
+        ? `(이 밖에도 ${more}건의 발자취가 있었습니다.)`
+        : `（このほかにも${more}件の歩みがありました。）`;
   return text;
 }
 
@@ -503,17 +576,21 @@ function chapterText(
 export function buildLifeStory(
   birthDate: string,
   events: StoryEvent[],
-  currentYear: number
+  currentYear: number,
+  lang: Lang = "ja"
 ): LifeStory {
   const birthYear = Number(birthDate.split("-")[0]) || currentYear;
   const lp = calcLifePathNumber(birthDate);
-  const lpM = getLifePathMeaning(lp);
+  const lpM = getLifePathMeaning(lp, lang);
 
   const sorted = [...events].sort((a, b) => a.year - b.year);
   const firstYear = sorted.length ? sorted[0].year : currentYear;
   const lastYear = sorted.length ? sorted[sorted.length - 1].year : currentYear;
 
-  const intro = `これは、${firstYear}年から${lastYear}年までの、あなたの物語です。${events.length}の出来事が、今のあなたをかたち作ってきました。数秘${lp}「${lpM.title}」の魂を持つあなたの歩みを、そっとたどってみましょう。`;
+  const intro =
+    lang === "ko"
+      ? `이것은 ${firstYear}년부터 ${lastYear}년까지의, 당신의 이야기입니다. ${events.length}개의 사건이 지금의 당신을 만들어 왔습니다. 수비 ${lp} 「${lpM.title}」의 영혼을 지닌 당신의 발자취를, 살며시 따라가 봅시다.`
+      : `これは、${firstYear}年から${lastYear}年までの、あなたの物語です。${events.length}の出来事が、今のあなたをかたち作ってきました。数秘${lp}「${lpM.title}」の魂を持つあなたの歩みを、そっとたどってみましょう。`;
 
   // 年代ごとの章
   const byDecade = new Map<number, StoryEvent[]>();
@@ -526,12 +603,12 @@ export function buildLifeStory(
   const chapters = [...byDecade.entries()]
     .sort((a, b) => a[0] - b[0])
     .map(([d, evs]) => ({
-      label: decadeLabelOf(d),
-      text: chapterText(evs, birthYear, birthDate),
+      label: decadeLabelOf(d, lang),
+      text: chapterText(evs, birthYear, birthDate, lang),
     }));
 
   // 繰り返すテーマ
-  const insight = analyzeLifePatterns(events, birthDate);
+  const insight = analyzeLifePatterns(events, birthDate, lang);
   const patterns = insight.tentative.join(" ");
 
   // 星との重なり
@@ -545,32 +622,46 @@ export function buildLifeStory(
   const starParts: string[] = [];
   if (milestoneBig >= 2) {
     starParts.push(
-      `大きな出来事の多くが、星の節目（土星回帰などの人生の転換期）と重なっています。あなたは"人生のリズム"に沿って歩んできた人です。`
+      lang === "ko"
+        ? `큰 사건의 대부분이 별의 전환점(토성 회귀 등 인생의 전환기)과 겹칩니다. 당신은 "인생의 리듬"에 따라 걸어온 사람입니다.`
+        : `大きな出来事の多くが、星の節目（土星回帰などの人生の転換期）と重なっています。あなたは"人生のリズム"に沿って歩んできた人です。`
     );
   }
   if (py1Big >= 2) {
     starParts.push(
-      `数秘「1（始まりの年）」に新しい一歩を踏み出す傾向がはっきり出ています——これがあなたの"始め方のクセ"です。`
+      lang === "ko"
+        ? `수비 「1(시작의 해)」에 새로운 한 걸음을 내딛는 경향이 뚜렷하게 나타납니다——이것이 당신의 "시작하는 방식의 버릇"입니다.`
+        : `数秘「1（始まりの年）」に新しい一歩を踏み出す傾向がはっきり出ています——これがあなたの"始め方のクセ"です。`
     );
   }
   if (starParts.length === 0) {
     starParts.push(
-      `出来事を書き足していくほど、星の巡りとの重なりが見えてきます。`
+      lang === "ko"
+        ? `사건을 더 적어 갈수록 별의 순환과의 겹침이 보이기 시작합니다.`
+        : `出来事を書き足していくほど、星の巡りとの重なりが見えてきます。`
     );
   }
   const stars = starParts.join(" ");
 
   // 今、そしてこれから
   const nowN = reduceCycle(calcPersonalYear(birthDate, currentYear));
-  const nowM = getPersonalYearMeaning(nowN);
-  const now = `そして今、${currentYear}年。あなたは数秘${nowN}「${CYCLE_LABELS[nowN].label}」の年にいます。${nowM.theme}。${nowM.advice}。この物語は、まだ続いていきます。`;
+  const nowM = getPersonalYearMeaning(nowN, lang);
+  const nowLabel = cycleLabelOf(nowN, lang).label;
+  const now =
+    lang === "ko"
+      ? `그리고 지금, ${currentYear}년. 당신은 수비 ${nowN} 「${nowLabel}」의 해에 있습니다. ${nowM.theme}. ${nowM.advice}. 이 이야기는 아직 계속됩니다.`
+      : `そして今、${currentYear}年。あなたは数秘${nowN}「${nowLabel}」の年にいます。${nowM.theme}。${nowM.advice}。この物語は、まだ続いていきます。`;
+
+  const secPatterns = lang === "ko" ? "반복되는 테마" : "繰り返すテーマ";
+  const secStars = lang === "ko" ? "별과의 겹침" : "星との重なり";
+  const secNow = lang === "ko" ? "지금, 그리고 앞으로" : "今、そしてこれから";
 
   const fullText = [
     intro,
     ...chapters.map((c) => `【${c.label}】\n${c.text}`),
-    `【繰り返すテーマ】\n${patterns}`,
-    `【星との重なり】\n${stars}`,
-    `【今、そしてこれから】\n${now}`,
+    `【${secPatterns}】\n${patterns}`,
+    `【${secStars}】\n${stars}`,
+    `【${secNow}】\n${now}`,
   ].join("\n\n");
 
   return { intro, chapters, patterns, stars, now, fullText };

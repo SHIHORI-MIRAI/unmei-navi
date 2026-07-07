@@ -186,6 +186,32 @@ const POSITION_FORTUNES: Record<Direction, { theme: string; energy: number; advi
   "南": { theme: "頂点と注目の時期", energy: 85, advice: "注目を浴び、才能が輝く時。自己表現を存分に", caution: "目立つ分、批判も受けやすい。言動に注意" },
 };
 
+// --- 韓国語（多言語対応） ---
+import type { Lang } from "@/lib/i18n/dict";
+import { directionName } from "@/lib/i18n/fortune-terms";
+
+const POSITION_FORTUNES_KO: Record<Direction, { theme: string; advice: string; caution: string }> = {
+  "北": { theme: "인내와 축적의 시기", advice: "내면을 다시 들여다보며 힘을 비축하는 소중한 기간입니다", caution: "큰 행동은 삼가고 준비에 전념합시다" },
+  "南西": { theme: "꾸준한 노력의 시기", advice: "차근차근 기반을 다지는 때. 든든한 조력자로서 활약", caution: "눈에 띄지 않아도 조급해하지 말고 착실하게 나아갑시다" },
+  "東": { theme: "발전과 활력의 시기", advice: "새로운 일을 시작하기 좋은 시기. 적극적으로 움직여요", caution: "기세에 너무 올라타지 말고 주위 배려도 잊지 말고" },
+  "南東": { theme: "인간관계와 정비의 시기", advice: "인맥이 넓어지고 좋은 인연을 만나는 때. 신용을 소중히", caution: "남의 의견에 너무 휩쓸리지 말고 자기 축을 지켜요" },
+  "中央": { theme: "힘이 넘치는 시기", advice: "에너지가 가장 강한 해. 큰 결단에도 적합합니다", caution: "강한 힘은 양날의 검. 겸손함과 신중함을 잊지 말고" },
+  "北西": { theme: "하늘의 은혜의 시기", advice: "윗사람이나 하늘의 도움을 얻기 쉬운 충실기. 리더십을 발휘", caution: "호조일 때도 감사하는 마음을 잊지 말고" },
+  "西": { theme: "수확과 기쁨의 시기", advice: "노력의 성과가 결실을 맺고 즐거운 일이 늘어나는 시기", caution: "너무 노는 것에 주의. 돈 씀씀이도 계획적으로" },
+  "北東": { theme: "변화와 전환점의 시기", advice: "변화가 일어나기 쉬운 때. 변화를 두려워 말고 새로운 자신을 받아들여요", caution: "급격한 변화에 동요하지 않도록 마음의 준비를" },
+  "南": { theme: "정점과 주목의 시기", advice: "주목받고 재능이 빛나는 때. 자기표현을 마음껏", caution: "눈에 띄는 만큼 비판도 받기 쉬움. 언행에 주의" },
+};
+
+/** 位置の運勢を言語に応じて返す（energyは共通） */
+function positionFortune(direction: Direction, lang: Lang) {
+  const base = POSITION_FORTUNES[direction];
+  if (lang === "ko") {
+    const ko = POSITION_FORTUNES_KO[direction];
+    return { direction, theme: ko.theme, energy: base.energy, advice: ko.advice, caution: ko.caution };
+  }
+  return { direction, ...base };
+}
+
 // --- 吉方位の算出 ---
 // 五行の相生関係（生む側 → 生まれる側）
 // 水→木→火→土→金→水
@@ -281,12 +307,15 @@ export interface NineStarResult {
   unluckyDirections: string[];
 }
 
-export function calcNineStar(birthDate: string, year: number = new Date().getFullYear()): NineStarResult {
+export function calcNineStar(
+  birthDate: string,
+  year: number = new Date().getFullYear(),
+  lang: Lang = "ja"
+): NineStarResult {
   const honmei = calcHonmeisei(birthDate);
   const getsu = calcGetsumeisei(birthDate);
   const yearCenter = calcYearStar(year);
   const position = getPositionInBoard(honmei, yearCenter);
-  const fortune = POSITION_FORTUNES[position.direction];
   const directions = calcLuckyDirections(honmei, yearCenter);
 
   const honmeiStar = NINE_STARS[honmei - 1];
@@ -307,10 +336,7 @@ export function calcNineStar(birthDate: string, year: number = new Date().getFul
       personality: getsuStar.personality,
       strength: getsuStar.strength,
     },
-    yearPosition: {
-      direction: position.direction,
-      ...fortune,
-    },
+    yearPosition: positionFortune(position.direction, lang),
     luckyDirections: directions.lucky,
     unluckyDirections: directions.unlucky,
   };
@@ -325,11 +351,15 @@ export function getNineStarWave(birthDate: string, year: number): number {
 }
 
 /** グラフ用: 指定年のポジション名を返す */
-export function getNineStarPositionName(birthDate: string, year: number): string {
+export function getNineStarPositionName(birthDate: string, year: number, lang: Lang = "ja"): string {
   const honmei = calcHonmeisei(birthDate);
   const yearCenter = calcYearStar(year);
   const position = getPositionInBoard(honmei, yearCenter);
-  return `${position.direction}（${POSITION_FORTUNES[position.direction].theme}）`;
+  const f = positionFortune(position.direction, lang);
+  if (lang === "ko") {
+    return `${directionName(position.direction, lang)}(${f.theme})`;
+  }
+  return `${position.direction}（${f.theme}）`;
 }
 
 /**
@@ -349,13 +379,14 @@ export interface NineStarMonthly {
 export function calcNineStarMonthly(
   birthDate: string,
   year: number,
-  month: number
+  month: number,
+  lang: Lang = "ja"
 ): NineStarMonthly {
   const honmei = calcHonmeisei(birthDate);
   // 節入り後の日を代表日とする（15日なら確実に節入り後）
   const monthCenter = calcMonthStar(year, month, 15);
   const position = getPositionInBoard(honmei, monthCenter);
-  const fortune = POSITION_FORTUNES[position.direction];
+  const fortune = positionFortune(position.direction, lang);
   return {
     positionDirection: position.direction,
     theme: fortune.theme,

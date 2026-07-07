@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState, type CSSProperties } from "react";
 import { loadProfile } from "@/lib/storage";
+import { useI18n } from "@/lib/i18n/provider";
+import type { DictKey } from "@/lib/i18n/dict";
 import {
   calcNumerology,
   calcLuckyInfo,
@@ -15,51 +17,57 @@ import {
 const GUIDE_BANNER_KEY = "unmei-guide-banner-dismissed";
 
 /** ホームの機能メニュー（水彩アイコン＋カードごとの淡い色味） */
-const MENU_ITEMS = [
+const MENU_ITEMS: {
+  href: string;
+  titleKey: DictKey;
+  subtitleKey: DictKey;
+  icon: string;
+  bg: string;
+}[] = [
   {
     href: "/yearly",
-    title: "年運詳細",
-    subtitle: "今年・来年の流れ",
+    titleKey: "home.menu.yearly.title",
+    subtitleKey: "home.menu.yearly.subtitle",
     icon: "/menu/year.png",
     bg: "linear-gradient(135deg, rgba(245,158,11,0.10), rgba(255,255,255,0.55))",
   },
   {
     href: "/monthly",
-    title: "月の運勢",
-    subtitle: "毎月のテーマ",
+    titleKey: "home.menu.monthly.title",
+    subtitleKey: "home.menu.monthly.subtitle",
     icon: "/menu/month.png",
     bg: "linear-gradient(135deg, rgba(167,139,250,0.12), rgba(255,255,255,0.55))",
   },
   {
     href: "/compatibility",
-    title: "相性診断",
-    subtitle: "2人を選んで詳しく",
+    titleKey: "home.menu.compat.title",
+    subtitleKey: "home.menu.compat.subtitle",
     icon: "/menu/compat.png",
     bg: "linear-gradient(135deg, rgba(244,114,182,0.12), rgba(255,255,255,0.55))",
   },
   {
     href: "/matrix",
-    title: "相性マトリックス",
-    subtitle: "全員クロス・ランキング",
+    titleKey: "home.menu.matrix.title",
+    subtitleKey: "home.menu.matrix.subtitle",
     icon: "/menu/matrix.png",
     bg: "linear-gradient(135deg, rgba(139,92,246,0.12), rgba(255,255,255,0.55))",
   },
   {
     href: "/oracle",
-    title: "オラクルカード",
-    subtitle: "今日のメッセージを1枚",
+    titleKey: "home.menu.oracle.title",
+    subtitleKey: "home.menu.oracle.subtitle",
     icon: "/menu/oracle.png",
     bg: "linear-gradient(135deg, rgba(217,180,74,0.12), rgba(255,255,255,0.55))",
   },
-] as const;
+];
 
 /** 初回ウェルカム画面の4つのベネフィット（水彩アイコン） */
-const WELCOME_BENEFITS = [
-  { icon: "/welcome/benefit-star.png", label: "あなただけの\n運勢をお届け" },
-  { icon: "/welcome/benefit-moon.png", label: "毎日をより良く\nするヒントに" },
-  { icon: "/welcome/benefit-book.png", label: "人生の選択に\n自信が持てる" },
-  { icon: "/welcome/benefit-crystal.png", label: "未来を味方に\nつけましょう" },
-] as const;
+const WELCOME_BENEFITS: { icon: string; labelKey: DictKey }[] = [
+  { icon: "/welcome/benefit-star.png", labelKey: "home.benefit.star" },
+  { icon: "/welcome/benefit-moon.png", labelKey: "home.benefit.moon" },
+  { icon: "/welcome/benefit-book.png", labelKey: "home.benefit.book" },
+  { icon: "/welcome/benefit-crystal.png", labelKey: "home.benefit.crystal" },
+];
 
 /** イラストの左端をカード背景になじませる共通マスク */
 const LEFT_FADE: CSSProperties = {
@@ -68,6 +76,7 @@ const LEFT_FADE: CSSProperties = {
 };
 
 export default function Home() {
+  const { t, lang } = useI18n();
   const [hasProfile, setHasProfile] = useState(false);
   const [daily, setDaily] = useState<DailyMessage | null>(null);
   const [lucky, setLucky] = useState<LuckyInfo | null>(null);
@@ -80,16 +89,16 @@ export default function Home() {
     setHasProfile(true);
 
     const today = new Date();
-    const num = calcNumerology(profile.birthDate, today);
+    const num = calcNumerology(profile.birthDate, today, lang);
     setNumerology(num);
-    setDaily(generateDailyMessage(profile.birthDate, today));
-    setLucky(calcLuckyInfo(today, num.lifePathNumber));
+    setDaily(generateDailyMessage(profile.birthDate, today, lang));
+    setLucky(calcLuckyInfo(today, num.lifePathNumber, lang));
 
     // ガイドバナーは閉じたフラグがなければ表示
     if (typeof window !== "undefined") {
       setShowGuideBanner(localStorage.getItem(GUIDE_BANNER_KEY) !== "1");
     }
-  }, []);
+  }, [lang]);
 
   function dismissGuideBanner() {
     setShowGuideBanner(false);
@@ -117,16 +126,16 @@ export default function Home() {
           <div className="relative z-10 space-y-3.5 pr-28">
             <div className="flex items-center gap-1.5 text-accent-gold text-sm">
               <span className="sparkle">✦</span>
-              <span>ようこそ、運命ナビへ</span>
+              <span>{t("home.welcome.greeting")}</span>
             </div>
             <p className="font-mincho text-xl font-bold text-foreground leading-relaxed">
-              まずはプロフィールを設定して、あなただけの占い結果を受け取りましょう
+              {t("home.welcome.title")}
             </p>
             <Link
               href="/profile"
               className="inline-flex items-center gap-1.5 mt-1 px-6 py-3 rounded-full text-white text-sm font-bold shadow-md bg-gradient-to-r from-accent-orange to-accent-gold hover:opacity-90 transition-opacity"
             >
-              プロフィールを設定する <span className="sparkle">✦</span>
+              {t("home.welcome.cta")} <span className="sparkle">✦</span>
             </Link>
           </div>
         </section>
@@ -134,19 +143,19 @@ export default function Home() {
         {/* 4つのベネフィット */}
         <div className="animate-fade-up grid grid-cols-4 gap-2" style={{ animationDelay: "0.08s" }}>
           {WELCOME_BENEFITS.map((b) => (
-            <div key={b.label} className="flex flex-col items-center gap-1.5 text-center">
+            <div key={b.labelKey} className="flex flex-col items-center gap-1.5 text-center">
               <span className="w-16 h-16 rounded-full overflow-hidden border border-accent-gold/25 bg-card-bg shadow-sm">
                 <img src={b.icon} alt="" className="w-full h-full object-cover" />
               </span>
               <span className="text-[10px] leading-tight text-muted whitespace-pre-line">
-                {b.label}
+                {t(b.labelKey)}
               </span>
             </div>
           ))}
         </div>
 
         <p className="text-center text-xs text-muted/60 px-4">
-          ※ 占いは参考情報です。人生の重要な判断はご自身の責任で行ってください。
+          {t("common.disclaimer")}
         </p>
       </div>
     );
@@ -168,23 +177,23 @@ export default function Home() {
             </span>
             <div className="flex-1 min-w-0 space-y-2">
               <p className="font-mincho text-lg font-bold text-accent-gold tracking-wide">
-                はじめての方へ
+                {t("home.guide.title")}
               </p>
               <p className="text-xs text-foreground/80 leading-relaxed max-w-[15rem]">
-                個人で楽しむ使い方と、結婚相談所などの業務で使う方法を、ガイドにまとめました。
+                {t("home.guide.body")}
               </p>
               <div className="flex items-center gap-3 pt-1.5">
                 <Link
                   href="/guide"
                   className="text-xs bg-accent-orange text-white px-4 py-2 rounded-full shadow-sm hover:bg-accent-light transition-colors"
                 >
-                  使い方ガイドを見る →
+                  {t("home.guide.cta")}
                 </Link>
                 <button
                   onClick={dismissGuideBanner}
                   className="text-[11px] text-muted hover:text-foreground"
                 >
-                  閉じる
+                  {t("common.close")}
                 </button>
               </div>
             </div>
@@ -205,10 +214,10 @@ export default function Home() {
         <div className="relative z-10 space-y-3 pr-[40%]">
           <div className="flex items-center gap-2 text-accent-gold text-sm">
             <span className="sparkle">✦</span>
-            <span>今日のメッセージ</span>
+            <span>{t("home.todayMessage")}</span>
           </div>
           <p className="font-mincho text-xl font-medium text-foreground leading-relaxed">
-            {daily?.message ?? "計算中..."}
+            {daily?.message ?? t("common.calculating")}
           </p>
           {daily && <p className="text-xs text-muted mt-1">{daily.source}</p>}
         </div>
@@ -227,10 +236,10 @@ export default function Home() {
         <div className="relative z-10 space-y-3 pr-[32%]">
           <div className="flex items-center gap-2 text-accent-orange text-sm">
             <span className="float-slow">☾</span>
-            <span>今日の注意点</span>
+            <span>{t("home.todayCaution")}</span>
           </div>
           <p className="font-mincho text-foreground/80 leading-relaxed">
-            {daily?.caution ?? "計算中..."}
+            {daily?.caution ?? t("common.calculating")}
           </p>
         </div>
       </section>
@@ -242,7 +251,7 @@ export default function Home() {
             {/* ラッキーカラー */}
             <div className="space-y-1.5 pb-3.5 pr-3.5">
               <span className="flex items-center gap-1 text-xs text-muted">
-                <span className="text-accent-gold">✦</span> ラッキーカラー
+                <span className="text-accent-gold">✦</span> {t("home.lucky.color")}
               </span>
               <div className="flex items-center gap-2">
                 <span
@@ -255,14 +264,14 @@ export default function Home() {
             {/* ラッキーナンバー */}
             <div className="space-y-1.5 pb-3.5 pl-3.5 border-l border-card-border">
               <span className="flex items-center gap-1 text-xs text-muted">
-                <span className="text-accent-gold">✦</span> ラッキーナンバー
+                <span className="text-accent-gold">✦</span> {t("home.lucky.number")}
               </span>
               <p className="text-foreground font-bold text-xl">{lucky.number}</p>
             </div>
             {/* 吉方位 */}
             <div className="space-y-1.5 pt-3.5 pr-3.5 border-t border-card-border">
               <span className="flex items-center gap-1 text-xs text-muted">
-                <span className="text-accent-gold">✦</span> 吉方位
+                <span className="text-accent-gold">✦</span> {t("home.lucky.direction")}
               </span>
               <div className="flex items-center gap-2">
                 <span className="text-accent-gold text-lg leading-none">✸</span>
@@ -272,7 +281,7 @@ export default function Home() {
             {/* 月齢 */}
             <div className="space-y-1.5 pt-3.5 pl-3.5 border-t border-l border-card-border">
               <span className="flex items-center gap-1 text-xs text-muted">
-                <span className="text-accent-gold">✦</span> 月齢
+                <span className="text-accent-gold">✦</span> {t("home.lucky.moon")}
               </span>
               <div className="flex items-center gap-2">
                 <span className="text-lg leading-none">{lucky.moonEmoji}</span>
@@ -288,10 +297,10 @@ export default function Home() {
         <section className="animate-fade-up bg-card-bg border border-card-border rounded-3xl p-5 shadow-sm space-y-2" style={{ animationDelay: "0.26s" }}>
           <div className="flex items-center gap-2 text-accent-gold text-sm">
             <span className="sparkle">✦</span>
-            <span>今年のテーマ（数秘術）</span>
+            <span>{t("home.year.title")}</span>
           </div>
           <p className="font-mincho text-accent-orange font-bold text-lg">
-            パーソナルイヤー {numerology.personalYear}：{numerology.personalYearMeaning.theme}
+            {t("home.year.personalYear")} {numerology.personalYear}：{numerology.personalYearMeaning.theme}
           </p>
           <p className="text-foreground/80 text-sm">
             {numerology.personalYearMeaning.advice}
@@ -304,7 +313,7 @@ export default function Home() {
         href="/detail"
         className="block text-center font-mincho text-base font-bold tracking-wide text-accent-gold py-3.5 rounded-full border border-accent-gold/40 bg-gradient-to-r from-accent-gold/5 via-card-bg to-accent-gold/5 shadow-sm hover:from-accent-gold/10 hover:to-accent-gold/10 transition-colors"
       >
-        各占術の詳細を見る →
+        {t("home.seeDetails")}
       </Link>
 
       {/* アストロカートグラフィー（注目の新機能） */}
@@ -322,10 +331,10 @@ export default function Home() {
         </span>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <p className="font-mincho text-base font-bold text-foreground">アストロマップ</p>
-            <span className="text-[9px] bg-accent-orange text-white px-1.5 py-0.5 rounded-full">NEW</span>
+            <p className="font-mincho text-base font-bold text-foreground">{t("astro.brand")}</p>
+            <span className="text-[9px] bg-accent-orange text-white px-1.5 py-0.5 rounded-full">{t("common.new")}</span>
           </div>
-          <p className="text-[11px] text-muted mt-0.5">星が輝く土地を世界地図で・目的別ランキング</p>
+          <p className="text-[11px] text-muted mt-0.5">{t("home.astro.subtitle")}</p>
         </div>
         <span className="text-accent-gold/60 text-2xl mr-1 transition-transform group-hover:translate-x-0.5">
           ›
@@ -347,10 +356,10 @@ export default function Home() {
         </span>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <p className="font-mincho text-base font-bold text-foreground">人生の棚卸し</p>
-            <span className="text-[9px] bg-accent-orange text-white px-1.5 py-0.5 rounded-full">NEW</span>
+            <p className="font-mincho text-base font-bold text-foreground">{t("home.life.title")}</p>
+            <span className="text-[9px] bg-accent-orange text-white px-1.5 py-0.5 rounded-full">{t("common.new")}</span>
           </div>
-          <p className="text-[11px] text-muted mt-0.5">出来事を時系列に・星と運気を重ねて自分を知る</p>
+          <p className="text-[11px] text-muted mt-0.5">{t("home.life.subtitle")}</p>
         </div>
         <span className="text-accent-gold/60 text-2xl mr-1 transition-transform group-hover:translate-x-0.5">
           ›
@@ -372,10 +381,10 @@ export default function Home() {
         </span>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <p className="font-mincho text-base font-bold text-foreground">わたしの取扱説明書</p>
-            <span className="text-[9px] bg-accent-orange text-white px-1.5 py-0.5 rounded-full">NEW</span>
+            <p className="font-mincho text-base font-bold text-foreground">{t("home.manual.title")}</p>
+            <span className="text-[9px] bg-accent-orange text-white px-1.5 py-0.5 rounded-full">{t("common.new")}</span>
           </div>
-          <p className="text-[11px] text-muted mt-0.5">全占術を1つに・強み/充電法/取扱注意/他己紹介</p>
+          <p className="text-[11px] text-muted mt-0.5">{t("home.manual.subtitle")}</p>
         </div>
         <span className="text-accent-gold/60 text-2xl mr-1 transition-transform group-hover:translate-x-0.5">
           ›
@@ -399,8 +408,8 @@ export default function Home() {
               className="w-16 h-16 rounded-xl object-cover flex-shrink-0 shadow-sm"
             />
             <div className="flex-1 min-w-0">
-              <p className="font-mincho text-base font-bold text-foreground">{m.title}</p>
-              <p className="text-[11px] text-muted mt-0.5">{m.subtitle}</p>
+              <p className="font-mincho text-base font-bold text-foreground">{t(m.titleKey)}</p>
+              <p className="text-[11px] text-muted mt-0.5">{t(m.subtitleKey)}</p>
             </div>
             <span className="text-accent-gold/60 text-2xl mr-1 transition-transform group-hover:translate-x-0.5">
               ›
@@ -411,18 +420,18 @@ export default function Home() {
 
       {/* 免責事項 */}
       <div className="text-center text-xs text-muted/60 px-4 space-y-1">
-        <p>※ 占いは参考情報です。人生の重要な判断はご自身の責任で行ってください。</p>
+        <p>{t("common.disclaimer")}</p>
         <p>
           <Link href="/guide" className="underline hover:text-accent-orange">
-            使い方ガイド
+            {t("home.footer.guide")}
           </Link>
           <span className="mx-2">/</span>
           <Link href="/terms" className="underline hover:text-accent-orange">
-            利用規約
+            {t("home.footer.terms")}
           </Link>
           <span className="mx-2">/</span>
           <Link href="/privacy" className="underline hover:text-accent-orange">
-            プライバシーポリシー
+            {t("home.footer.privacy")}
           </Link>
         </p>
       </div>

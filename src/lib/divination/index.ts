@@ -68,6 +68,10 @@ export {
   lineMessage,
   lineDistanceLabel,
   signOf,
+  planetName,
+  toneLabel,
+  angleLabel,
+  purposeText,
   ZODIAC_SIGNS,
   PLANETS,
   PLANET_META,
@@ -126,7 +130,7 @@ export type {
   SelfManualTiming,
 } from "./self-manual";
 
-export { WORLD_CITIES, REGION_LABEL, getCityById } from "./world-cities";
+export { WORLD_CITIES, REGION_LABEL, getCityById, regionLabel, countryLabel, cityName } from "./world-cities";
 export type { WorldCity, WorldRegion } from "./world-cities";
 
 export { computeSky, BODIES } from "./astro-core";
@@ -138,5 +142,7 @@ export {
   LOCATION_GROUPS,
   offsetHoursForBirth,
   guessLocationId,
+  birthLocationLabel,
+  locationGroupLabel,
 } from "./birth-timezone";
 export type { BirthLocation } from "./birth-timezone";

@@ -20,6 +20,14 @@ import {
   calcYearlyMayan,
 } from "@/lib/divination/mayan";
 import { getFourPillarsWave } from "@/lib/divination/four-pillars";
+import { useI18n } from "@/lib/i18n/provider";
+import type { DictKey, Lang } from "@/lib/i18n/dict";
+import {
+  mayanSealName,
+  mayanSealKeyword,
+  mayanToneName,
+  mayanToneKeyword,
+} from "@/lib/i18n/fortune-terms";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -37,14 +45,19 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, 
 
 const YEAR_RANGE = 6; // 前後6年（計13年分）
 
-/** グラフ凡例（色・名前・説明・バッジ内アイコン） */
-const SERIES_LEGEND = [
-  { name: "総合", color: "#f97316", desc: "全体的な運勢の流れ", icon: "★" },
-  { name: "数秘術", color: "#8b5cf6", desc: "内面の力・才能・使命", icon: "✦" },
-  { name: "マヤ暦", color: "#e11d48", desc: "本質的なエネルギーの流れ", icon: "◆" },
-  { name: "九星気学", color: "#10b981", desc: "環境や人間関係の流れ", icon: "✿" },
-  { name: "四柱推命", color: "#06b6d4", desc: "運命の土台・人生の基盤", icon: "▲" },
-] as const;
+/** グラフ凡例（色・名前キー・説明キー・バッジ内アイコン） */
+const SERIES_LEGEND: {
+  nameKey: DictKey;
+  descKey: DictKey;
+  color: string;
+  icon: string;
+}[] = [
+  { nameKey: "graph.series.overall", descKey: "graph.seriesDesc.overall", color: "#f97316", icon: "★" },
+  { nameKey: "graph.series.numerology", descKey: "graph.seriesDesc.numerology", color: "#8b5cf6", icon: "✦" },
+  { nameKey: "graph.series.mayan", descKey: "graph.seriesDesc.mayan", color: "#e11d48", icon: "◆" },
+  { nameKey: "graph.series.ninestar", descKey: "graph.seriesDesc.ninestar", color: "#10b981", icon: "✿" },
+  { nameKey: "graph.series.fourpillars", descKey: "graph.seriesDesc.fourpillars", color: "#06b6d4", icon: "▲" },
+];
 
 interface YearDetail {
   year: number;
@@ -57,9 +70,10 @@ interface YearDetail {
 
 export default function GraphPage() {
   const router = useRouter();
+  const { t, lang } = useI18n();
   const [yearDetails, setYearDetails] = useState<YearDetail[]>([]);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-  const [birthDate, setBirthDate] = useState<string>("");
+  const [, setBirthDate] = useState<string>("");
 
   useEffect(() => {
     const profile = loadProfile();
@@ -73,15 +87,15 @@ export default function GraphPage() {
 
     for (let y = currentYear - YEAR_RANGE; y <= currentYear + YEAR_RANGE; y++) {
       const py = calcPersonalYear(profile.birthDate, y);
-      const pyMeaning = getPersonalYearMeaning(py);
+      const pyMeaning = getPersonalYearMeaning(py, lang);
       const nWave = getYearWave(py);
 
       const mWave = getMayanYearWave(profile.birthDate, y);
       const mResult = calcYearlyMayan(profile.birthDate, y);
-      const mLabel = getMayanYearLabel(profile.birthDate, y);
+      const mLabel = getMayanYearLabel(profile.birthDate, y, lang);
 
       const nsWave = getNineStarWave(profile.birthDate, y);
-      const nsResult = calcNineStar(profile.birthDate, y);
+      const nsResult = calcNineStar(profile.birthDate, y, lang);
 
       const fpWave = getFourPillarsWave(profile.birthDate, y);
 
@@ -99,13 +113,13 @@ export default function GraphPage() {
         mayan: {
           label: mLabel,
           wave: mWave,
-          sealName: mResult.solarSeal.name,
-          keyword: mResult.solarSeal.keyword,
-          toneName: mResult.galacticTone.name,
-          toneKeyword: mResult.galacticTone.keyword,
+          sealName: mayanSealName(mResult.solarSeal.name, lang),
+          keyword: mayanSealKeyword(mResult.solarSeal.keyword, lang),
+          toneName: mayanToneName(mResult.galacticTone.name, lang),
+          toneKeyword: mayanToneKeyword(mResult.galacticTone.keyword, lang),
         },
         nineStar: {
-          positionName: getNineStarPositionName(profile.birthDate, y),
+          positionName: getNineStarPositionName(profile.birthDate, y, lang),
           wave: nsWave,
           theme: nsResult.yearPosition.theme,
           advice: nsResult.yearPosition.advice,
@@ -116,7 +130,7 @@ export default function GraphPage() {
       });
     }
     setYearDetails(details);
-  }, [router]);
+  }, [router, lang]);
 
   const selected = yearDetails.find((d) => d.year === selectedYear);
   const currentYear = new Date().getFullYear();
@@ -131,7 +145,7 @@ export default function GraphPage() {
   );
 
   if (yearDetails.length === 0) {
-    return <p className="text-muted text-center py-10">読み込み中...</p>;
+    return <p className="text-muted text-center py-10">{t("astro.loading")}</p>;
   }
 
   // 補助線（占術別）の共通マーカー設定：白フチの色付き丸
@@ -151,7 +165,7 @@ export default function GraphPage() {
     labels: yearDetails.map((d) => `${d.year}`),
     datasets: [
       {
-        label: "総合",
+        label: t("graph.series.overall"),
         data: yearDetails.map((d) => d.average),
         borderColor: "#f97316",
         backgroundColor: "rgba(249, 165, 80, 0.14)",
@@ -167,10 +181,10 @@ export default function GraphPage() {
         tension: 0.35,
         order: 0,
       },
-      { label: "数秘術", data: yearDetails.map((d) => d.numerology.wave), ...subPoint("#8b5cf6"), order: 1 },
-      { label: "マヤ暦", data: yearDetails.map((d) => d.mayan.wave), ...subPoint("#e11d48"), order: 2 },
-      { label: "九星気学", data: yearDetails.map((d) => d.nineStar.wave), ...subPoint("#10b981"), order: 3 },
-      { label: "四柱推命", data: yearDetails.map((d) => d.fourPillars.wave), ...subPoint("#06b6d4"), order: 4 },
+      { label: t("graph.series.numerology"), data: yearDetails.map((d) => d.numerology.wave), ...subPoint("#8b5cf6"), order: 1 },
+      { label: t("graph.series.mayan"), data: yearDetails.map((d) => d.mayan.wave), ...subPoint("#e11d48"), order: 2 },
+      { label: t("graph.series.ninestar"), data: yearDetails.map((d) => d.nineStar.wave), ...subPoint("#10b981"), order: 3 },
+      { label: t("graph.series.fourpillars"), data: yearDetails.map((d) => d.fourPillars.wave), ...subPoint("#06b6d4"), order: 4 },
     ],
   };
 
@@ -215,7 +229,8 @@ export default function GraphPage() {
         callbacks: {
           title: (items: { dataIndex: number }[]) => {
             const d = yearDetails[items[0].dataIndex];
-            return d ? `${d.year}年` : "";
+            if (!d) return "";
+            return lang === "ko" ? `${d.year}년` : `${d.year}年`;
           },
         },
       },
@@ -252,27 +267,27 @@ export default function GraphPage() {
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-xl font-bold text-accent-orange flex items-center gap-2">
           <span className="text-accent-gold">☽</span>
-          運勢グラフ
+          {t("graph.title")}
         </h2>
         <div className="flex items-center gap-2 text-xs rounded-full border border-accent-gold/40 bg-card-bg px-3.5 py-1.5 shadow-sm">
           <Link href="/yearly" className="text-accent-gold font-medium hover:text-accent-orange transition-colors">
-            年運詳細
+            {t("graph.yearlyLink")}
           </Link>
           <span className="text-accent-gold/40">/</span>
           <Link href="/monthly" className="text-accent-gold font-medium hover:text-accent-orange transition-colors">
-            月運勢
+            {t("graph.monthlyLink")}
           </Link>
         </div>
       </div>
 
       <UsageHelp
         storageKey="usage-help-graph"
-        title="運勢グラフの見方"
+        title={t("graph.help.title")}
         steps={[
-          <>折れ線は<strong>占術ごとの運気の流れ</strong>です。上にいくほど勢いがあり、下がる時期は充電・準備に向きます（“悪い”ではありません）。</>,
-          <><strong>★は今年</strong>の位置。過去から約10年先までの流れをひと目で確認できます。</>,
-          <>気になる<strong>年（点）をタップ</strong>すると、その年のテーマ・おすすめの過ごし方・注意点が下に表示されます。</>,
-          <>上の「年運詳細／月運勢」リンクから、さらに細かい流れも見られます。</>,
+          t("graph.help.step1"),
+          t("graph.help.step2"),
+          t("graph.help.step3"),
+          t("graph.help.step4"),
         ]}
       />
 
@@ -280,7 +295,7 @@ export default function GraphPage() {
       <div className="bg-card-bg border border-card-border rounded-2xl p-4 shadow-sm space-y-3">
         <p className="text-xs text-muted flex items-center gap-1.5">
           <span className="text-accent-gold">✦</span>
-          タップで年を選択 / ★は今年
+          {t("graph.tapHint")}
         </p>
         <div style={{ height: "260px" }}>
           <Line data={chartData} options={chartOptions} plugins={[glowPlugin]} />
@@ -289,7 +304,7 @@ export default function GraphPage() {
         {/* 凡例（色付きバッジ＋説明） */}
         <div className="grid grid-cols-1 gap-2 pt-1">
           {SERIES_LEGEND.map((s) => (
-            <div key={s.name} className="flex items-center gap-2.5">
+            <div key={s.nameKey} className="flex items-center gap-2.5">
               <span
                 className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-white text-xs shadow-sm ring-2 ring-white"
                 style={{ backgroundColor: s.color }}
@@ -297,10 +312,10 @@ export default function GraphPage() {
                 {s.icon}
               </span>
               <span className="text-sm font-bold" style={{ color: s.color }}>
-                {s.name}
+                {t(s.nameKey)}
               </span>
               <span className="flex-1 border-b border-dotted border-muted/30 mx-1" />
-              <span className="text-xs text-muted whitespace-nowrap">{s.desc}</span>
+              <span className="text-xs text-muted whitespace-nowrap">{t(s.descKey)}</span>
             </div>
           ))}
         </div>
@@ -310,16 +325,16 @@ export default function GraphPage() {
       {selected && (
         <div className="space-y-3">
           <h3 className="text-sm font-medium text-accent-gold flex items-center gap-1.5">
-            <span>◈</span> {selected.year}年の時期ガイド
+            <span>◈</span> {t("graph.periodGuide", { year: selected.year })}
             {selected.year === currentYear && (
-              <span className="ml-1 text-xs bg-accent-orange/20 text-accent-orange px-2 py-0.5 rounded-full">今年</span>
+              <span className="ml-1 text-xs bg-accent-orange/20 text-accent-orange px-2 py-0.5 rounded-full">{t("graph.thisYear")}</span>
             )}
           </h3>
 
           {/* 総合エネルギー */}
           <div className="bg-card-bg border border-card-border rounded-2xl p-4 shadow-sm">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-foreground">総合エネルギー</span>
+              <span className="text-sm font-medium text-foreground">{t("graph.totalEnergy")}</span>
               <span className="text-2xl font-bold text-accent-orange">{selected.average}<span className="text-xs text-muted ml-0.5">/100</span></span>
             </div>
             <div className="w-full bg-background rounded-full h-2.5">
@@ -333,19 +348,19 @@ export default function GraphPage() {
             </div>
             <p className="text-xs text-muted mt-2">
               {selected.average >= 80
-                ? "運気が高い年です。積極的にチャレンジしましょう！"
+                ? t("graph.energy.high")
                 : selected.average >= 60
-                ? "安定した運気の年。バランスよく過ごすと◎"
+                ? t("graph.energy.stable")
                 : selected.average >= 40
-                ? "力を蓄える年。準備と学びに集中しましょう"
-                : "充電の年。焦らず内面を充実させる時期です"}
+                ? t("graph.energy.build")
+                : t("graph.energy.charge")}
             </p>
           </div>
 
           {/* 数秘術 */}
           <GuideCard
-            title="数秘術"
-            subtitle={`パーソナルイヤー ${selected.numerology.personalYear}`}
+            title={t("graph.series.numerology")}
+            subtitle={`${t("home.year.personalYear")} ${selected.numerology.personalYear}`}
             wave={selected.numerology.wave}
             color="#8b5cf6"
             theme={selected.numerology.theme}
@@ -358,22 +373,22 @@ export default function GraphPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: "#e11d48" }} />
-                <span className="text-sm font-medium text-foreground">マヤ暦</span>
+                <span className="text-sm font-medium text-foreground">{t("graph.series.mayan")}</span>
               </div>
               <span className="text-sm font-bold" style={{ color: "#e11d48" }}>{selected.mayan.wave}<span className="text-xs text-muted">/100</span></span>
             </div>
             <p className="text-xs text-muted">{selected.mayan.label}</p>
             <p className="text-sm text-foreground/80">
-              {selected.year}年のテーマ紋章：{selected.mayan.sealName}（{selected.mayan.keyword}）
+              {t("graph.mayanThemeSeal", { year: selected.year, seal: selected.mayan.sealName, keyword: selected.mayan.keyword })}
             </p>
             <p className="text-xs text-accent-gold">
-              ▸ 銀河の音「{selected.mayan.toneName}」- {selected.mayan.toneKeyword}
+              {t("graph.mayanTone", { tone: selected.mayan.toneName, keyword: selected.mayan.toneKeyword })}
             </p>
           </div>
 
           {/* 九星気学 */}
           <GuideCard
-            title="九星気学"
+            title={t("graph.series.ninestar")}
             subtitle={selected.nineStar.positionName}
             wave={selected.nineStar.wave}
             color="#10b981"
@@ -390,10 +405,10 @@ export default function GraphPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-accent-orange">
-                  {selected.year}年の月ごとの運勢を見る
+                  {t("graph.monthlyCta", { year: selected.year })}
                 </p>
                 <p className="text-xs text-muted mt-0.5">
-                  12ヶ月の流れ・今月のテーマをチェック
+                  {t("graph.monthlySub")}
                 </p>
               </div>
               <span className="text-accent-orange text-xl">→</span>
@@ -403,7 +418,7 @@ export default function GraphPage() {
       )}
 
       <p className="text-center text-xs text-muted/60 px-4">
-        ※ 占いは参考情報です。人生の重要な判断はご自身の責任で行ってください。
+        {t("common.disclaimer")}
       </p>
     </div>
   );

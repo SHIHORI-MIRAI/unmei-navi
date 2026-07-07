@@ -2,17 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useI18n } from "@/lib/i18n/provider";
+import type { DictKey } from "@/lib/i18n/dict";
 
-const navItems = [
-  { href: "/", label: "ホーム", icon: "/nav/home.png" },
-  { href: "/graph", label: "運勢", icon: "/nav/fortune.png" },
-  { href: "/goal", label: "目標", icon: "/nav/goal.png" },
-  { href: "/analysis", label: "強み", icon: "/nav/strength.png" },
-  { href: "/diary", label: "日記", icon: "/nav/diary.png" },
+const navItems: { href: string; labelKey: DictKey; icon: string }[] = [
+  { href: "/", labelKey: "nav.home", icon: "/nav/home.png" },
+  { href: "/graph", labelKey: "nav.fortune", icon: "/nav/fortune.png" },
+  { href: "/goal", labelKey: "nav.goal", icon: "/nav/goal.png" },
+  { href: "/analysis", labelKey: "nav.strength", icon: "/nav/strength.png" },
+  { href: "/diary", labelKey: "nav.diary", icon: "/nav/diary.png" },
 ];
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const { t } = useI18n();
   if (pathname === "/unlock") return null;
 
   return (
@@ -39,7 +42,7 @@ export default function BottomNav() {
                   isActive ? "opacity-100" : "opacity-55 grayscale-[0.15] group-hover:opacity-90"
                 }`}
               />
-              <span>{item.label}</span>
+              <span>{t(item.labelKey)}</span>
             </Link>
           );
         })}

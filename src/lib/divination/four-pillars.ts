@@ -18,6 +18,10 @@ import {
   type FiveElement,
 } from "./stems-branches";
 
+// --- 多言語対応 ---
+import type { Lang } from "@/lib/i18n/dict";
+import { elementName } from "@/lib/i18n/fortune-terms";
+
 // --- 通変星（十神）---
 
 const TSUUHEN_NAMES = [
@@ -38,6 +42,19 @@ const TSUUHEN_MEANINGS: Record<TsuuhenStar, { keyword: string; personality: stri
   正官: { keyword: "責任・品格", personality: "責任感が強く、礼儀正しい。社会的な信頼を得やすい品格の持ち主" },
   偏印: { keyword: "知性・独創", personality: "独特な発想力と知的好奇心の持ち主。型にはまらない自由な思考が強み" },
   印綬: { keyword: "学問・思慮", personality: "知性と教養が高く、学ぶことが好き。思慮深く、人に教える力がある" },
+};
+
+const TSUUHEN_MEANINGS_KO: Record<TsuuhenStar, { keyword: string; personality: string }> = {
+  比肩: { keyword: "자립·독립", personality: "자기 힘으로 길을 개척하는 독립심이 강한 타입. 마이페이스로 신념을 관철하는 힘이 있어요" },
+  劫財: { keyword: "경쟁·사교", personality: "지기 싫어하고 행동력이 있는 타입. 사교적이며 사람을 끌어들이는 힘이 있어요" },
+  食神: { keyword: "재능·낙관", personality: "천진난만하고 재능이 풍부해요. 먹는 것·즐기는 것을 좋아하고 사람을 치유하는 힘이 있어요" },
+  傷官: { keyword: "감성·표현", personality: "감성이 예리하고 예술적인 재능이 있어요. 완벽주의이며 섬세한 마음의 소유자입니다" },
+  偏財: { keyword: "사교·상재", personality: "사람 사귀는 것이 능숙하고 돈을 움직이는 힘이 있어요. 활동적이고 남을 잘 챙깁니다" },
+  正財: { keyword: "견실·신용", personality: "성실하고 견실해요. 차근차근 쌓아가는 힘이 있고 신용을 소중히 여깁니다" },
+  偏官: { keyword: "행동·개혁", personality: "행동력과 결단력이 넘쳐요. 조직을 움직이는 힘이 있는 개혁가 타입입니다" },
+  正官: { keyword: "책임·품격", personality: "책임감이 강하고 예의 바릅니다. 사회적 신뢰를 얻기 쉬운 품격의 소유자입니다" },
+  偏印: { keyword: "지성·독창", personality: "독특한 발상력과 지적 호기심의 소유자. 틀에 얽매이지 않는 자유로운 사고가 강점입니다" },
+  印綬: { keyword: "학문·사려", personality: "지성과 교양이 높고 배우는 것을 좋아해요. 사려 깊고 사람을 가르치는 힘이 있어요" },
 };
 
 /**
@@ -104,6 +121,59 @@ const DAY_MASTER_MEANINGS: Record<string, { title: string; personality: string; 
   },
 };
 
+const DAY_MASTER_MEANINGS_KO: Record<string, { title: string; personality: string; strength: string }> = {
+  甲: {
+    title: "큰 나무",
+    personality: "곧게 뻗어가는 큰 나무처럼 정의감이 강하고 리더십이 있어요. 그릇된 것을 싫어합니다",
+    strength: "통솔력·정의감·향상심",
+  },
+  乙: {
+    title: "화초",
+    personality: "유연한 화초처럼 융통성이 있고 적응력이 있어요. 상냥하고 남의 마음에 다가갈 수 있어요",
+    strength: "유연성·협조성·끈기",
+  },
+  丙: {
+    title: "태양",
+    personality: "태양처럼 밝고 주위를 비추는 존재. 열정적이며 사람을 끌어당기는 카리스마가 있어요",
+    strength: "열정·카리스마·행동력",
+  },
+  丁: {
+    title: "등불",
+    personality: "등불처럼 섬세하고 따뜻해요. 내면에 격렬한 열정을 지니면서도 겉은 온화합니다",
+    strength: "통찰력·섬세함·예술성",
+  },
+  戊: {
+    title: "산",
+    personality: "산처럼 든든하게 자리 잡아 안정감이 있어요. 잘 돌보고 신뢰받는 존재입니다",
+    strength: "안정감·포용력·신뢰감",
+  },
+  己: {
+    title: "논밭",
+    personality: "풍요로운 논밭처럼 사람을 키우는 힘이 있어요. 겸손하고 묵묵히 뒷받침하는 조력자입니다",
+    strength: "육성력·겸손함·인내력",
+  },
+  庚: {
+    title: "검·쇠",
+    personality: "단련된 쇠처럼 강한 의지와 결단력이 있어요. 정의감이 강하고 스토익합니다",
+    strength: "결단력·실행력·정의감",
+  },
+  辛: {
+    title: "보석",
+    personality: "다듬어진 보석처럼 미의식이 높고 완벽을 추구해요. 섬세하고 감수성이 풍부합니다",
+    strength: "미의식·감수성·품격",
+  },
+  壬: {
+    title: "큰 바다",
+    personality: "큰 바다처럼 자유롭고 스케일이 큰 발상을 할 수 있어요. 지성파이며 많은 사람을 받아들입니다",
+    strength: "지성·자유·포용력",
+  },
+  癸: {
+    title: "비·안개",
+    personality: "고요한 비처럼 촉촉함과 치유를 주는 존재. 직감이 예리하고 정신성이 높아요",
+    strength: "직감력·치유·정신성",
+  },
+};
+
 // --- 大運（10年ごとの運気）簡易版 ---
 
 interface TaiUn {
@@ -114,10 +184,27 @@ interface TaiUn {
   theme: string;
 }
 
+const TAIUN_THEMES: Record<FiveElement, string> = {
+  木: "成長と発展の時期。新しいことを始めるのに最適",
+  火: "情熱と輝きの時期。積極的に行動すると吉",
+  土: "安定と蓄積の時期。地盤を固める好機",
+  金: "収穫と決断の時期。実力が試される時",
+  水: "知恵と変化の時期。学びと柔軟さが鍵",
+};
+
+const TAIUN_THEMES_KO: Record<FiveElement, string> = {
+  木: "성장과 발전의 시기. 새로운 것을 시작하기에 최적입니다",
+  火: "열정과 빛남의 시기. 적극적으로 행동하면 길합니다",
+  土: "안정과 축적의 시기. 기반을 다지는 좋은 기회입니다",
+  金: "수확과 결단의 시기. 실력이 시험받는 때입니다",
+  水: "지혜와 변화의 시기. 배움과 유연함이 열쇠입니다",
+};
+
 function calcTaiUnSimple(
   monthPillar: StemBranch,
   yearStemYinYang: string,
-  gender: "male" | "female"
+  gender: "male" | "female",
+  lang: Lang = "ja"
 ): TaiUn[] {
   const monthStemIdx = HEAVENLY_STEMS.findIndex(
     (s) => s.name === monthPillar.stem.name
@@ -140,13 +227,7 @@ function calcTaiUnSimple(
     const branch = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"][branchIdx];
     const element = stem.element as FiveElement;
 
-    const themes: Record<FiveElement, string> = {
-      木: "成長と発展の時期。新しいことを始めるのに最適",
-      火: "情熱と輝きの時期。積極的に行動すると吉",
-      土: "安定と蓄積の時期。地盤を固める好機",
-      金: "収穫と決断の時期。実力が試される時",
-      水: "知恵と変化の時期。学びと柔軟さが鍵",
-    };
+    const themes = lang === "ko" ? TAIUN_THEMES_KO : TAIUN_THEMES;
 
     result.push({
       startAge: i * 10 - 7, // 簡易的に3歳起算
@@ -187,7 +268,8 @@ export interface FourPillarsResult {
 
 export function calcFourPillars(
   birthDate: string,
-  birthTime?: string
+  birthTime?: string,
+  lang: Lang = "ja"
 ): FourPillarsResult {
   const [y, m, d] = birthDate.split("-").map(Number);
 
@@ -204,7 +286,8 @@ export function calcFourPillars(
   }
 
   // 日主
-  const dayMasterData = DAY_MASTER_MEANINGS[dayPillar.stem.name] || DAY_MASTER_MEANINGS["甲"];
+  const dayMasterTable = lang === "ko" ? DAY_MASTER_MEANINGS_KO : DAY_MASTER_MEANINGS;
+  const dayMasterData = dayMasterTable[dayPillar.stem.name] || dayMasterTable["甲"];
   const dayMaster = {
     stem: dayPillar.stem.name,
     element: dayPillar.stem.element as FiveElement,
@@ -244,10 +327,10 @@ export function calcFourPillars(
   }
 
   // 月柱の通変星が最も影響力が大きい
-  const tsuuhenMeaning = TSUUHEN_MEANINGS[monthStar];
+  const tsuuhenMeaning = (lang === "ko" ? TSUUHEN_MEANINGS_KO : TSUUHEN_MEANINGS)[monthStar];
 
   // 大運
-  const taiUn = calcTaiUnSimple(monthPillar, yearPillar.stem.yin_yang, "female");
+  const taiUn = calcTaiUnSimple(monthPillar, yearPillar.stem.yin_yang, "female", lang);
 
   return {
     yearPillar,
@@ -306,14 +389,15 @@ export function getFourPillarsMonthWave(
  */
 export function getFourPillarsMonthInfo(
   year: number,
-  month: number
+  month: number,
+  lang: Lang = "ja"
 ): { stem: string; branch: string; kanshi: string; element: string } {
   const monthPillar = calcMonthPillar(year, month, 15);
   return {
     stem: monthPillar.stem.name,
     branch: monthPillar.branch.name,
     kanshi: monthPillar.kanshi,
-    element: monthPillar.stem.element,
+    element: elementName(monthPillar.stem.element, lang),
   };
 }
 
