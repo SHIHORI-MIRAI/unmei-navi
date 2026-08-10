@@ -213,6 +213,23 @@ body {
     page-break-inside: avoid;
   }
 
+  /*
+   * 有料版トリセツ（/manual/pro）は「全20ページ」の冊子として印刷する。
+   * 1章＝1ページになるよう章の前で必ず改ページし、本文は1ページに収まらないので
+   * section の break-inside: avoid を打ち消す。
+   */
+  .pro-chapter {
+    break-before: page;
+    page-break-before: always;
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .pro-chapter:first-of-type {
+    break-before: auto;
+    page-break-before: auto;
+  }
+
   /* カードの背景は白に、枠線は黒系で */
   .bg-card-bg,
   [class*="bg-amber-50"],

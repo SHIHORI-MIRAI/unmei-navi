@@ -73,6 +73,12 @@ const L: Record<Lang, Record<string, string>> = {
     // フッター
     footer: "※ 各占術の簡易計算による参考情報です。人生の主役はいつもあなた自身。",
     footerTime: "（出生時刻を登録すると四柱推命がより精密になります）",
+    // 有料版への導線
+    proBadge: "PREMIUM",
+    proTitle: "もっと詳しい、全20ページの取扱説明書",
+    proBody:
+      "才能・人間関係・仕事・お金・これから3年の過ごし方まで。あなただけの鑑定書としてお作りします。",
+    proCta: "くわしく見る",
   },
   ko: {
     title: "나만의 사용설명서",
@@ -131,6 +137,12 @@ const L: Record<Lang, Record<string, string>> = {
     // 푸터
     footer: "※ 각 점술의 간이 계산에 따른 참고 정보예요. 인생의 주인공은 언제나 당신 자신이에요.",
     footerTime: "(출생 시각을 등록하면 사주가 더 정밀해져요.)",
+    // 유료판 안내
+    proBadge: "PREMIUM",
+    proTitle: "더 자세한, 전 20페이지의 사용설명서",
+    proBody:
+      "재능·인간관계·일·돈, 그리고 앞으로 3년을 보내는 법까지. 당신만을 위한 감정서로 만들어 드려요.",
+    proCta: "자세히 보기",
   },
 };
 
@@ -222,6 +234,21 @@ export default function ManualPage() {
         title={s.helpTitle}
         steps={helpSteps}
       />
+
+      {/* 有料版（全20ページ）への導線 */}
+      <Link
+        href="/manual/pro"
+        className="no-print block bg-gradient-to-br from-accent-gold/15 via-card-bg to-accent-orange/10 border border-accent-gold/40 rounded-2xl p-3.5 shadow-sm space-y-1.5"
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-[9px] tracking-[0.18em] font-bold text-accent-gold border border-accent-gold/50 rounded-full px-2 py-0.5">
+            {s.proBadge}
+          </span>
+          <span className="text-[13px] font-bold text-foreground">{s.proTitle}</span>
+        </div>
+        <p className="text-[12px] text-foreground/80 leading-relaxed">{s.proBody}</p>
+        <p className="text-[12px] text-accent-orange font-medium">{s.proCta} →</p>
+      </Link>
 
       {/* 目次 */}
       <nav className="bg-card-bg border border-card-border rounded-2xl p-3.5 shadow-sm">

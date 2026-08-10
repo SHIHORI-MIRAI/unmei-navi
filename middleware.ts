@@ -19,6 +19,12 @@ export function middleware(req: NextRequest) {
     path === "/unlock" ||
     path === "/terms" ||
     path === "/privacy" ||
+    path === "/law" ||
+    // 有料版トリセツは一般向けの販売ページ。アプリのパスワードとは別に、
+    // 購入cookie（unmei-pro）で自前に保護しているのでここは通す
+    path === "/manual/pro" ||
+    path.startsWith("/api/pro-unlock") ||
+    path.startsWith("/api/pro-manual") ||
     path.startsWith("/api/unlock") ||
     path.startsWith("/_next") ||
     path.startsWith("/favicon") ||

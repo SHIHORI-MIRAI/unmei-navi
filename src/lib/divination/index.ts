@@ -121,6 +121,19 @@ export type {
   LifeStory,
 } from "./life-timeline";
 
+export {
+  PRO_CHAPTERS,
+  PRO_PART_COUNT,
+  PRO_PAGE_COUNT,
+  PRO_PRICE_JPY,
+  PRO_PRICE_LABEL,
+  PART_TITLES,
+  chaptersOfPart,
+  buildProDossier,
+  isProManualComplete,
+} from "./pro-manual";
+export type { ProChapterSpec, ProManual, ProManualChapter } from "./pro-manual";
+
 export { buildSelfManual } from "./self-manual";
 export type {
   SelfManual,

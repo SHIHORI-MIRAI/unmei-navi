@@ -478,6 +478,48 @@ export function clearLifeReading(): void {
   localStorage.removeItem(LIFE_READING_KEY);
 }
 
+// --- Pro Manual（有料版トリセツ。別キー保存・容量が大きいためバックアップ対象外） ---
+
+/** 保存形は pro-manual.ts の ProManual と同じだが、storage を占術ロジックに依存させないため構造的に定義する */
+export interface StoredProManual {
+  version: 1;
+  generatedAt: string;
+  lang: string;
+  name: string;
+  birthDate: string;
+  birthTime: string;
+  chapters: { no: number; body: string; keyPoints: string[] }[];
+}
+
+const PRO_MANUAL_KEY = "unmei-pro-manual";
+
+export function loadProManual(): StoredProManual | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(PRO_MANUAL_KEY);
+    return raw ? (JSON.parse(raw) as StoredProManual) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveProManual(m: StoredProManual): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    localStorage.setItem(PRO_MANUAL_KEY, JSON.stringify(m));
+    return true;
+  } catch (e) {
+    // 20章ぶんの本文は数十KB。容量超過で消えると購入者の成果物を失うため必ず知らせる
+    console.error("[storage] saveProManual failed:", e);
+    return false;
+  }
+}
+
+export function clearProManual(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(PRO_MANUAL_KEY);
+}
+
 const LAST_EXPORT_KEY = "unmei-navi-last-export";
 
 export function markExported(): void {
