@@ -165,6 +165,17 @@ ${assignments}${written}
 
     const response = await stream.finalMessage();
 
+    // 1件あたりの原価を推測せず実測するためのログ。
+    // claude-opus-5 は入力$5/百万トークン・出力$25/百万トークン（thinking も出力に含まれる）
+    const u = response.usage;
+    const costUsd =
+      ((u.input_tokens + (u.cache_creation_input_tokens ?? 0)) * 5 +
+        u.output_tokens * 25) /
+      1_000_000;
+    console.log(
+      `[pro-manual] 第${part}部 完了 / 入力${u.input_tokens} 出力${u.output_tokens} トークン / 約$${costUsd.toFixed(3)}`
+    );
+
     if (response.stop_reason === "refusal") {
       return NextResponse.json(
         { ok: false, message: "この内容は鑑定書にできませんでした。" },
@@ -205,7 +216,11 @@ ${assignments}${written}
       );
     }
 
-    return NextResponse.json({ ok: true, chapters });
+    return NextResponse.json({
+      ok: true,
+      chapters,
+      usage: { inputTokens: u.input_tokens, outputTokens: u.output_tokens, costUsd },
+    });
   } catch (e) {
     console.error("[pro-manual] error:", e);
     const msg =

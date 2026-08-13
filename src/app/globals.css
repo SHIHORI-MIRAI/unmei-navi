@@ -230,6 +230,13 @@ body {
     page-break-before: auto;
   }
 
+  /* 図版だけがページをまたいで割れると読めなくなる */
+  .pro-figure {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    background: #fff !important;
+  }
+
   /* カードの背景は白に、枠線は黒系で */
   .bg-card-bg,
   [class*="bg-amber-50"],

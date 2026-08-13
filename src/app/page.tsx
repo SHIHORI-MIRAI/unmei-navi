@@ -391,6 +391,39 @@ export default function Home() {
         </span>
       </Link>
 
+      {/* 有料版メニュー（商品が増えても入口は1つ。中で商品を並べる） */}
+      <Link
+        href="/premium"
+        className="animate-fade-up group relative overflow-hidden flex items-center gap-3.5 rounded-2xl border border-accent-gold/50 p-3.5 shadow-sm transition-transform active:scale-[0.99]"
+        style={{
+          background:
+            "linear-gradient(135deg, rgba(196,148,42,0.22), rgba(232,130,12,0.14), rgba(255,255,255,0.65))",
+          animationDelay: "0.31s",
+        }}
+      >
+        <span className="flex-shrink-0 w-14 h-14 rounded-2xl bg-white/70 flex items-center justify-center text-3xl shadow-inner">
+          ✨
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <p className="font-mincho text-base font-bold text-foreground">
+              {lang === "ko" ? "유료판" : "有料版"}
+            </p>
+            <span className="text-[9px] tracking-[0.12em] border border-accent-gold text-accent-gold px-1.5 py-0.5 rounded-full">
+              {lang === "ko" ? "1회 결제" : "買い切り"}
+            </span>
+          </div>
+          <p className="text-[11px] text-muted mt-0.5 leading-relaxed">
+            {lang === "ko"
+              ? "나만의 사용설명서 PREMIUM · 전 20페이지 · 3,300엔"
+              : "わたしの取扱説明書 PREMIUM・全20ページ・3,300円"}
+          </p>
+        </div>
+        <span className="text-accent-gold/60 text-2xl mr-1 transition-transform group-hover:translate-x-0.5">
+          ›
+        </span>
+      </Link>
+
       {/* 機能メニュー（水彩アイコン） */}
       <div className="space-y-2.5">
         {MENU_ITEMS.map((m, i) => (

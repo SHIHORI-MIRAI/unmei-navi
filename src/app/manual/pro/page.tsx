@@ -12,6 +12,7 @@ import {
 } from "@/lib/divination";
 import { useI18n } from "@/lib/i18n/provider";
 import type { Lang } from "@/lib/i18n/dict";
+import ChapterChart from "@/components/ProCharts";
 
 /** この画面固有の二言語文言（dict.ts は編集禁止のためローカルで持つ） */
 const L: Record<Lang, Record<string, string>> = {
@@ -61,10 +62,12 @@ const L: Record<Lang, Record<string, string>> = {
     diffPro5: "印刷・PDFで手元に。人にも渡せる",
     // サンプル
     sampleTitle: "文章のサンプル",
+    // 実際にAIが書いた鑑定書からの抜粋（第3章）。作り手本人のものだが、
+    // 個人が特定されないよう名前は出さず、命式の特徴だけを添えている
     sampleNote:
-      "例：日主が丙（太陽）・主星が調舒星の方の「第3章 生まれ持った才能」より。実際の文章は、あなたの命式に合わせて書き下ろされます。",
+      "実際にお届けした鑑定書からの抜粋です（日主が庚＝鍛えられた鉄・主星が龍高星の方の「第3章 生まれ持った才能」より）。文章は、あなたの命式に合わせて一から書き下ろされます。",
     sampleBody:
-      "あなたの強みは、ひとことでいえば「感じ取る力」と「照らす力」が同じ人の中に同居していることです。四柱推命であなたを表す日主は丙、太陽をあらわす天干です。その場にいるだけで空気が明るくなり、人が自然と集まってきます。一方、算命学の中央にある調舒星は、繊細な感受性と芸術性の星。人が言葉にしない気持ちの揺れを、あなたは先に感じ取ってしまいます。\n\nこの2つは一見すると正反対に見えますが、組み合わさると強力です。ただ明るいだけの人には、傷ついている人の本音は届きません。あなたは、相手の痛みを感じ取ったうえで、それでも前を向ける明るさを差し出せる。これは訓練で身につくものではなく、生まれ持った配置です。",
+      "一つめは、決めきる力です。四柱推命の日主である庚は、鍛えられた鉄や剣。刃物は迷わないからこそ切れます。あなたの命式は金が三つと最も多く、この決断の気が濃く出ています。ここに算命学の腹の天将星、十二大従星で最大値の12というエネルギーが加わります。腹は行動と現場を司る場所ですから、腹の据わり方が違うのです。具体的には、会議が延々と結論を出せずにいるとき、誰も動けないとき、あなたが「じゃあこうしましょう」と言って場が動く。日常では、レストランで全員のメニューが決まらないときに「私はこれ、決めた」と最初に言う人でもあるはずです。\n\n（中略）\n\n四つめは、味わい表現する感性です。四柱推命の通変星に月柱の食神、時柱の傷官が並んでいます。食神は食べること・楽しむこと・人を癒す力の星、傷官は繊細な感性と表現の星です。鉄の人という硬い印象の裏で、あなたはおいしいものに素直に感動し、美しい言葉や音に反応し、それを人に伝えたくなる。この感性が、決断力という硬さを人に届く形に翻訳してくれています。",
     sampleFoot: "※ サンプルは一例です。実際の内容は生年月日によって大きく変わります。",
     forTitle: "こんな方に",
     for1: "自分の強みを、人に説明できる言葉にしたい方",
@@ -77,7 +80,8 @@ const L: Record<Lang, Record<string, string>> = {
     how2: "生年月日を確認",
     how2d: "登録済みのプロフィールをそのまま使えます。出生時刻があるとより精密になります。",
     how3: "作成ボタンを押す",
-    how3d: "3〜5分ほどで全20ページが仕上がります。ページを閉じずにお待ちください。",
+    how3d:
+      "2つずつ同時に書くので、5〜8分ほどで全20ページが仕上がります。書けた章から順に読めます。",
     how4: "印刷・PDF保存",
     how4d: "作成後はいつでも読み返せます。印刷ボタンからPDFとして保存できます。",
     priceLabel: "全20ページ・買い切り",
@@ -110,7 +114,12 @@ const L: Record<Lang, Record<string, string>> = {
     generate: "全20ページを作成する",
     regenerate: "作り直す",
     generating: "作成中",
-    generatingNote: "ページを閉じずにお待ちください。3〜5分ほどかかります。",
+    generatingNote:
+      "2つずつ同時に書いています（全部そろうまで5〜8分）。書けた章から下に出るので、先に読み始められます。途中でページを閉じた場合、そこまでに書けた章は残ります。",
+    missingNote: "まだ書けていない部が{n}つあります。続きを作成できます（書けている章はそのまま残ります）。",
+    continueGenerate: "続きを作成する",
+    chapterWriting: "執筆中…",
+    chapterMissing: "まだ作成されていません",
     partOf: "／全{n}部",
     aiNotReady:
       "AIによる作成はまだ準備中です（サーバーにAPIキーが未設定です）。設定が完了するまでお待ちください。",
@@ -176,9 +185,9 @@ const L: Record<Lang, Record<string, string>> = {
     // 샘플
     sampleTitle: "문장 샘플",
     sampleNote:
-      "예: 일간이 병(태양)·주성이 조서성인 분의 「제3장 타고난 재능」에서. 실제 문장은 당신의 명식에 맞춰 새로 쓰여집니다.",
+      "실제로 전해 드린 감정서에서 발췌했습니다(일간이 경庚＝단련된 쇠·주성이 용고성인 분의 「제3장 타고난 재능」에서). 문장은 당신의 명식에 맞춰 처음부터 새로 쓰여집니다.",
     sampleBody:
-      "당신의 강점은 한마디로 '느끼는 힘'과 '비추는 힘'이 한 사람 안에 함께 있다는 것입니다. 사주에서 당신을 나타내는 일간은 병(丙), 태양을 뜻하는 천간입니다. 그 자리에 있는 것만으로 공기가 밝아지고, 사람이 자연스럽게 모여듭니다. 한편 산명학의 중앙에 있는 조서성은 섬세한 감수성과 예술성의 별. 사람들이 말로 하지 않는 마음의 흔들림을 당신은 먼저 느껴 버립니다.\n\n이 둘은 언뜻 정반대로 보이지만, 합쳐지면 강력합니다. 그저 밝기만 한 사람에게는 상처 입은 사람의 속마음이 닿지 않습니다. 당신은 상대의 아픔을 느낀 뒤에도, 그럼에도 앞을 볼 수 있는 밝음을 건넬 수 있습니다. 이는 훈련으로 익히는 것이 아니라 타고난 배치입니다.",
+      "첫 번째는 끝까지 결정하는 힘입니다. 사주에서 당신을 나타내는 일간 경(庚)은 단련된 쇠이자 검입니다. 칼은 망설이지 않기에 벨 수 있습니다. 당신의 명식은 금(金)이 셋으로 가장 많아, 이 결단의 기운이 짙게 나타납니다. 여기에 산명학에서 배에 자리한 천장성, 십이대종성 중 최대치인 12라는 에너지가 더해집니다. 배는 행동과 현장을 관장하는 자리이니 배짱이 다른 것입니다. 회의가 끝없이 결론을 내지 못할 때, 아무도 움직이지 못할 때, 당신이 '그럼 이렇게 합시다'라고 말해 자리가 움직입니다.\n\n(중략)\n\n네 번째는 맛보고 표현하는 감성입니다. 사주의 통변성에 월주의 식신, 시주의 상관이 나란히 있습니다. 식신은 먹고 즐기고 사람을 치유하는 힘의 별, 상관은 섬세한 감성과 표현의 별입니다. 쇠의 사람이라는 단단한 인상 뒤에서, 당신은 맛있는 것에 솔직하게 감동하고 아름다운 말과 소리에 반응하며 그것을 남에게 전하고 싶어집니다. 이 감성이 결단력이라는 단단함을 사람에게 닿는 형태로 번역해 줍니다.",
     sampleFoot: "※ 샘플은 하나의 예입니다. 실제 내용은 생년월일에 따라 크게 달라집니다.",
     forTitle: "이런 분께",
     for1: "자신의 강점을 남에게 설명할 수 있는 말로 만들고 싶은 분",
@@ -191,7 +200,8 @@ const L: Record<Lang, Record<string, string>> = {
     how2: "생년월일 확인",
     how2d: "등록된 프로필을 그대로 쓸 수 있습니다. 출생시각이 있으면 더 정밀해집니다.",
     how3: "작성 버튼 누르기",
-    how3d: "3~5분 정도면 전 20페이지가 완성됩니다. 페이지를 닫지 말고 기다려 주세요.",
+    how3d:
+      "2개씩 동시에 쓰기 때문에 5~8분 정도면 전 20페이지가 완성됩니다. 완성된 장부터 바로 읽을 수 있어요.",
     how4: "인쇄·PDF 저장",
     how4d: "작성 후에는 언제든 다시 읽을 수 있습니다. 인쇄 버튼에서 PDF로 저장할 수 있습니다.",
     priceLabel: "전 20페이지·1회 결제",
@@ -222,7 +232,12 @@ const L: Record<Lang, Record<string, string>> = {
     generate: "전 20페이지 작성하기",
     regenerate: "다시 만들기",
     generating: "작성 중",
-    generatingNote: "페이지를 닫지 말고 기다려 주세요. 3~5분 정도 걸립니다.",
+    generatingNote:
+      "2개씩 동시에 집필 중입니다(전부 완성까지 5~8분). 완성된 장부터 아래에 나오니 먼저 읽으실 수 있어요. 도중에 페이지를 닫으면 그때까지 완성된 장은 남습니다.",
+    missingNote: "아직 완성되지 않은 부가 {n}개 있습니다. 이어서 작성할 수 있어요(완성된 장은 그대로 남습니다).",
+    continueGenerate: "이어서 작성하기",
+    chapterWriting: "집필 중…",
+    chapterMissing: "아직 작성되지 않았습니다",
     partOf: "／전 {n}부",
     aiNotReady:
       "AI 작성은 아직 준비 중입니다(서버에 API 키가 설정되지 않았습니다). 설정이 끝날 때까지 기다려 주세요.",
@@ -241,6 +256,16 @@ const L: Record<Lang, Record<string, string>> = {
     backToManual: "무료판 사용설명서로",
   },
 };
+
+/** 第◯部の作成状況 */
+type PartState = "idle" | "loading" | "done" | "error";
+
+/**
+ * 同時に走らせる部の数。
+ * 4本まとめて投げると、契約したてのアカウントでは1分あたりのトークン上限に当たって
+ * 落ちる。2本なら上限に触れにくく、それでも順番に書くより倍ほど速い。
+ */
+const CONCURRENCY = 2;
 
 interface UnlockStatus {
   unlocked: boolean;
@@ -268,80 +293,131 @@ export default function ProManualPage() {
   const [birthTime, setBirthTime] = useState("");
 
   const [busy, setBusy] = useState(false);
-  const [progress, setProgress] = useState(0); // 完了したパート数
+  /** 第1〜4部それぞれの状態。並列に走るので部ごとに持つ */
+  const [partStates, setPartStates] = useState<PartState[]>(() =>
+    Array<PartState>(PRO_PART_COUNT).fill("idle")
+  );
   const [error, setError] = useState("");
   const [saveFailed, setSaveFailed] = useState(false);
   const [code, setCode] = useState("");
   const [codeError, setCodeError] = useState("");
 
   useEffect(() => {
-    const p = loadProfile();
-    if (p) {
-      setName(p.name || "");
-      setBirthDate(p.birthDate || "");
-      setBirthTime(p.birthTime || "");
-    }
-    setManual(loadProManual());
+    // localStorage の読み出しはサーバー側では実行できないため、
+    // 購入状態の問い合わせが返ってきたタイミングでまとめて反映する
+    // （画面はそれまで読み込み中を出しているので、ちらつかない）
+    const profile = loadProfile();
+    const stored = loadProManual();
+
+    const apply = (d: UnlockStatus) => {
+      if (profile) {
+        setName(profile.name || "");
+        setBirthDate(profile.birthDate || "");
+        setBirthTime(profile.birthTime || "");
+      }
+      if (stored) setManual(stored);
+      setStatus(d);
+    };
 
     fetch("/api/pro-unlock")
       .then((r) => r.json())
-      .then((d: UnlockStatus) => setStatus(d))
+      .then(apply)
       .catch(() =>
-        setStatus({ unlocked: false, paypal: false, codeEnabled: false, aiReady: false })
+        apply({ unlocked: false, paypal: false, codeEnabled: false, aiReady: false })
       );
   }, []);
 
   // --- 生成 ---
-  const generate = useCallback(async () => {
-    if (!birthDate) return;
-    setBusy(true);
-    setError("");
-    setSaveFailed(false);
-    setProgress(0);
+  //
+  // 4つの部を「順番に」ではなく「同時に」走らせる。待ち時間が1/4近くになるうえ、
+  // できた部から順に画面に出して保存するので、途中でページを閉じても書けた分は残る。
+  // （同時実行のため、他の部が何を書いたかを渡す重複チェックは行わない。
+  //   章ごとの執筆指示と全20章の目次で書き分けている）
+  const accRef = useRef<StoredProManual | null>(null);
 
-    const collected: { no: number; body: string; keyPoints: string[] }[] = [];
+  const generate = useCallback(
+    async (only?: number[]) => {
+      if (!birthDate) return;
+      const targets =
+        only && only.length > 0
+          ? only
+          : Array.from({ length: PRO_PART_COUNT }, (_, i) => i + 1);
 
-    try {
-      for (let part = 1; part <= PRO_PART_COUNT; part++) {
-        const res = await fetch("/api/pro-manual", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            part,
+      // 前回の続きを書き足すのは、同じ人・同じ言語のときだけ
+      const resumable =
+        manual &&
+        manual.birthDate === birthDate &&
+        manual.birthTime === birthTime &&
+        manual.lang === lang;
+      accRef.current = resumable
+        ? { ...manual, chapters: [...manual.chapters] }
+        : {
+            version: 1,
+            generatedAt: new Date().toISOString(),
+            lang,
             name,
             birthDate,
             birthTime,
-            lang,
-            previousKeyPoints: collected.map((c) => ({ no: c.no, points: c.keyPoints })),
-          }),
+            chapters: [],
+          };
+
+      setBusy(true);
+      setError("");
+      setSaveFailed(false);
+      // 実際に書き始めた部だけを「執筆中」にしたいので、ここでは待機に戻すだけ
+      setPartStates((prev) => prev.map((st, i) => (targets.includes(i + 1) ? "idle" : st)));
+
+      const runPart = async (part: number) => {
+        const res = await fetch("/api/pro-manual", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ part, name, birthDate, birthTime, lang }),
         });
         const data = await res.json();
-        if (!data.ok) {
-          setError(data.message || "作成に失敗しました");
-          setBusy(false);
-          return;
-        }
-        collected.push(...data.chapters);
-        setProgress(part);
-      }
+        if (!data.ok) throw new Error(data.message || "作成に失敗しました");
 
-      const built: StoredProManual = {
-        version: 1,
-        generatedAt: new Date().toISOString(),
-        lang,
-        name,
-        birthDate,
-        birthTime,
-        chapters: collected.sort((a, b) => a.no - b.no),
+        const acc = accRef.current!;
+        // 作り直したときに同じ章が二重に入らないよう、章番号で置き換える
+        const byNo = new Map(acc.chapters.map((c) => [c.no, c]));
+        for (const c of data.chapters) byNo.set(c.no, c);
+        acc.chapters = [...byNo.values()].sort((a, b) => a.no - b.no);
+        acc.generatedAt = new Date().toISOString();
+
+        setManual({ ...acc, chapters: [...acc.chapters] });
+        if (!saveProManual(acc)) setSaveFailed(true);
       };
-      setManual(built);
-      if (!saveProManual(built)) setSaveFailed(true);
-    } catch {
-      setError("通信に失敗しました。もう一度お試しください。");
-    } finally {
+
+      // 取り出して順に処理する共有キュー。同時に走るのは CONCURRENCY 本まで
+      const queue = [...targets];
+      const worker = async () => {
+        for (let part = queue.shift(); part !== undefined; part = queue.shift()) {
+          const current = part;
+          setPartStates((prev) => prev.map((st, i) => (i + 1 === current ? "loading" : st)));
+          try {
+            await runPart(part);
+          } catch {
+            // 一時的な混雑や回線の切断で落ちることがあるため、一度だけ置き直す
+            try {
+              await new Promise((r) => setTimeout(r, 4000));
+              await runPart(part);
+            } catch (e2) {
+              setPartStates((prev) => prev.map((st, i) => (i + 1 === part ? "error" : st)));
+              setError(e2 instanceof Error ? e2.message : "作成に失敗しました");
+              continue;
+            }
+          }
+          setPartStates((prev) => prev.map((st, i) => (i + 1 === part ? "done" : st)));
+        }
+      };
+
+      await Promise.all(
+        Array.from({ length: Math.min(CONCURRENCY, targets.length) }, worker)
+      );
+
       setBusy(false);
-    }
-  }, [birthDate, birthTime, name, lang]);
+    },
+    [birthDate, birthTime, name, lang, manual]
+  );
 
   const submitCode = useCallback(async () => {
     setCodeError("");
@@ -392,7 +468,8 @@ export default function ProManualPage() {
     );
   }
 
-  if (manual) {
+  // 1章でも書けていれば、残りを待たずに読める画面へ進む
+  if (manual && manual.chapters.length > 0) {
     return (
       <ManualView
         s={s}
@@ -400,9 +477,9 @@ export default function ProManualPage() {
         manual={manual}
         saveFailed={saveFailed}
         busy={busy}
-        progress={progress}
+        partStates={partStates}
         error={error}
-        onRegenerate={generate}
+        onGenerate={generate}
       />
     );
   }
@@ -419,7 +496,7 @@ export default function ProManualPage() {
       birthTime={birthTime}
       setBirthTime={setBirthTime}
       busy={busy}
-      progress={progress}
+      partStates={partStates}
       error={error}
       onGenerate={generate}
     />
@@ -753,7 +830,7 @@ function GenerateView({
   birthTime,
   setBirthTime,
   busy,
-  progress,
+  partStates,
   error,
   onGenerate,
 }: {
@@ -767,9 +844,9 @@ function GenerateView({
   birthTime: string;
   setBirthTime: (v: string) => void;
   busy: boolean;
-  progress: number;
+  partStates: PartState[];
   error: string;
-  onGenerate: () => void;
+  onGenerate: (only?: number[]) => void;
 }) {
   return (
     <div className="space-y-4">
@@ -818,10 +895,10 @@ function GenerateView({
         s={s}
         lang={lang}
         busy={busy}
-        progress={progress}
+        partStates={partStates}
         disabled={!birthDate || !aiReady}
         label={s.generate}
-        onClick={onGenerate}
+        onClick={() => onGenerate()}
       />
 
       {!birthDate && <p className="text-center text-[12px] text-muted">{s.noProfile}</p>}
@@ -832,11 +909,63 @@ function GenerateView({
   );
 }
 
+/** 第1〜4部の進み具合。4つ同時に走るので、部ごとに状態を出す */
+function PartProgress({
+  s,
+  lang,
+  partStates,
+}: {
+  s: Record<string, string>;
+  lang: Lang;
+  partStates: PartState[];
+}) {
+  const done = partStates.filter((p) => p === "done").length;
+  const mark: Record<PartState, string> = {
+    idle: "…",
+    loading: "✎",
+    done: "✓",
+    error: "✕",
+  };
+
+  return (
+    <div className="bg-card-bg border border-accent-gold/40 rounded-2xl p-4 space-y-2.5">
+      <p className="text-sm font-bold text-accent-orange text-center">
+        {s.generating} {done}
+        {s.partOf.replace("{n}", String(PRO_PART_COUNT))}
+      </p>
+      <div className="h-2 bg-accent-gold/15 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-accent-orange transition-all duration-500"
+          style={{ width: `${(done / PRO_PART_COUNT) * 100}%` }}
+        />
+      </div>
+      <div className="space-y-1">
+        {partStates.map((st, i) => (
+          <p
+            key={i}
+            className={`text-[11px] flex items-center gap-1.5 ${
+              st === "error"
+                ? "text-danger"
+                : st === "done"
+                  ? "text-foreground/80"
+                  : "text-muted"
+            }`}
+          >
+            <span className="w-3 text-center">{mark[st]}</span>
+            {PART_TITLES[i + 1][lang]}
+          </p>
+        ))}
+      </div>
+      <p className="text-[11px] text-muted leading-relaxed text-center">{s.generatingNote}</p>
+    </div>
+  );
+}
+
 function GenerateButton({
   s,
   lang,
   busy,
-  progress,
+  partStates,
   disabled,
   label,
   onClick,
@@ -844,33 +973,12 @@ function GenerateButton({
   s: Record<string, string>;
   lang: Lang;
   busy: boolean;
-  progress: number;
+  partStates: PartState[];
   disabled: boolean;
   label: string;
   onClick: () => void;
 }) {
-  if (busy) {
-    return (
-      <div className="bg-card-bg border border-accent-gold/40 rounded-2xl p-4 text-center space-y-2">
-        <p className="text-sm font-bold text-accent-orange">
-          {s.generating} {progress}
-          {s.partOf.replace("{n}", String(PRO_PART_COUNT))}
-        </p>
-        <div className="h-2 bg-accent-gold/15 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-accent-orange transition-all duration-500"
-            style={{ width: `${(progress / PRO_PART_COUNT) * 100}%` }}
-          />
-        </div>
-        <p className="text-[11px] text-muted leading-relaxed">{s.generatingNote}</p>
-        <p className="text-[11px] text-muted/70">
-          {lang === "ko"
-            ? `${PART_TITLES[Math.min(progress + 1, PRO_PART_COUNT)].ko} 집필 중…`
-            : `${PART_TITLES[Math.min(progress + 1, PRO_PART_COUNT)].ja} を執筆中…`}
-        </p>
-      </div>
-    );
-  }
+  if (busy) return <PartProgress s={s} lang={lang} partStates={partStates} />;
 
   return (
     <button
@@ -900,24 +1008,32 @@ function ManualView({
   manual,
   saveFailed,
   busy,
-  progress,
+  partStates,
   error,
-  onRegenerate,
+  onGenerate,
 }: {
   s: Record<string, string>;
   lang: Lang;
   manual: StoredProManual;
   saveFailed: boolean;
   busy: boolean;
-  progress: number;
+  partStates: PartState[];
   error: string;
-  onRegenerate: () => void;
+  onGenerate: (only?: number[]) => void;
 }) {
   const byNo = useMemo(
     () => new Map(manual.chapters.map((c) => [c.no, c])),
     [manual.chapters]
   );
   const generated = new Date(manual.generatedAt);
+
+  const missingParts = useMemo(
+    () =>
+      Array.from({ length: PRO_PART_COUNT }, (_, i) => i + 1).filter((p) =>
+        chaptersOfPart(p).some((c) => !byNo.has(c.no))
+      ),
+    [byNo]
+  );
 
   return (
     <div className="space-y-4">
@@ -954,6 +1070,28 @@ function ManualView({
         <p className="text-[11px] text-danger leading-relaxed no-print">{s.savedWarn}</p>
       )}
 
+      {/* まだ書けていない部がある間の案内。書けた章はこの下ですぐ読める */}
+      {busy && (
+        <div className="no-print">
+          <PartProgress s={s} lang={lang} partStates={partStates} />
+        </div>
+      )}
+
+      {!busy && missingParts.length > 0 && (
+        <div className="no-print bg-danger/5 border border-danger/20 rounded-2xl p-3.5 space-y-2">
+          <p className="text-[12px] text-foreground/85 leading-relaxed">
+            {s.missingNote.replace("{n}", String(missingParts.length))}
+          </p>
+          {error && <p className="text-[12px] text-danger leading-relaxed">{error}</p>}
+          <button
+            onClick={() => onGenerate(missingParts)}
+            className="w-full bg-accent-orange text-white text-sm font-bold rounded-xl py-3"
+          >
+            {s.continueGenerate}
+          </button>
+        </div>
+      )}
+
       {/* 目次 */}
       <nav className="bg-card-bg border border-card-border rounded-2xl p-3.5 shadow-sm space-y-2">
         <p className="text-xs font-bold text-accent-gold flex items-center gap-1.5">
@@ -983,7 +1121,24 @@ function ManualView({
       {/* 本文 */}
       {PRO_CHAPTERS.map((spec) => {
         const ch = byNo.get(spec.no);
-        if (!ch) return null;
+        // まだ書けていない章は、抜けたことが分かるように枠だけ出す
+        if (!ch) {
+          return (
+            <section
+              key={spec.no}
+              id={`pro-${spec.no}`}
+              className="no-print scroll-mt-4 bg-card-bg/50 border border-dashed border-card-border rounded-2xl p-4 space-y-1"
+            >
+              <p className="text-[10px] tracking-widest text-muted font-bold">
+                {s.chapterLabel.replace("{n}", String(spec.no))}
+              </p>
+              <h3 className="text-base font-bold text-muted font-mincho leading-snug">
+                {spec.title[lang]}
+              </h3>
+              <p className="text-[11px] text-muted">{busy ? s.chapterWriting : s.chapterMissing}</p>
+            </section>
+          );
+        }
         return (
           <section
             key={spec.no}
@@ -1007,6 +1162,14 @@ function ManualView({
               ))}
             </div>
 
+            {/* 該当する章にだけ、計算結果そのものの図版を差し込む */}
+            <ChapterChart
+              no={spec.no}
+              birthDate={manual.birthDate}
+              birthTime={manual.birthTime}
+              lang={lang}
+            />
+
             {ch.keyPoints.length > 0 && (
               <div className="bg-accent-gold/8 border border-accent-gold/25 rounded-xl px-3 py-2.5 space-y-1">
                 <p className="text-[10px] font-bold text-accent-gold">{s.keyPoints}</p>
@@ -1028,16 +1191,16 @@ function ManualView({
       <p className="text-center text-[11px] text-muted/80 px-4 leading-relaxed">{s.disclaimer}</p>
 
       <div className="no-print space-y-2 pt-2">
-        <GenerateButton
-          s={s}
-          lang={lang}
-          busy={busy}
-          progress={progress}
-          disabled={false}
-          label={s.regenerate}
-          onClick={onRegenerate}
-        />
-        {error && (
+        {/* 作成中は上に進捗を出しているので、ここでは作り直しボタンだけ */}
+        {!busy && (
+          <button
+            onClick={() => onGenerate()}
+            className="w-full bg-accent-orange text-white text-base font-bold rounded-2xl py-4 shadow-sm"
+          >
+            {s.regenerate}
+          </button>
+        )}
+        {!busy && missingParts.length === 0 && error && (
           <p className="text-center text-[12px] text-danger leading-relaxed px-4">{error}</p>
         )}
         <p className="text-center text-[11px]">
