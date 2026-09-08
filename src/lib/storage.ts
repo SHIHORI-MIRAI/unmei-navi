@@ -70,6 +70,28 @@ export interface ManualReading {
   updatedAt?: string;
 }
 
+/** 家族・組織分析のメンバー1人。プロフィール未登録の人もその場で足せるよう埋め込みで持つ */
+export interface TeamMember {
+  id: string;
+  name: string;
+  birthDate: string; // YYYY-MM-DD
+  birthTime?: string; // HH:MM
+  role?: string; // 続柄・肩書き（父／母／代表 など）
+  /** 登録済みプロフィールから取り込んだ場合の参照元。プロフィール削除に影響されないよう値は複製して持つ */
+  profileId?: string;
+}
+
+/** 家族・組織などの集団。家族として見るか組織として見るかで役割の言葉が変わる */
+export interface TeamGroup {
+  id: string;
+  name: string;
+  kind: "family" | "business";
+  members: TeamMember[];
+  memo?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface OracleDraw {
   id: string;
   date: string; // YYYY-MM-DD
@@ -87,6 +109,7 @@ export interface AppData {
   manualReadings: ManualReading[];
   oracleDraws: OracleDraw[];
   lifeEvents: LifeEvent[];
+  teams: TeamGroup[];
 }
 
 const STORAGE_KEY = "unmei-navi-data";
@@ -105,6 +128,7 @@ function getDefaultData(): AppData {
     manualReadings: [],
     oracleDraws: [],
     lifeEvents: [],
+    teams: [],
   };
 }
 
@@ -361,6 +385,44 @@ export function deleteOracleDraw(id: string): void {
   saveData(data);
 }
 
+// --- Teams (家族・組織分析) ---
+
+export function loadTeams(): TeamGroup[] {
+  return loadData().teams.map((t) => ({
+    ...t,
+    id: t.id || generateId(),
+    kind: t.kind === "business" ? "business" : "family",
+    members: Array.isArray(t.members) ? t.members : [],
+  }));
+}
+
+export function loadTeamById(id: string): TeamGroup | null {
+  return loadTeams().find((t) => t.id === id) ?? null;
+}
+
+export function saveTeam(team: TeamGroup): boolean {
+  const data = loadData();
+  if (!team.id) team.id = generateId();
+  const idx = data.teams.findIndex((t) => t.id === team.id);
+  if (idx >= 0) {
+    data.teams[idx] = team;
+  } else {
+    data.teams.push(team);
+  }
+  return saveData(data);
+}
+
+export function deleteTeam(id: string): void {
+  const data = loadData();
+  data.teams = data.teams.filter((t) => t.id !== id);
+  saveData(data);
+}
+
+/** メンバー用のIDを払い出す（画面側で generateId を持たなくて済むように） */
+export function newTeamMemberId(): string {
+  return generateId();
+}
+
 // --- Life Events (人生の棚卸し) ---
 
 export function loadLifeEvents(): LifeEvent[] {
@@ -542,6 +604,7 @@ export function getDataSummary(): {
   readingCount: number;
   oracleCount: number;
   lifeEventCount: number;
+  teamCount: number;
 } {
   const data = loadData();
   return {
@@ -551,6 +614,7 @@ export function getDataSummary(): {
     readingCount: data.manualReadings.length,
     oracleCount: data.oracleDraws.length,
     lifeEventCount: data.lifeEvents.length,
+    teamCount: data.teams.length,
   };
 }
 
@@ -605,6 +669,15 @@ export function importData(json: string): boolean {
             typeof (e as LifeEvent).year === "number"
         ) as LifeEvent[])
       : [];
+    const teams = Array.isArray(obj.teams)
+      ? (obj.teams.filter(
+          (t) =>
+            t &&
+            typeof t === "object" &&
+            typeof (t as TeamGroup).name === "string" &&
+            Array.isArray((t as TeamGroup).members)
+        ) as TeamGroup[])
+      : [];
 
     if (
       profiles.length === 0 &&
@@ -612,7 +685,8 @@ export function importData(json: string): boolean {
       goals.length === 0 &&
       manualReadings.length === 0 &&
       oracleDraws.length === 0 &&
-      lifeEvents.length === 0
+      lifeEvents.length === 0 &&
+      teams.length === 0
     ) {
       return false;
     }
@@ -631,6 +705,7 @@ export function importData(json: string): boolean {
       manualReadings,
       oracleDraws,
       lifeEvents,
+      teams,
     };
     return saveData(next);
   } catch {

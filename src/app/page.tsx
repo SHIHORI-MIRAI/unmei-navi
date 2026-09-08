@@ -16,6 +16,12 @@ import {
 
 const GUIDE_BANNER_KEY = "unmei-guide-banner-dismissed";
 
+/** 家族・組織分析カードの文言（dict.ts は編集禁止のためローカルで保持） */
+const TEAM_CARD = {
+  ja: { title: "家族・組織の関係図", subtitle: "みんなの生年月日から、それぞれの役回りと足りない役割を見る" },
+  ko: { title: "가족·조직 관계도", subtitle: "모두의 생년월일에서 각자의 역할과 부족한 역할을 봅니다" },
+} as const;
+
 /** ホームの機能メニュー（水彩アイコン＋カードごとの淡い色味） */
 const MENU_ITEMS: {
   href: string;
@@ -385,6 +391,33 @@ export default function Home() {
             <span className="text-[9px] bg-accent-orange text-white px-1.5 py-0.5 rounded-full">{t("common.new")}</span>
           </div>
           <p className="text-[11px] text-muted mt-0.5">{t("home.manual.subtitle")}</p>
+        </div>
+        <span className="text-accent-gold/60 text-2xl mr-1 transition-transform group-hover:translate-x-0.5">
+          ›
+        </span>
+      </Link>
+
+      {/* 家族・組織の関係図（注目の新機能） */}
+      <Link
+        href="/team"
+        className="animate-fade-up group relative overflow-hidden flex items-center gap-3.5 rounded-2xl border border-accent-gold/30 p-3.5 shadow-sm transition-transform active:scale-[0.99]"
+        style={{
+          background:
+            "linear-gradient(135deg, rgba(90,164,105,0.14), rgba(232,130,12,0.10), rgba(255,255,255,0.6))",
+          animationDelay: "0.31s",
+        }}
+      >
+        <span className="flex-shrink-0 w-14 h-14 rounded-2xl bg-white/70 flex items-center justify-center text-3xl shadow-inner">
+          🧩
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <p className="font-mincho text-base font-bold text-foreground">
+              {TEAM_CARD[lang].title}
+            </p>
+            <span className="text-[9px] bg-accent-orange text-white px-1.5 py-0.5 rounded-full">{t("common.new")}</span>
+          </div>
+          <p className="text-[11px] text-muted mt-0.5">{TEAM_CARD[lang].subtitle}</p>
         </div>
         <span className="text-accent-gold/60 text-2xl mr-1 transition-transform group-hover:translate-x-0.5">
           ›

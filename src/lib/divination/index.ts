@@ -159,3 +159,17 @@ export {
   locationGroupLabel,
 } from "./birth-timezone";
 export type { BirthLocation } from "./birth-timezone";
+
+export { analyzeTeam, instinctLabel, INSTINCTS } from "./team";
+export type {
+  TeamKind,
+  TeamMemberInput,
+  TeamAnalysis,
+  MemberAnalysis,
+  MemberArchetype,
+  ElementSlice,
+  PairRelation,
+  PairRelationKind,
+  RoleGap,
+  Instinct,
+} from "./team";

@@ -49,6 +49,7 @@ const L: Record<Lang, Record<string, string>> = {
     msgNeedInput: "名前と生年月日を入力してください",
     msgAlready: "さんは既に登録済みです",
     msgSaved: "さんを登録しました",
+    teamLink: "3人以上でみる → 家族・組織の関係図",
   },
   ko: {
     title: "궁합 진단",
@@ -76,6 +77,7 @@ const L: Record<Lang, Record<string, string>> = {
     msgNeedInput: "이름과 생년월일을 입력해 주세요",
     msgAlready: "님은 이미 등록되어 있습니다",
     msgSaved: "님을 등록했습니다",
+    teamLink: "3명 이상으로 보기 → 가족·조직 관계도",
   },
 };
 
@@ -375,6 +377,13 @@ export default function CompatibilityPage() {
           </div>
         </div>
       )}
+
+      <Link
+        href="/team"
+        className="block text-center text-xs text-accent-gold hover:text-accent-orange py-2"
+      >
+        {tx.teamLink}
+      </Link>
 
       <p className="text-center text-xs text-muted/60 px-4">
         {tx.disclaimer}
