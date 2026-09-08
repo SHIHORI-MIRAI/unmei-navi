@@ -78,6 +78,21 @@ export interface OracleDraw {
   createdAt: string;
 }
 
+/** ノボケア（脳トレ）1プレイ分の記録 */
+export interface BrainSession {
+  id: string;
+  date: string; // YYYY-MM-DD
+  gameId: string;
+  level: number; // 1-5
+  score: number; // 0-100（正確さ＋速さ）
+  correct: number;
+  total: number;
+  timeMs: number;
+  stars: number; // 0-3
+  points: number; // 脳活ポイント
+  createdAt: string;
+}
+
 export interface AppData {
   profile: UserProfile | null;
   profiles: UserProfile[];
@@ -87,6 +102,7 @@ export interface AppData {
   manualReadings: ManualReading[];
   oracleDraws: OracleDraw[];
   lifeEvents: LifeEvent[];
+  brainSessions: BrainSession[];
 }
 
 const STORAGE_KEY = "unmei-navi-data";
@@ -105,6 +121,7 @@ function getDefaultData(): AppData {
     manualReadings: [],
     oracleDraws: [],
     lifeEvents: [],
+    brainSessions: [],
   };
 }
 
@@ -391,6 +408,29 @@ export function deleteLifeEvent(id: string): void {
 }
 
 /** 人生の棚卸しの年表だけをJSON文字列で書き出す（バックアップ用） */
+// ===== ノボケア（脳トレ）の記録 =====
+
+/** 保持する最大件数。localStorage(約5MB)を圧迫しないよう古いものから捨てる */
+const BRAIN_SESSION_LIMIT = 400;
+
+export function loadBrainSessions(): BrainSession[] {
+  return loadData().brainSessions;
+}
+
+/** 1プレイ分を追記する（新しい順に保持） */
+export function saveBrainSession(session: BrainSession): boolean {
+  const data = loadData();
+  data.brainSessions = [session, ...data.brainSessions].slice(0, BRAIN_SESSION_LIMIT);
+  return saveData(data);
+}
+
+/** 脳トレの記録だけを消す（他のデータは残す） */
+export function clearBrainSessions(): boolean {
+  const data = loadData();
+  data.brainSessions = [];
+  return saveData(data);
+}
+
 export function exportLifeEvents(): string {
   return JSON.stringify(
     {
@@ -542,6 +582,7 @@ export function getDataSummary(): {
   readingCount: number;
   oracleCount: number;
   lifeEventCount: number;
+  brainSessionCount: number;
 } {
   const data = loadData();
   return {
@@ -551,6 +592,7 @@ export function getDataSummary(): {
     readingCount: data.manualReadings.length,
     oracleCount: data.oracleDraws.length,
     lifeEventCount: data.lifeEvents.length,
+    brainSessionCount: data.brainSessions.length,
   };
 }
 
@@ -606,13 +648,24 @@ export function importData(json: string): boolean {
         ) as LifeEvent[])
       : [];
 
+    const brainSessions = Array.isArray(obj.brainSessions)
+      ? (obj.brainSessions.filter(
+          (b) =>
+            b &&
+            typeof b === "object" &&
+            typeof (b as BrainSession).gameId === "string" &&
+            typeof (b as BrainSession).score === "number"
+        ) as BrainSession[])
+      : [];
+
     if (
       profiles.length === 0 &&
       diary.length === 0 &&
       goals.length === 0 &&
       manualReadings.length === 0 &&
       oracleDraws.length === 0 &&
-      lifeEvents.length === 0
+      lifeEvents.length === 0 &&
+      brainSessions.length === 0
     ) {
       return false;
     }
@@ -631,6 +684,7 @@ export function importData(json: string): boolean {
       manualReadings,
       oracleDraws,
       lifeEvents,
+      brainSessions: brainSessions.slice(0, BRAIN_SESSION_LIMIT),
     };
     return saveData(next);
   } catch {
