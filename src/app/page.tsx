@@ -391,6 +391,39 @@ export default function Home() {
         </span>
       </Link>
 
+      {/* ノボケア（脳トレ）— 占い以外の日課として毎日ひらく入口 */}
+      <Link
+        href="/brain"
+        className="animate-fade-up group relative overflow-hidden flex items-center gap-3.5 rounded-2xl border border-accent-gold/30 p-3.5 shadow-sm transition-transform active:scale-[0.99]"
+        style={{
+          background:
+            "linear-gradient(135deg, rgba(124,92,214,0.14), rgba(232,130,12,0.10), rgba(255,255,255,0.6))",
+          animationDelay: "0.305s",
+        }}
+      >
+        <span className="flex-shrink-0 w-14 h-14 rounded-2xl bg-white/70 flex items-center justify-center text-3xl shadow-inner">
+          🧠
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <p className="font-mincho text-base font-bold text-foreground">
+              {lang === "ko" ? "노보케어 (두뇌 트레이닝)" : "ノボケア（脳トレ）"}
+            </p>
+            <span className="text-[9px] bg-accent-orange text-white px-1.5 py-0.5 rounded-full">
+              {t("common.new")}
+            </span>
+          </div>
+          <p className="text-[11px] text-muted mt-0.5">
+            {lang === "ko"
+              ? "게임으로 놀면서 오늘의 두뇌 나이를 측정"
+              : "ゲームで遊んで、今日の脳年齢を測定"}
+          </p>
+        </div>
+        <span className="text-accent-gold/60 text-2xl mr-1 transition-transform group-hover:translate-x-0.5">
+          ›
+        </span>
+      </Link>
+
       {/* 有料版メニュー（商品が増えても入口は1つ。中で商品を並べる） */}
       <Link
         href="/premium"
