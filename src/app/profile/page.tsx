@@ -17,7 +17,10 @@ import {
   getDataSummary,
   getStorageUsage,
   verifyWrite,
+  loadHouseSystem,
+  saveHouseSystem,
   type UserProfile,
+  type HouseSystemPref,
 } from "@/lib/storage";
 
 function generateId(): string {
@@ -45,6 +48,7 @@ export default function ProfilePage() {
   const [usage, setUsage] = useState({ used: 0, limit: 5 * 1024 * 1024, ratio: 0 });
   const [saveError, setSaveError] = useState<string>("");
   const [externalChange, setExternalChange] = useState(false);
+  const [houseSystem, setHouseSystem] = useState<HouseSystemPref>("placidus");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const refreshProfiles = useCallback(() => {
@@ -60,6 +64,7 @@ export default function ProfilePage() {
     if (profile) {
       setForm(profile);
     }
+    setHouseSystem(loadHouseSystem());
   }, [refreshProfiles]);
 
   // 別タブ・別ウィンドウで同じアプリが開かれてデータを書き換えた場合、
@@ -78,8 +83,19 @@ export default function ProfilePage() {
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    if (name === "birthLat" || name === "birthLng") {
+      const num = value === "" || isNaN(Number(value)) ? undefined : Number(value);
+      setForm((prev) => ({ ...prev, [name]: num }));
+    } else {
+      setForm((prev) => ({ ...prev, [name]: value }));
+    }
     setSaved(false);
+  }
+
+  function handleHouseSystem(pref: HouseSystemPref) {
+    setHouseSystem(pref);
+    saveHouseSystem(pref);
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -616,7 +632,48 @@ export default function ProfilePage() {
                 placeholder={t("profile.form.birthPlacePlaceholder")}
                 className="w-full bg-card-bg border border-card-border rounded-xl px-4 py-3 text-foreground placeholder:text-muted/50 focus:outline-none focus:border-accent-orange transition-colors"
               />
+              <p className="text-xs text-muted">
+                西洋占星術のアセンダント・ハウス計算に使います（都道府県名でOK）
+              </p>
             </div>
+
+            {/* 緯度・経度（任意・精度向上用） */}
+            <details className="bg-card-bg border border-card-border rounded-xl px-4 py-3">
+              <summary className="text-sm text-accent-gold cursor-pointer">
+                緯度・経度を直接入力（任意・より正確に）
+              </summary>
+              <div className="mt-3 space-y-3">
+                <p className="text-xs text-muted leading-relaxed">
+                  正確なハウス（特にプラシーダス）を出したい場合に入力します。空欄なら出生地から自動推定します。
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="block text-xs text-muted">緯度（北緯＋）</label>
+                    <input
+                      type="number"
+                      name="birthLat"
+                      step="0.01"
+                      value={form.birthLat ?? ""}
+                      onChange={handleChange}
+                      placeholder="例：35.43"
+                      className="w-full bg-background border border-card-border rounded-xl px-3 py-2 text-foreground placeholder:text-muted/50 focus:outline-none focus:border-accent-orange transition-colors"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-xs text-muted">経度（東経＋）</label>
+                    <input
+                      type="number"
+                      name="birthLng"
+                      step="0.01"
+                      value={form.birthLng ?? ""}
+                      onChange={handleChange}
+                      placeholder="例：133.25"
+                      className="w-full bg-background border border-card-border rounded-xl px-3 py-2 text-foreground placeholder:text-muted/50 focus:outline-none focus:border-accent-orange transition-colors"
+                    />
+                  </div>
+                </div>
+              </div>
+            </details>
 
             {/* メモ（受講生用） */}
             {(form.category ?? "self") === "student" && (
@@ -649,6 +706,43 @@ export default function ProfilePage() {
           </form>
         </>
       )}
+
+      {/* 占星術の設定：ハウス方式 */}
+      <section className="border-t border-card-border pt-6 space-y-3">
+        <h3 className="text-sm font-medium text-accent-gold flex items-center gap-1.5">
+          <span>◈</span> 西洋占星術のハウス方式
+        </h3>
+        <p className="text-xs text-muted leading-relaxed">
+          出生図と「運行中の星」のハウス（人生の領域）の割り出し方です。出生時刻がわかる方は<strong>プラシーダス</strong>が既定です。出生時刻が不明の場合は自動でソーラーサイン方式になります。
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          {(
+            [
+              { value: "placidus", label: "プラシーダス", desc: "既定・一般的" },
+              { value: "wholesign", label: "ホールサイン", desc: "星座＝ハウス" },
+            ] as const
+          ).map((opt) => {
+            const active = houseSystem === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => handleHouseSystem(opt.value)}
+                className={`text-center rounded-xl py-2.5 px-2 border transition-colors ${
+                  active
+                    ? "bg-accent-orange text-white border-accent-orange"
+                    : "bg-card-bg text-foreground border-card-border hover:border-accent-orange/50"
+                }`}
+              >
+                <span className="block text-sm font-medium">{opt.label}</span>
+                <span className={`block text-[10px] ${active ? "text-white/80" : "text-muted"}`}>
+                  {opt.desc}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
 
       {/* データ管理 */}
       <section className="border-t border-card-border pt-6 space-y-4">

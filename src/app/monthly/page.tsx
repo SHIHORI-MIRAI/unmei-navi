@@ -21,6 +21,10 @@ import { useI18n } from "@/lib/i18n/provider";
 import type { Lang } from "@/lib/i18n/dict";
 import { directionName } from "@/lib/i18n/fortune-terms";
 import {
+  getAstrologyMonthWave,
+  getAstrologyMonthSign,
+} from "@/lib/divination/astrology";
+import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
@@ -103,6 +107,7 @@ interface MonthDetail {
   numerology: { personalMonth: number; wave: number; theme: string; advice: string; caution: string };
   nineStar: { positionDirection: string; theme: string; wave: number; advice: string; caution: string; centerStar: number };
   fourPillars: { wave: number; kanshi: string; stem: string; branch: string; element: string };
+  astrology: { wave: number; sunSign: string };
   average: number;
 }
 
@@ -138,7 +143,10 @@ export default function MonthlyPage() {
       const fpWave = getFourPillarsMonthWave(birthDate, year, m);
       const fpInfo = getFourPillarsMonthInfo(year, m, lang);
 
-      const avg = Math.round((nWave + nsWave + fpWave) / 3);
+      const astWave = getAstrologyMonthWave(birthDate, year, m);
+      const astSunSign = getAstrologyMonthSign(year, m);
+
+      const avg = Math.round((nWave + nsWave + fpWave + astWave) / 4);
 
       list.push({
         month: m,
@@ -164,6 +172,7 @@ export default function MonthlyPage() {
           branch: fpInfo.branch,
           element: fpInfo.element,
         },
+        astrology: { wave: astWave, sunSign: astSunSign },
         average: avg,
       });
     }
@@ -230,6 +239,7 @@ export default function MonthlyPage() {
       { label: L[lang]["series.numerology"], data: details.map((d) => d.numerology.wave), ...subPoint("#8b5cf6"), order: 1 },
       { label: L[lang]["series.ninestar"], data: details.map((d) => d.nineStar.wave), ...subPoint("#10b981"), order: 2 },
       { label: L[lang]["series.fourpillars"], data: details.map((d) => d.fourPillars.wave), ...subPoint("#06b6d4"), order: 3 },
+      { label: "西洋占星術", data: details.map((d) => d.astrology.wave), ...subPoint("#f59e0b"), order: 4 },
     ],
   };
 
@@ -494,6 +504,31 @@ export default function MonthlyPage() {
                 : selected.fourPillars.wave >= 50
                 ? L[lang].fpMid
                 : L[lang].fpLow}
+            </p>
+          </div>
+
+          {/* 西洋占星術 */}
+          <div className="bg-card-bg border border-card-border rounded-2xl p-4 shadow-sm space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: "#f59e0b" }} />
+                <span className="text-sm font-medium text-foreground">西洋占星術</span>
+              </div>
+              <span className="text-sm font-bold" style={{ color: "#f59e0b" }}>
+                {selected.astrology.wave}
+                <span className="text-xs text-muted">/100</span>
+              </span>
+            </div>
+            <p className="text-xs text-muted">太陽が{selected.astrology.sunSign}を運行</p>
+            <p className="text-sm text-foreground/80">
+              トランジットの太陽とあなたの太陽星座の関係から、今月の勢いを示しています
+            </p>
+            <p className="text-xs text-accent-gold">
+              ▸ {selected.astrology.wave >= 70
+                ? "自分の季節。前に出ると注目が集まりやすいとき"
+                : selected.astrology.wave >= 50
+                ? "心地よく過ごせる月。マイペースが吉"
+                : "充電の月。次の誕生日に向けて静かに整えて"}
             </p>
           </div>
         </div>
