@@ -28,6 +28,7 @@ import {
   mayanToneName,
   mayanToneKeyword,
 } from "@/lib/i18n/fortune-terms";
+import { getAstrologyYearInfo } from "@/lib/divination/astrology";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -65,6 +66,7 @@ interface YearDetail {
   mayan: { label: string; wave: number; sealName: string; keyword: string; toneName: string; toneKeyword: string };
   nineStar: { positionName: string; wave: number; theme: string; advice: string; caution: string };
   fourPillars: { wave: number };
+  astrology: { wave: number; jupiterSign: string; theme: string; advice: string };
   average: number;
 }
 
@@ -99,7 +101,9 @@ export default function GraphPage() {
 
       const fpWave = getFourPillarsWave(profile.birthDate, y);
 
-      const avg = Math.round((nWave + mWave + nsWave + fpWave) / 4);
+      const astroInfo = getAstrologyYearInfo(profile.birthDate, y);
+
+      const avg = Math.round((nWave + mWave + nsWave + fpWave + astroInfo.wave) / 5);
 
       details.push({
         year: y,
@@ -126,6 +130,12 @@ export default function GraphPage() {
           caution: nsResult.yearPosition.caution,
         },
         fourPillars: { wave: fpWave },
+        astrology: {
+          wave: astroInfo.wave,
+          jupiterSign: astroInfo.jupiterSign,
+          theme: astroInfo.theme,
+          advice: astroInfo.advice,
+        },
         average: avg,
       });
     }
@@ -185,6 +195,7 @@ export default function GraphPage() {
       { label: t("graph.series.mayan"), data: yearDetails.map((d) => d.mayan.wave), ...subPoint("#e11d48"), order: 2 },
       { label: t("graph.series.ninestar"), data: yearDetails.map((d) => d.nineStar.wave), ...subPoint("#10b981"), order: 3 },
       { label: t("graph.series.fourpillars"), data: yearDetails.map((d) => d.fourPillars.wave), ...subPoint("#06b6d4"), order: 4 },
+      { label: "西洋占星術", data: yearDetails.map((d) => d.astrology.wave), ...subPoint("#f59e0b"), order: 5 },
     ],
   };
 
@@ -396,6 +407,23 @@ export default function GraphPage() {
             advice={selected.nineStar.advice}
             caution={selected.nineStar.caution}
           />
+
+          {/* 西洋占星術 */}
+          <div className="bg-card-bg border border-card-border rounded-2xl p-4 shadow-sm space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: "#f59e0b" }} />
+                <span className="text-sm font-medium text-foreground">西洋占星術</span>
+              </div>
+              <span className="text-sm font-bold" style={{ color: "#f59e0b" }}>
+                {selected.astrology.wave}
+                <span className="text-xs text-muted">/100</span>
+              </span>
+            </div>
+            <p className="text-xs text-muted">木星が{selected.astrology.jupiterSign}を運行</p>
+            <p className="text-sm text-foreground/80">{selected.astrology.theme}</p>
+            <p className="text-xs text-accent-gold">▸ {selected.astrology.advice}</p>
+          </div>
 
           {/* 月ごとの運勢への導線 */}
           <Link

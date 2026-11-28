@@ -19,9 +19,30 @@ export interface UserProfile {
   birthDate: string; // YYYY-MM-DD
   birthTime: string; // HH:MM or ""
   birthPlace: string;
+  birthLat?: number; // 出生地の緯度（北緯プラス）任意。プラシーダス精度向上用
+  birthLng?: number; // 出生地の経度（東経プラス）任意
   category?: ProfileCategory; // 未設定は "self" として扱う
   gender?: Gender; // 結婚相談所など男女クロス相性で使用、任意
   note?: string; // 受講生メモ（進捗・面談メモなど）
+}
+
+/** ハウス方式の設定（アプリ全体で共通）。既定はプラシーダス */
+export type HouseSystemPref = "placidus" | "wholesign";
+const HOUSE_SYSTEM_KEY = "unmei-house-system";
+
+export function loadHouseSystem(): HouseSystemPref {
+  if (typeof window === "undefined") return "placidus";
+  const v = localStorage.getItem(HOUSE_SYSTEM_KEY);
+  return v === "wholesign" ? "wholesign" : "placidus";
+}
+
+export function saveHouseSystem(pref: HouseSystemPref): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(HOUSE_SYSTEM_KEY, pref);
+  } catch (e) {
+    console.error("[storage] saveHouseSystem failed:", e);
+  }
 }
 
 export interface DiaryEntry {

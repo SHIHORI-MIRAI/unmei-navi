@@ -308,6 +308,24 @@ export default function Home() {
         </section>
       )}
 
+      {/* 星よみ・今のあなた */}
+      <Link
+        href="/now"
+        className="block bg-gradient-to-br from-accent-orange/10 to-accent-gold/10 border border-accent-orange/30 rounded-2xl p-4 shadow-sm hover:from-accent-orange/15 hover:to-accent-gold/15 transition-colors"
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-accent-orange flex items-center gap-1.5">
+              <span>✦</span> 星よみ・今のあなた
+            </p>
+            <p className="text-xs text-muted mt-0.5">
+              運行中の星・逆行から「今」を物語で読み解く
+            </p>
+          </div>
+          <span className="text-accent-orange text-xl">→</span>
+        </div>
+      </Link>
+
       {/* 詳細へのリンク（ゴールド枠のピル） */}
       <Link
         href="/detail"

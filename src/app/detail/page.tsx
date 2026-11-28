@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { loadProfile } from "@/lib/storage";
+import { loadProfile, loadHouseSystem } from "@/lib/storage";
 import {
   calcNumerology,
   calcMayan,
@@ -11,11 +11,14 @@ import {
   calcNineStar,
   calcFourPillars,
   calcSanmeigaku,
+  calcAstrology,
   type NumerologyResult,
   type MayanResult,
   type NineStarResult,
   type FourPillarsResult,
   type SanmeigakuResult,
+  type AstrologyResult,
+  type AstroElement,
 } from "@/lib/divination";
 import { useI18n } from "@/lib/i18n/provider";
 import type { Lang } from "@/lib/i18n/dict";
@@ -190,6 +193,7 @@ export default function DetailPage() {
   const [nineStar, setNineStar] = useState<NineStarResult | null>(null);
   const [fourPillars, setFourPillars] = useState<FourPillarsResult | null>(null);
   const [sanmeigaku, setSanmeigaku] = useState<SanmeigakuResult | null>(null);
+  const [astrology, setAstrology] = useState<AstrologyResult | null>(null);
 
   useEffect(() => {
     const profile = loadProfile();
@@ -204,16 +208,27 @@ export default function DetailPage() {
     setNineStar(calcNineStar(profile.birthDate, today.getFullYear(), lang));
     setFourPillars(calcFourPillars(profile.birthDate, profile.birthTime || undefined, lang));
     setSanmeigaku(calcSanmeigaku(profile.birthDate, lang));
+    setAstrology(
+      calcAstrology(profile.birthDate, profile.birthTime || undefined, profile.birthPlace || undefined, {
+        houseSystem: loadHouseSystem(),
+        lat: profile.birthLat,
+        lng: profile.birthLng,
+      })
+    );
   }, [router, lang]);
 
   const s = L[lang];
 
-  if (!numerology || !mayan || !todayMayan || !nineStar || !fourPillars || !sanmeigaku) {
+  if (!numerology || !mayan || !todayMayan || !nineStar || !fourPillars || !sanmeigaku || !astrology) {
     return <p className="text-muted text-center py-10">{t("astro.loading")}</p>;
   }
 
   const energyType =
     sanmeigaku.totalEnergy >= 24 ? s.energyHigh : sanmeigaku.totalEnergy >= 15 ? s.energyBalance : s.energyEco;
+
+  const elementColors: Record<AstroElement, string> = {
+    火: "#ef4444", 地: "#eab308", 風: "#38bdf8", 水: "#3b82f6",
+  };
 
   return (
     <div className="space-y-5">
@@ -553,6 +568,274 @@ export default function DetailPage() {
       >
         {s.astroLink.replace("{brand}", t("astro.brand"))}
       </Link>
+
+      {/* 星の配置の層（西洋占星術） */}
+      <section className="space-y-3">
+        <h3 className="text-sm font-medium text-accent-gold flex items-center gap-1.5">
+          <span>◈</span> 星の配置の層
+        </h3>
+
+        {/* 西洋占星術 */}
+        <div className="bg-card-bg border border-card-border rounded-2xl p-4 shadow-sm space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-foreground">西洋占星術（ホロスコープ）</span>
+            <span className="text-xs text-muted">自動計算 ★★</span>
+          </div>
+
+          {/* 3大重要ポイント: 太陽・月・アセンダント */}
+          <div className="grid grid-cols-3 gap-2 text-center">
+            {[
+              { label: "太陽星座", data: astrology.sun, sub: "本質・人生の目的" },
+              { label: "月星座", data: astrology.moon, sub: "感情・素の自分" },
+            ].map((item) => (
+              <div key={item.label} className="bg-accent-orange/5 border border-accent-orange/20 rounded-xl py-2 px-1">
+                <p className="text-[10px] text-muted">{item.label}</p>
+                <p className="text-lg leading-tight">{item.data.sign.symbol}</p>
+                <p className="text-sm font-bold text-accent-orange leading-tight">{item.data.sign.name}</p>
+                <p className="text-[10px] text-muted mt-0.5">{item.sub}</p>
+              </div>
+            ))}
+            <div className="bg-accent-gold/5 border border-accent-gold/20 rounded-xl py-2 px-1">
+              <p className="text-[10px] text-muted">アセンダント</p>
+              {astrology.ascendant ? (
+                <>
+                  <p className="text-lg leading-tight">{astrology.ascendant.sign.symbol}</p>
+                  <p className="text-sm font-bold text-accent-gold leading-tight">{astrology.ascendant.sign.name}</p>
+                  <p className="text-[10px] text-muted mt-0.5">第一印象・外見</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-lg leading-tight text-muted/50">？</p>
+                  <p className="text-[10px] text-muted leading-tight mt-1">出生時刻の<br />登録が必要です</p>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* 太陽星座の性格 */}
+          <div className="border-t border-card-border mt-2 pt-2 text-sm space-y-1">
+            <p>
+              <span className="text-muted">太陽星座（{astrology.sun.sign.name}）：</span>
+              <span className="text-muted text-xs">{astrology.sun.sign.element}・{astrology.sun.sign.modality}宮・{astrology.sun.sign.dateRange}</span>
+            </p>
+            <p className="text-foreground/80">{astrology.sun.sign.personality}</p>
+            <p className="text-xs text-accent-gold">▸ 強み：{astrology.sun.sign.strength}</p>
+          </div>
+
+          {/* 月星座 */}
+          <div className="border-t border-card-border mt-2 pt-2 text-sm space-y-1">
+            <p>
+              <span className="text-muted">月星座（{astrology.moon.sign.name}）：</span>
+            </p>
+            <p className="text-foreground/80 text-xs">{astrology.moon.interpretation}</p>
+          </div>
+
+          {/* ドラゴンヘッド & ドラゴンテイル */}
+          <div className="border-t border-card-border mt-2 pt-2 space-y-2">
+            <p className="text-muted text-xs">ドラゴンヘッド & テイル（魂の成長の軸）</p>
+
+            <div className="bg-accent-orange/5 border border-accent-orange/20 rounded-xl p-3 space-y-1">
+              <p className="text-sm">
+                <span className="text-accent-orange font-bold">☊ ドラゴンヘッド</span>
+                <span className="text-muted text-xs ml-1">今世で向かう方向</span>
+                <span className="font-medium text-foreground ml-1">
+                  {astrology.northNode.sign.name} {astrology.northNode.degree.toFixed(0)}°
+                </span>
+                {astrology.birthTimeKnown && astrology.northNode.house && (
+                  <span className="text-muted/70 text-xs ml-1">第{astrology.northNode.house}H</span>
+                )}
+              </p>
+              <p className="text-foreground/80 text-xs">▸ {astrology.nodeReading.growth}</p>
+            </div>
+
+            <div className="bg-card-border/10 border border-card-border rounded-xl p-3 space-y-1">
+              <p className="text-sm">
+                <span className="text-foreground/70 font-bold">☋ ドラゴンテイル</span>
+                <span className="text-muted text-xs ml-1">生まれ持った性質</span>
+                <span className="font-medium text-foreground ml-1">
+                  {astrology.southNode.sign.name} {astrology.southNode.degree.toFixed(0)}°
+                </span>
+                {astrology.birthTimeKnown && astrology.southNode.house && (
+                  <span className="text-muted/70 text-xs ml-1">第{astrology.southNode.house}H</span>
+                )}
+              </p>
+              <p className="text-foreground/80 text-xs">▸ {astrology.nodeReading.innate}</p>
+            </div>
+
+            {astrology.nodeReading.houseDirection && (
+              <p className="text-xs text-accent-gold">▸ {astrology.nodeReading.houseDirection}</p>
+            )}
+          </div>
+
+          {/* 10天体の配置 */}
+          <div className="border-t border-card-border mt-2 pt-2">
+            <p className="text-muted text-xs mb-1.5">天体の配置</p>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
+              {[astrology.sun, astrology.moon, ...astrology.planets].map((p) => (
+                <div key={p.key} className="flex items-center gap-1.5">
+                  <span className="text-accent-gold w-4 text-center">{p.symbol}</span>
+                  <span className="text-muted text-xs w-10">{p.name}</span>
+                  <span className="font-medium text-foreground text-xs">
+                    {p.sign.name}
+                    {p.retrograde && <span className="text-accent-orange ml-0.5" title="逆行">℞</span>}
+                    {p.house && <span className="text-muted/70 ml-1">第{p.house}H</span>}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* エレメントバランス */}
+          <div className="border-t border-card-border mt-2 pt-2">
+            <p className="text-muted text-xs mb-1">エレメント（4区分）バランス</p>
+            <div className="flex gap-1">
+              {(["火", "地", "風", "水"] as AstroElement[]).map((el) => {
+                const count = astrology.elementBalance[el];
+                return (
+                  <div key={el} className="flex-1 text-center">
+                    <div
+                      className="rounded-full h-6 flex items-center justify-center text-white text-[10px] font-bold"
+                      style={{ backgroundColor: elementColors[el], opacity: count > 0 ? 1 : 0.25 }}
+                    >
+                      {el}{count}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-xs text-accent-gold mt-1.5">
+              ▸ {astrology.dominantElement.element}の星座が多め：{astrology.dominantElement.description}
+            </p>
+          </div>
+
+          {/* ハウス方式 */}
+          <div className="border-t border-card-border mt-2 pt-2">
+            <p className="text-[11px] text-muted">
+              ハウス方式：<span className="text-foreground/80 font-medium">{astrology.houseSystemLabel}</span>
+            </p>
+          </div>
+
+          {/* 集中ポイント（最大3つ） */}
+          {astrology.highlights.length > 0 && (
+            <div className="border-t border-card-border mt-2 pt-2 space-y-2">
+              <p className="text-muted text-xs">あなたの星の集中ポイント</p>
+              {astrology.highlights.map((hl, i) => (
+                <div
+                  key={i}
+                  className="bg-accent-orange/5 border border-accent-orange/20 rounded-xl p-3 space-y-1"
+                >
+                  <p className="text-sm font-bold text-accent-orange">{hl.title}</p>
+                  <p className="text-xs text-foreground/80 leading-relaxed">{hl.body}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* 12ハウス一覧 */}
+          <div className="border-t border-card-border mt-2 pt-2">
+            <p className="text-muted text-xs mb-1.5">
+              12ハウス一覧（星がどの人生領域にあるか）
+            </p>
+            <div className="space-y-1">
+              {astrology.houseConcentration.houses
+                .filter((h) => h.bodies.length > 0)
+                .map((h) => {
+                  const isTop = astrology.houseConcentration.topHouses.includes(h.house);
+                  return (
+                    <div
+                      key={h.house}
+                      className={`rounded-lg px-2 py-1.5 ${
+                        isTop ? "bg-accent-orange/10 border border-accent-orange/30" : "bg-background"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`text-xs font-bold w-7 text-center shrink-0 ${
+                            isTop ? "text-accent-orange" : "text-muted"
+                          }`}
+                        >
+                          {h.house}H
+                        </span>
+                        <span className="text-[11px] text-foreground/80 flex-1 min-w-0">
+                          {h.label}
+                          {astrology.houseSystem === "placidus" && (
+                            <span className="text-muted/60 ml-1">
+                              〔{h.cuspSignName}{h.cuspDegree.toFixed(0)}°〜〕
+                            </span>
+                          )}
+                        </span>
+                        {isTop && astrology.houseConcentration.isStellium && (
+                          <span className="text-[9px] bg-accent-orange text-white px-1.5 py-0.5 rounded-full shrink-0">
+                            集中
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-foreground pl-9 mt-0.5">
+                        {h.bodies
+                          .map(
+                            (b) =>
+                              `${b.symbol}${b.name} ${b.signName}${b.degree.toFixed(0)}°${b.retrograde ? "℞" : ""}`
+                          )
+                          .join("・")}
+                      </p>
+                      <p className="text-[10px] text-muted pl-9">{h.hitokoto}</p>
+                    </div>
+                  );
+                })}
+            </div>
+
+            {/* 空のハウス（折りたたみ） */}
+            {astrology.houseConcentration.emptyHouses.length > 0 && (
+              <details className="mt-1.5">
+                <summary className="text-[11px] text-muted cursor-pointer pl-2">
+                  天体のないハウス（{astrology.houseConcentration.emptyHouses.length}個）を表示
+                </summary>
+                <div className="mt-1 space-y-0.5 pl-2">
+                  {astrology.houseConcentration.houses
+                    .filter((h) => h.bodies.length === 0)
+                    .map((h) => (
+                      <div key={h.house} className="flex items-center gap-2 text-[11px] text-muted">
+                        <span className="w-7 text-center shrink-0">{h.house}H</span>
+                        <span className="flex-1">{h.label}</span>
+                        {astrology.houseSystem === "placidus" && (
+                          <span className="text-muted/60">{h.cuspSignName}{h.cuspDegree.toFixed(0)}°</span>
+                        )}
+                      </div>
+                    ))}
+                </div>
+              </details>
+            )}
+
+            <p className="text-xs text-accent-gold mt-2 leading-relaxed">
+              ▸ {astrology.houseConcentration.summary}
+            </p>
+            {astrology.houseSystem === "solar" && (
+              <p className="text-[10px] text-muted/70 mt-1">
+                ※ {astrology.houseConcentration.note}
+              </p>
+            )}
+          </div>
+
+          {astrology.locationNote && (
+            <p className="text-[10px] text-muted/70 border-t border-card-border mt-2 pt-2">
+              ※ {astrology.locationNote}
+            </p>
+          )}
+          {!astrology.birthTimeKnown && (
+            <p className="text-[10px] text-muted/70 border-t border-card-border mt-2 pt-2">
+              ※ 出生時刻を登録すると、アセンダント（上昇宮）やより正確な月星座が計算できます。
+            </p>
+          )}
+
+          {/* 今のトランジット解説へ */}
+          <Link
+            href="/now"
+            className="block border-t border-card-border mt-2 pt-3 text-center text-accent-orange text-sm font-medium hover:text-accent-light transition-colors"
+          >
+            ✦ 今の星の運行から「今のあなた」を読む →
+          </Link>
+        </div>
+      </section>
 
       {/* 鑑定結果登録へ */}
       <Link

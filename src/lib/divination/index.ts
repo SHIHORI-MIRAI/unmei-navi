@@ -41,6 +41,37 @@ export {
 } from "./detailed-traits";
 export type { DetailedTrait } from "./detailed-traits";
 
+export {
+  calcAstrology,
+  calcTransitReading,
+  getAstrologyYearWave,
+  getAstrologyYearInfo,
+  getAstrologyMonthWave,
+  getAstrologyMonthSign,
+  SIGNS,
+  HOUSE_SYSTEM_LABEL,
+} from "./astrology";
+export type {
+  AstrologyResult,
+  AstrologyOptions,
+  HouseSystem,
+  AstroPlanetResult,
+  AstroPoint,
+  AstroSign,
+  AstroElement,
+  AstroModality,
+  AstroHouseInfo,
+  AstroHouseBody,
+  AstroHouseConcentration,
+  ChartHighlight,
+  AstroNodePoint,
+  NodeReading,
+  AstrologyYearInfo,
+  TransitReading,
+  TransitPlanetReading,
+  TransitHouseFocus,
+} from "./astrology";
+
 export { calcCompatibility, MODE_LABELS } from "./compatibility";
 export type { CompatibilityResult, RelationMode, CompatibilityDimension } from "./compatibility";
 

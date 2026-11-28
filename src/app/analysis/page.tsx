@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { loadProfile, type UserProfile } from "@/lib/storage";
+import { loadProfile, loadHouseSystem, type UserProfile } from "@/lib/storage";
 import UsageHelp from "@/components/UsageHelp";
 import { useI18n } from "@/lib/i18n/provider";
 import type { Lang } from "@/lib/i18n/dict";
@@ -25,12 +25,14 @@ import {
   getFourPillarsDetail,
   getSanmeigakuDetail,
   getNineStarDetail,
+  calcAstrology,
   type NumerologyResult,
   type MayanResult,
   type NineStarResult,
   type FourPillarsResult,
   type SanmeigakuResult,
   type DetailedTrait,
+  type AstrologyResult,
 } from "@/lib/divination";
 
 // --- 画面固有の二言語文言（dict.ts は編集禁止のためローカルに保持） ---
@@ -206,7 +208,8 @@ function extractCoreThemes(
   mayan: MayanResult,
   nineStar: NineStarResult,
   fourPillars: FourPillarsResult,
-  sanmeigaku: SanmeigakuResult
+  sanmeigaku: SanmeigakuResult,
+  astrology: AstrologyResult
 ): { theme: string; count: number; sources: string[] }[] {
   // 各占術からキーワードを収集（source付き）
   const keywordEntries: { keyword: string; source: string }[] = [];
@@ -233,6 +236,14 @@ function extractCoreThemes(
   // 九星気学の本命星の強み
   nineStar.honmeisei.strength.split(/[・、,]/).forEach((k) =>
     keywordEntries.push({ keyword: k.trim(), source: "九星気学" })
+  );
+
+  // 西洋占星術の太陽星座・月星座の強み
+  astrology.sun.sign.strength.split(/[・、,]/).forEach((k) =>
+    keywordEntries.push({ keyword: k.trim(), source: "西洋占星術" })
+  );
+  astrology.moon.sign.strength.split(/[・、,]/).forEach((k) =>
+    keywordEntries.push({ keyword: k.trim(), source: "西洋占星術" })
   );
 
   // 類似キーワードをグルーピング
@@ -286,19 +297,22 @@ function generateSummary(
   nineStar: NineStarResult,
   fourPillars: FourPillarsResult,
   sanmeigaku: SanmeigakuResult,
-  lang: Lang
+  lang: Lang,
+  astrology: AstrologyResult
 ): string {
   const n = numerology.lifePathMeaning;
   const seal = mayanSealName(mayan.solarSeal.name, lang);
   const honmei = nineStarName(nineStar.honmeisei.name, lang);
   const dm = fourPillars.dayMaster;
   const mainStar = sanmeigaku.mainStar;
+  const sunSign = astrology.sun.sign.name;
+  const moonSign = astrology.moon.sign.name;
 
   if (lang === "ko") {
-    return `당신은 수비학에서는 「${n.title}」, 마야력에서는 「${seal}」의 문장, 사주에서는 「${dm.title}(${dm.stem})」, 산명학에서는 「${mainStar.name}」, 구성기학에서는 「${honmei}」을(를) 지닌 사람입니다. 「${n.theme}」것이 인생의 테마이며, ${firstToken(dm.strength)}과(와) ${mainStar.keyword}이(가) 어우러진, 유니크한 강점의 조합을 지니고 있습니다.`;
+    return `당신은 수비학에서는 「${n.title}」, 마야력에서는 「${seal}」의 문장, 사주에서는 「${dm.title}(${dm.stem})」, 산명학에서는 「${mainStar.name}」, 구성기학에서는 「${honmei}」, 서양점성술에서는 태양별자리 「${sunSign}」·달별자리 「${moonSign}」을(를) 지닌 사람입니다. 「${n.theme}」것이 인생의 테마이며, ${firstToken(dm.strength)}과(와) ${mainStar.keyword}이(가) 어우러진, 유니크한 강점의 조합을 지니고 있습니다.`;
   }
 
-  return `あなたは数秘術では「${n.title}」、マヤ暦では「${seal}」の紋章、四柱推命では「${dm.title}（${dm.stem}）」、算命学では「${mainStar.name}」、九星気学では「${honmei}」の持ち主です。${n.theme}ことが人生のテーマであり、${firstToken(dm.strength)}と${mainStar.keyword}が掛け合わさった、ユニークな強みの組み合わせを持っています。`;
+  return `あなたは数秘術では「${n.title}」、マヤ暦では「${seal}」の紋章、四柱推命では「${dm.title}（${dm.stem}）」、算命学では「${mainStar.name}」、九星気学では「${honmei}」、西洋占星術では太陽星座「${sunSign}」・月星座「${moonSign}」の持ち主です。${n.theme}ことが人生のテーマであり、${firstToken(dm.strength)}と${mainStar.keyword}が掛け合わさった、ユニークな強みの組み合わせを持っています。`;
 }
 
 export default function AnalysisPage() {
@@ -330,14 +344,19 @@ export default function AnalysisPage() {
   const nineStar = calcNineStar(bd, today.getFullYear(), lang);
   const fourPillars = calcFourPillars(bd, bt, lang);
   const sanmeigaku = calcSanmeigaku(bd, lang);
+  const astrology = calcAstrology(bd, bt, profile.birthPlace || undefined, {
+    houseSystem: loadHouseSystem(),
+    lat: profile.birthLat,
+    lng: profile.birthLng,
+  });
 
   // テーマ抽出・詳細キー用（日本語固定）
   const numJa = lang === "ja" ? numerology : calcNumerology(bd, today, "ja");
   const fourPillarsJa = lang === "ja" ? fourPillars : calcFourPillars(bd, bt, "ja");
   const sanmeigakuJa = lang === "ja" ? sanmeigaku : calcSanmeigaku(bd, "ja");
 
-  const coreThemes = extractCoreThemes(numJa, mayan, nineStar, fourPillarsJa, sanmeigakuJa);
-  const summary = generateSummary(numerology, mayan, nineStar, fourPillars, sanmeigaku, lang);
+  const coreThemes = extractCoreThemes(numJa, mayan, nineStar, fourPillarsJa, sanmeigakuJa, astrology);
+  const summary = generateSummary(numerology, mayan, nineStar, fourPillars, sanmeigaku, lang, astrology);
   const multiSourceThemes = coreThemes.filter((th) => th.count >= 2);
   const singleThemes = coreThemes.filter((th) => th.count === 1);
 
@@ -382,6 +401,62 @@ export default function AnalysisPage() {
           <span>◈</span> {dd.summaryTitle}
         </h3>
         <p className="text-sm text-foreground/80 leading-relaxed">{summary}</p>
+      </div>
+
+      {/* 人生のテーマが集中する領域（西洋占星術・ハウス集中） */}
+      <div className="bg-gradient-to-br from-accent-orange/10 to-accent-gold/10 border border-accent-orange/30 rounded-2xl p-5 shadow-sm space-y-2">
+        <h3 className="text-sm font-medium text-accent-orange flex items-center gap-1.5">
+          <span>✦</span> 人生のテーマが集中する領域
+          {astrology.houseConcentration.isStellium && (
+            <span className="text-[10px] bg-accent-orange text-white px-2 py-0.5 rounded-full font-normal">
+              ステリウム
+            </span>
+          )}
+        </h3>
+        <div className="flex flex-wrap gap-1.5">
+          {astrology.houseConcentration.topHouses.map((hn) => {
+            const h = astrology.houseConcentration.houses[hn - 1];
+            return (
+              <span
+                key={hn}
+                className="text-xs bg-card-bg border border-accent-orange/40 text-accent-orange px-2.5 py-1 rounded-full"
+              >
+                第{hn}ハウス｜{h.label}（{h.bodies.map((b) => b.symbol).join("")}）
+              </span>
+            );
+          })}
+        </div>
+        <p className="text-sm text-foreground/80 leading-relaxed">
+          {astrology.houseConcentration.summary}
+        </p>
+      </div>
+
+      {/* 魂が向かう方向（ドラゴンヘッド／テイル） */}
+      <div className="bg-card-bg border border-card-border rounded-2xl p-5 shadow-sm space-y-3">
+        <h3 className="text-sm font-medium text-accent-gold flex items-center gap-1.5">
+          <span>☊</span> 魂が向かう成長の方向
+        </h3>
+        <div className="space-y-2">
+          <div>
+            <p className="text-xs text-accent-orange font-medium">
+              ☊ ドラゴンヘッド（今世で向かう方向）：{astrology.northNode.sign.name}
+            </p>
+            <p className="text-sm text-foreground/80 leading-relaxed">
+              {astrology.nodeReading.growth}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-foreground/60 font-medium">
+              ☋ ドラゴンテイル（生まれ持った性質）：{astrology.southNode.sign.name}
+            </p>
+            <p className="text-sm text-foreground/80 leading-relaxed">
+              {astrology.nodeReading.innate}
+            </p>
+          </div>
+        </div>
+        <p className="text-xs text-accent-gold leading-relaxed border-t border-card-border pt-2">
+          ▸ {astrology.nodeReading.summary}
+        </p>
       </div>
 
       {/* コア強み（複数占術で一致） */}
@@ -518,6 +593,46 @@ export default function AnalysisPage() {
               color: "#8b5cf6",
               personality: sanmeigaku.mainStar.personality,
               strength: sanmeigaku.mainStar.strength,
+            },
+          ]}
+        />
+
+        {/* 星の配置の層 */}
+        <LayerCard
+          layerName="星の配置の層"
+          layerDescription="西洋占星術が示す星の配置"
+          items={[
+            {
+              title: "太陽星座",
+              subtitle: `${astrology.sun.sign.symbol} ${astrology.sun.sign.name}（${astrology.sun.sign.element}・${astrology.sun.sign.modality}宮）`,
+              color: "#f59e0b",
+              personality: astrology.sun.sign.personality,
+              strength: astrology.sun.sign.strength,
+            },
+            {
+              title: "月星座",
+              subtitle: `${astrology.moon.sign.symbol} ${astrology.moon.sign.name}（${astrology.moon.sign.element}）`,
+              color: "#f59e0b",
+              personality: `感情・素の自分の表れ方：${astrology.moon.sign.keyword}を大切にする心の持ち主`,
+              strength: astrology.moon.sign.strength,
+            },
+            ...(astrology.ascendant
+              ? [
+                  {
+                    title: "アセンダント（上昇宮）",
+                    subtitle: `${astrology.ascendant.sign.symbol} ${astrology.ascendant.sign.name}`,
+                    color: "#eab308",
+                    personality: `第一印象や外から見た雰囲気に「${astrology.ascendant.sign.keyword}」の質が表れます`,
+                    strength: astrology.ascendant.sign.strength,
+                  },
+                ]
+              : []),
+            {
+              title: "エレメント傾向",
+              subtitle: `${astrology.dominantElement.element}の星座が多め`,
+              color: "#eab308",
+              personality: astrology.dominantElement.description,
+              strength: `${astrology.dominantModality.modality}宮の質：${astrology.dominantModality.description}`,
             },
           ]}
         />
